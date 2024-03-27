@@ -2,20 +2,15 @@
 //  ContentView.swift
 //  MetalGemini
 //
-//  Created by Bill Doughty on 3/27/24.
+//  Created by Gemini on 3/27/24.
 //
 
 import SwiftUI
+import MetalKit
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        MetalView()
     }
 }
 

@@ -11,6 +11,8 @@
 		B5E711AE2BB462F80092172A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AD2BB462F80092172A /* ContentView.swift */; };
 		B5E711B02BB462FA0092172A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E711AF2BB462FA0092172A /* Assets.xcassets */; };
 		B5E711B32BB462FA0092172A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E711B22BB462FA0092172A /* Preview Assets.xcassets */; };
+		B5E711BB2BB463510092172A /* MetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711BA2BB463510092172A /* MetalView.swift */; };
+		B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = B5E711BC2BB463B20092172A /* PixelShaders.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +22,8 @@
 		B5E711AF2BB462FA0092172A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B5E711B22BB462FA0092172A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		B5E711B42BB462FA0092172A /* MetalGemini.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MetalGemini.entitlements; sourceTree = "<group>"; };
+		B5E711BA2BB463510092172A /* MetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalView.swift; sourceTree = "<group>"; };
+		B5E711BC2BB463B20092172A /* PixelShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = PixelShaders.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +40,7 @@
 		B5E7119F2BB462F80092172A = {
 			isa = PBXGroup;
 			children = (
+				B5E711BC2BB463B20092172A /* PixelShaders.metal */,
 				B5E711AA2BB462F80092172A /* MetalGemini */,
 				B5E711A92BB462F80092172A /* Products */,
 			);
@@ -54,6 +59,7 @@
 			children = (
 				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
 				B5E711AD2BB462F80092172A /* ContentView.swift */,
+				B5E711BA2BB463510092172A /* MetalView.swift */,
 				B5E711AF2BB462FA0092172A /* Assets.xcassets */,
 				B5E711B42BB462FA0092172A /* MetalGemini.entitlements */,
 				B5E711B12BB462FA0092172A /* Preview Content */,
@@ -139,8 +145,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B5E711BB2BB463510092172A /* MetalView.swift in Sources */,
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
+				B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
