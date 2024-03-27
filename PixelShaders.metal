@@ -18,6 +18,11 @@ using namespace metal;
 //    outputTexture.write(float4(red, green, blue, 1.0), gid);
 //}
 
+struct ViewportSize {
+    float width;
+    float height;
+};
+
 struct Vertex {
     float4 position [[position]];
 };
@@ -35,6 +40,15 @@ vertex Vertex vertexShader(uint vertexID [[vertex_id]]) {
     Vertex out;
     out.position = float4(positions[vertexID], 0.0, 1.0);
     return out;
+}
+
+fragment float4 fragmentShader(Vertex interpolated [[stage_in]],
+                               constant ViewportSize& viewportSize [[buffer(0)]]) {
+    // You can now use viewportSize.width and viewportSize.height in your shader
+    // Example: computing a normalized position
+    float2 normalizedCoordinates = float2(interpolated.position.x / viewportSize.width, interpolated.position.y / viewportSize.height);
+    
+    return float4(normalizedCoordinates, 1.0, 1.0); // Example usage
 }
 
 

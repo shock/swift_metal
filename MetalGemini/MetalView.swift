@@ -8,6 +8,11 @@
 import SwiftUI
 import MetalKit
 
+struct ViewportSize {
+    var width: Float
+    var height: Float
+}
+
 struct MetalView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -34,6 +39,7 @@ struct MetalView: NSViewRepresentable {
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
         var metalPipelineState: MTLRenderPipelineState!
+        var viewportSizeBuffer: MTLBuffer?
 
         init(_ parent: MetalView) {
             self.parent = parent
@@ -56,7 +62,7 @@ struct MetalView: NSViewRepresentable {
                 }
 
                 // 2. Get the shader function
-                guard let pixelFunction = library.makeFunction(name: "pixelShader") else {
+                guard let pixelFunction = library.makeFunction(name: "fragmentShader") else {
                     fatalError("Could not find pixelShader function")
                 }
 
@@ -75,8 +81,16 @@ struct MetalView: NSViewRepresentable {
                  print("Failed to setup shader: \(error)")
             }
         }
+        
+        func updateViewportSize(_ view: MTKView) {
+            var viewportSize = ViewportSize(width: Float(view.drawableSize.width), height: Float(view.drawableSize.height))
+            viewportSizeBuffer = metalDevice.makeBuffer(bytes: &viewportSize, length: MemoryLayout<ViewportSize>.size, options: [])
 
-        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+        }
+
+        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            updateViewportSize(view);
+        }
 
         func draw(in view: MTKView) {
             guard let drawable = view.currentDrawable,
@@ -85,6 +99,10 @@ struct MetalView: NSViewRepresentable {
                   let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
             renderEncoder.setRenderPipelineState(metalPipelineState)
+            
+            updateViewportSize(view);
+            renderEncoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
+
             renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
             renderEncoder.endEncoding()
 
