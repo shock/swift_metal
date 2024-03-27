@@ -71,7 +71,7 @@ half4 ripple(float2 pos, float2 size, float time) {
 
 #define pos vout.position.xy
 
-fragment float4 fragmentShader(VertexOut vout [[stage_in]],
+fragment float4 fragmentShader0(VertexOut vout [[stage_in]],
                                constant float2& u_resolution [[buffer(0)]],
                                constant uint& u_frame [[buffer(1)]],
                                constant float& u_time [[buffer(2)]],

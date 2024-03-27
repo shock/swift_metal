@@ -50,8 +50,7 @@ struct MetalView: NSViewRepresentable {
         var parent: MetalView
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
-        var pass1PipelineState: MTLRenderPipelineState!
-        var pass2PipelineState: MTLRenderPipelineState!
+        var pipelineStates: [MTLRenderPipelineState]
         var viewportSizeBuffer: MTLBuffer?
         var frameCounter: UInt32
         var frameCounterBuffer: MTLBuffer?
@@ -59,12 +58,14 @@ struct MetalView: NSViewRepresentable {
         var timeIntervalBuffer: MTLBuffer?
         var passNumBuffer: MTLBuffer?
         var renderBuffers: [MTLTexture?]
+        var numBuffers = 0
 
         init(_ parent: MetalView) {
             self.parent = parent
             self.startDate = Date()
             self.frameCounter = 0
             self.renderBuffers = []
+            self.pipelineStates = []
             super.init()
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
@@ -84,42 +85,33 @@ struct MetalView: NSViewRepresentable {
             }
             do {
 
-                // 2. Get the shader function
-                guard let fragmentFunction = library.makeFunction(name: "fragmentShader") else {
-                    fatalError("Could not find pixelShader function")
+                for i in 0...MAX_RENDER_BUFFERS {
+                    // 2. Get the shader function
+                    guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
+                        print("Could not find fragmentShader\(i)")
+                        return
+                    }
+
+                    guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
+                        fatalError("Could not find vertexShader function")
+                    }
+
+                    // 3. Create a render pipeline state
+                    var pipelineDescriptor = MTLRenderPipelineDescriptor()
+                    pipelineDescriptor.vertexFunction = vertexFunction
+                    pipelineDescriptor.fragmentFunction = fragmentFunction
+                    pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+
+                    pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+                    numBuffers = i+1
                 }
-
-                guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                    fatalError("Could not find vertexShader function")
-                }
-
-                // 3. Create a render pipeline state
-                var pipelineDescriptor = MTLRenderPipelineDescriptor()
-                pipelineDescriptor.vertexFunction = vertexFunction
-                pipelineDescriptor.fragmentFunction = fragmentFunction
-                pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-
-                pass1PipelineState = try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor)
-
-                // 2. Get the shader function
-                guard let fragmentFunction = library.makeFunction(name: "contrastFilter") else {
-                    fatalError("Could not find contrastShader function")
-                }
-
-                guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                    fatalError("Could not find vertexShader function")
-                }
-
-                // 3. Create a render pipeline state
-                pipelineDescriptor = MTLRenderPipelineDescriptor()
-                pipelineDescriptor.vertexFunction = vertexFunction
-                pipelineDescriptor.fragmentFunction = fragmentFunction
-                pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-
-                pass2PipelineState = try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor)
             } catch {
                  print("Failed to setup shaders: \(error)")
             }
+            if numBuffers < 1 {
+                fatalError("Must have at least one fragment shader.")
+            }
+
         }
 
         
@@ -194,7 +186,7 @@ struct MetalView: NSViewRepresentable {
 
             guard let pass1Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass1Descriptor) else { return }
 
-                pass1Encoder.setRenderPipelineState(pass1PipelineState)
+                pass1Encoder.setRenderPipelineState(pipelineStates[0])
             setupRenderEncoder(pass1Encoder, 0)
             pass1Encoder.endEncoding()
 
@@ -206,7 +198,7 @@ struct MetalView: NSViewRepresentable {
 
             guard let pass2Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass2Descriptor) else { return }
 
-            pass2Encoder.setRenderPipelineState(pass1PipelineState)
+            pass2Encoder.setRenderPipelineState(pipelineStates[0])
             setupRenderEncoder(pass2Encoder, 1)
             pass2Encoder.endEncoding()
 
