@@ -82,8 +82,20 @@ fragment float4 fragmentShader0(VertexOut vout [[stage_in]],
                                texture2d<float> buffer3 [[texture(3)]]
                                ) {
     
-    if( u_pass == 0)
-        return float4(ripple(pos, u_resolution, u_time));
+    return float4(ripple(pos, u_resolution, u_time));
+}
+
+fragment float4 fragmentShader1(VertexOut vout [[stage_in]],
+                               constant float2& u_resolution [[buffer(0)]],
+                               constant uint& u_frame [[buffer(1)]],
+                               constant float& u_time [[buffer(2)]],
+                               constant uint& u_pass [[buffer(3)]],
+                               texture2d<float> buffer0 [[texture(0)]],
+                               texture2d<float> buffer1 [[texture(1)]],
+                               texture2d<float> buffer2 [[texture(2)]],
+                               texture2d<float> buffer3 [[texture(3)]]
+                               ) {
+    
     float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
     //    return float4(ripple(pos, u_resolution, u_time));
     return pow(pixelColor,3.);

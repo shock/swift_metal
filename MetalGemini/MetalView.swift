@@ -13,7 +13,7 @@ struct ViewportSize {
     var height: Float
 }
 
-public let MAX_RENDER_BUFFERS = 1
+public let MAX_RENDER_BUFFERS = 4
 
 struct MetalView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator {
@@ -85,7 +85,7 @@ struct MetalView: NSViewRepresentable {
             }
             do {
 
-                for i in 0...MAX_RENDER_BUFFERS {
+                for i in 0..<MAX_RENDER_BUFFERS {
                     // 2. Get the shader function
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
@@ -104,6 +104,7 @@ struct MetalView: NSViewRepresentable {
 
                     pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
                     numBuffers = i+1
+                    print("numBuffers: \(numBuffers)")
                 }
             } catch {
                  print("Failed to setup shaders: \(error)")
@@ -130,7 +131,7 @@ struct MetalView: NSViewRepresentable {
             // dealloc old buffers
             renderBuffers.removeAll()
             // Create the offscreen texture for pass 1
-            for _ in 0...MAX_RENDER_BUFFERS {
+            for _ in 0..<MAX_RENDER_BUFFERS {
                 renderBuffers.append(createRenderBuffer(size))
             }
         }
@@ -148,7 +149,7 @@ struct MetalView: NSViewRepresentable {
         }
 
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
-            for i in 0...MAX_RENDER_BUFFERS {
+            for i in 0..<MAX_RENDER_BUFFERS {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
 
@@ -178,29 +179,36 @@ struct MetalView: NSViewRepresentable {
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
-            // Pass 1: Render to the offscreen texture
-            let pass1Descriptor = MTLRenderPassDescriptor()
-            pass1Descriptor.colorAttachments[0].texture = renderBuffers[0]
-            pass1Descriptor.colorAttachments[0].loadAction = .load
-            pass1Descriptor.colorAttachments[0].storeAction = .store
+            for i in 0..<numBuffers {
+                // Pass 1: Render to the offscreen texture
+                let renderPassDescriptor = MTLRenderPassDescriptor()
+                if i < numBuffers-1 {
+                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]                
+                    renderPassDescriptor.colorAttachments[0].loadAction = .load
+                } else {
+                    renderPassDescriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
+                    renderPassDescriptor.colorAttachments[0].loadAction = .clear
+                }
+                renderPassDescriptor.colorAttachments[0].storeAction = .store
 
-            guard let pass1Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass1Descriptor) else { return }
+                guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
-                pass1Encoder.setRenderPipelineState(pipelineStates[0])
-            setupRenderEncoder(pass1Encoder, 0)
-            pass1Encoder.endEncoding()
+                commandEncoder.setRenderPipelineState(pipelineStates[i])
+                setupRenderEncoder(commandEncoder, 0)
+                commandEncoder.endEncoding()
 
-            // Pass 2: Render to a new render pass, processing the offscreen texture
-            let pass2Descriptor = MTLRenderPassDescriptor()
-            pass2Descriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
-            pass2Descriptor.colorAttachments[0].loadAction = .clear
-            pass2Descriptor.colorAttachments[0].storeAction = .store
+                // // Pass 2: Render to a new render pass, processing the offscreen texture
+                // let pass2Descriptor = MTLRenderPassDescriptor()
+                // pass2Descriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
+                // pass2Descriptor.colorAttachments[0].loadAction = .clear
+                // pass2Descriptor.colorAttachments[0].storeAction = .store
 
-            guard let pass2Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass2Descriptor) else { return }
+                // guard let pass2Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass2Descriptor) else { return }
 
-            pass2Encoder.setRenderPipelineState(pipelineStates[0])
-            setupRenderEncoder(pass2Encoder, 1)
-            pass2Encoder.endEncoding()
+                // pass2Encoder.setRenderPipelineState(pipelineStates[0])
+                // setupRenderEncoder(pass2Encoder, 1)
+                // pass2Encoder.endEncoding()
+            }
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
