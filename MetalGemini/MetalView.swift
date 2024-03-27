@@ -57,6 +57,7 @@ struct MetalView: NSViewRepresentable {
         var frameCounterBuffer: MTLBuffer?
         var startDate: Date!
         var timeIntervalBuffer: MTLBuffer?
+        var passNumBuffer: MTLBuffer?
         var renderBuffers: [MTLTexture?]
 
         init(_ parent: MetalView) {
@@ -154,36 +155,47 @@ struct MetalView: NSViewRepresentable {
             updateViewportSize(size);
         }
 
-        func draw(in view: MTKView) {
-            guard let drawable = view.currentDrawable,
-                  let commandBuffer = metalCommandQueue.makeCommandBuffer(),
-                  let renderPassDescriptor = view.currentRenderPassDescriptor else { return }
-                //   let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) 
+        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
+            for i in 0...MAX_RENDER_BUFFERS {
+                encoder.setFragmentTexture(renderBuffers[i], index: i)
+            }
 
             frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
             var elapsedTime = Float(-startDate.timeIntervalSinceNow)
             timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
-            // ... inside draw(in:) of your Coordinator ...
+
+            // pass the viewport dimensions to the fragment shader (u_resolution)
+            encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
+
+            // pass the frame number to the fragment shader (u_frame)
+            encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
+
+            // pass ellapsed time to fragment shader (u_time)
+            encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
+            
+            // pass the render pass number
+            var pNum = passNum
+            passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
+
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+            
+        }
+        
+        func draw(in view: MTKView) {
+            guard let drawable = view.currentDrawable,
+                  let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
             // Pass 1: Render to the offscreen texture
             let pass1Descriptor = MTLRenderPassDescriptor()
             pass1Descriptor.colorAttachments[0].texture = renderBuffers[0]
-            pass1Descriptor.colorAttachments[0].loadAction = .clear
+            pass1Descriptor.colorAttachments[0].loadAction = .load
             pass1Descriptor.colorAttachments[0].storeAction = .store
-            pass1Descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0) // Clear to transparent
 
             guard let pass1Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass1Descriptor) else { return }
 
-            pass1Encoder.setRenderPipelineState(pass1PipelineState)
-            // pass the viewport dimensions to the fragment shader (u_resolution)
-            pass1Encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
-
-            // pass the frame number to the fragment shader (u_frame)
-            pass1Encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
-
-            // pass ellapsed time to fragment shader (u_time)
-            pass1Encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
-            pass1Encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+                pass1Encoder.setRenderPipelineState(pass1PipelineState)
+            setupRenderEncoder(pass1Encoder, 0)
             pass1Encoder.endEncoding()
 
             // Pass 2: Render to a new render pass, processing the offscreen texture
@@ -194,17 +206,8 @@ struct MetalView: NSViewRepresentable {
 
             guard let pass2Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass2Descriptor) else { return }
 
-            pass2Encoder.setRenderPipelineState(pass2PipelineState)
-            pass2Encoder.setFragmentTexture(renderBuffers[0], index: 0)
-            // pass the viewport dimensions to the fragment shader (u_resolution)
-            pass2Encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
-
-            // pass the frame number to the fragment shader (u_frame)
-            pass2Encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
-
-            // pass ellapsed time to fragment shader (u_time)
-            pass2Encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
-            pass2Encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+            pass2Encoder.setRenderPipelineState(pass1PipelineState)
+            setupRenderEncoder(pass2Encoder, 1)
             pass2Encoder.endEncoding()
 
             commandBuffer.present(drawable)

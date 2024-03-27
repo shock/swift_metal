@@ -66,7 +66,7 @@ half4 ripple(float2 pos, float2 size, float time) {
     float d3 = length(rpos2-c3)/(30*r_size);
     float v3 = smoothstep(0.,1.,   cos(d3-time*rate*6.));
     v3 = v3 / 2 + 0.5;
-    return half4(v, v2, v3, 1);
+    return half4(v, v2, v3, 1.);
 }
 
 #define pos vout.position.xy
@@ -74,9 +74,20 @@ half4 ripple(float2 pos, float2 size, float time) {
 fragment float4 fragmentShader(VertexOut vout [[stage_in]],
                                constant float2& u_resolution [[buffer(0)]],
                                constant uint& u_frame [[buffer(1)]],
-                               constant float& u_time [[buffer(2)]]) {
+                               constant float& u_time [[buffer(2)]],
+                               constant uint& u_pass [[buffer(3)]],
+                               texture2d<float> buffer0 [[texture(0)]],
+                               texture2d<float> buffer1 [[texture(1)]],
+                               texture2d<float> buffer2 [[texture(2)]],
+                               texture2d<float> buffer3 [[texture(3)]]
+                               ) {
     
-    return float4(ripple(pos, u_resolution, u_time));
+    if( u_pass == 0)
+        return float4(ripple(pos, u_resolution, u_time));
+    float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
+    //    return float4(ripple(pos, u_resolution, u_time));
+    return pow(pixelColor,3.);
+
     // Now you can use 'u_frame' in your shader logic
     // Example usage: Creating a flashing effect based on the frame counter
     float flash = fract(float(u_frame) / 60.);
@@ -104,13 +115,17 @@ fragment float4 contrastFilter(VertexOut vout [[stage_in]],
                                constant float2& u_resolution [[buffer(0)]],
                                constant uint& u_frame [[buffer(1)]],
                                constant float& u_time [[buffer(2)]],
-                               texture2d<float> inputTexture [[texture(0)]]) {
-    
+                               constant uint& u_pass [[buffer(3)]],
+                               texture2d<float> buffer0 [[texture(0)]],
+                               texture2d<float> buffer1 [[texture(1)]],
+                               texture2d<float> buffer2 [[texture(2)]],
+                               texture2d<float> buffer3 [[texture(3)]]
+                               ) {
     float angle = u_time;
     float2 rpos = pos - u_resolution/2;
     rpos = V2R(rpos, angle);
     rpos += u_resolution/2;
-    float4 pixelColor = inputTexture.sample(sampler(mag_filter::linear, min_filter::linear), rpos/u_resolution);
+    float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), rpos/u_resolution);
     //    return float4(ripple(pos, u_resolution, u_time));
     return pow(pixelColor,1.8);
 }
