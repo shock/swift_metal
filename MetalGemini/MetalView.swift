@@ -5,16 +5,15 @@
 //  Created by Gemini on 3/27/24.
 //
 
-import Foundation
 import SwiftUI
 import MetalKit
 
-struct MetalView: UIViewRepresentable {
+struct MetalView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    func makeUIView(context: Context) -> MTKView {
+    func makeNSView(context: Context) -> MTKView {
         let mtkView = MTKView()
         mtkView.delegate = context.coordinator
         mtkView.preferredFramesPerSecond = 60
@@ -28,7 +27,7 @@ struct MetalView: UIViewRepresentable {
         return mtkView
     }
 
-    func updateUIView(_ uiView: MTKView, context: Context) {}
+    func updateNSView(_ nsView: MTKView, context: Context) {}
 
     class Coordinator: NSObject, MTKViewDelegate {
         var parent: MetalView
@@ -38,6 +37,8 @@ struct MetalView: UIViewRepresentable {
 
         init(_ parent: MetalView) {
             self.parent = parent
+            super.init()
+
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
             }
@@ -45,11 +46,30 @@ struct MetalView: UIViewRepresentable {
 
             // Load the shader and create the pipeline state
             setupShader() // You'll implement this function
-            super.init()
         }
 
         func setupShader() {
-            // To be implemented in the next step
+            do {
+                // 1. Load the Metal library
+                guard let library = metalDevice.makeDefaultLibrary() else {
+                    fatalError("Could not load default Metal library")
+                }
+
+                // 2. Get the shader function
+                guard let pixelFunction = library.makeFunction(name: "pixelShader") else {
+                    fatalError("Could not find pixelShader function")
+                }
+
+                // 3. Create a render pipeline state
+                let pipelineDescriptor = MTLRenderPipelineDescriptor()
+                pipelineDescriptor.vertexFunction = nil  // No vertex processing
+                pipelineDescriptor.fragmentFunction = pixelFunction
+                pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm // Adjust if needed
+
+                metalPipelineState = try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor)
+            } catch {
+                 print("Failed to setup shader: \(error)")
+            }
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
