@@ -60,9 +60,13 @@ struct MetalView: NSViewRepresentable {
                     fatalError("Could not find pixelShader function")
                 }
 
+                guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
+                    fatalError("Could not find vertexShader function")
+                }
+
                 // 3. Create a render pipeline state
                 let pipelineDescriptor = MTLRenderPipelineDescriptor()
-                pipelineDescriptor.vertexFunction = nil  // No vertex processing
+                pipelineDescriptor.vertexFunction = vertexFunction  // No vertex processing
                 pipelineDescriptor.fragmentFunction = pixelFunction
                 pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm // Adjust if needed
 
