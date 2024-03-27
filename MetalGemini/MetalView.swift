@@ -40,16 +40,23 @@ struct MetalView: NSViewRepresentable {
         var metalCommandQueue: MTLCommandQueue!
         var metalPipelineState: MTLRenderPipelineState!
         var viewportSizeBuffer: MTLBuffer?
+        var frameCounter: UInt32
+        var frameCounterBuffer: MTLBuffer?
+        var startDate: Date!
+        var timeIntervalBuffer: MTLBuffer?
 
         init(_ parent: MetalView) {
             self.parent = parent
+            self.startDate = Date()
+            self.frameCounter = 0
             super.init()
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
             }
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
-
+            
+            
             // Load the shader and create the pipeline state
             setupShader() // You'll implement this function
         }
@@ -82,14 +89,15 @@ struct MetalView: NSViewRepresentable {
             }
         }
         
-        func updateViewportSize(_ view: MTKView) {
-            var viewportSize = ViewportSize(width: Float(view.drawableSize.width), height: Float(view.drawableSize.height))
+        func updateViewportSize(_ size: CGSize) {
+            var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
             viewportSizeBuffer = metalDevice.makeBuffer(bytes: &viewportSize, length: MemoryLayout<ViewportSize>.size, options: [])
-
+            frameCounter = 0
+            startDate = Date()
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-            updateViewportSize(view);
+            updateViewportSize(size);
         }
 
         func draw(in view: MTKView) {
@@ -100,8 +108,18 @@ struct MetalView: NSViewRepresentable {
 
             renderEncoder.setRenderPipelineState(metalPipelineState)
             
-            updateViewportSize(view);
+            // pass the viewport dimensions to the fragment shader (u_resolution)
             renderEncoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
+
+            // pass the frame number to the fragment shader (u_frame)
+            frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            renderEncoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
+            frameCounter += 1
+
+            // pass ellapsed time to fragment shader (u_time)
+            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
+            renderEncoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
 
             renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
             renderEncoder.endEncoding()

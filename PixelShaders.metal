@@ -23,11 +23,11 @@ struct ViewportSize {
     float height;
 };
 
-struct Vertex {
+struct VertexOut {
     float4 position [[position]];
 };
 
-vertex Vertex vertexShader(uint vertexID [[vertex_id]]) {
+vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
     const float2 positions[6] = {
         {-1.0, -1.0},
         { 1.0, -1.0},
@@ -37,19 +37,33 @@ vertex Vertex vertexShader(uint vertexID [[vertex_id]]) {
         { 1.0,  1.0},
     };
     
-    Vertex out;
+    VertexOut out;
     out.position = float4(positions[vertexID], 0.0, 1.0);
     return out;
 }
 
-fragment float4 fragmentShader(Vertex interpolated [[stage_in]],
-                               constant ViewportSize& viewportSize [[buffer(0)]]) {
-    // You can now use viewportSize.width and viewportSize.height in your shader
-    // Example: computing a normalized position
-    float2 normalizedCoordinates = float2(interpolated.position.x / viewportSize.width, interpolated.position.y / viewportSize.height);
+fragment float4 fragmentShader(VertexOut vout [[stage_in]],
+                               constant ViewportSize& u_resolution [[buffer(0)]],
+                               constant uint& u_frame [[buffer(1)]],
+                               constant float& u_time [[buffer(2)]]) {
+    // Now you can use 'u_frame' in your shader logic
+    // Example usage: Creating a flashing effect based on the frame counter
+    float flash = fract(float(u_frame) / 60.);
+    float4 pos = vout.position;
+    if( pos.x < u_resolution.width / 2)
+        flash = fract(u_time);
     
-    return float4(normalizedCoordinates, 1.0, 1.0); // Example usage
+    return float4(flash, flash, flash, 1.0);
 }
+
+// fragment float4 fragmentShader(VertexOut vout [[stage_in]],
+//                                constant ViewportSize& u_resolution [[buffer(0)]]) {
+//     // You can now use u_resolution.width and u_resolution.height in your shader
+//     // Example: computing a normalized position
+//     float2 normalizedCoordinates = float2(vout.position.x / u_resolution.width, vout.position.y / u_resolution.height);
+    
+//     return float4(normalizedCoordinates, 1.0, 1.0); // Example usage
+// }
 
 
 fragment float4 pixelShader() {
