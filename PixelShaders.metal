@@ -42,7 +42,16 @@ vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
     return out;
 }
 
+#define V2R(p,a) (cos(a)*p+sin(a)*float2(p.y,-p.x))
+
 half4 ripple(float2 pos, float2 size, float time) {
+    float angle = time;
+    float2 rpos1 = pos - size/2;
+    rpos1 = V2R(rpos1, -angle);
+    rpos1 += size/2;
+    float2 rpos2 = pos - size/2;
+    rpos2 = V2R(rpos2, angle);
+    rpos2 += size/2;
     float2 c = size/2;
     float r_size = 2;
     float rate = 0.1;
@@ -51,10 +60,10 @@ half4 ripple(float2 pos, float2 size, float time) {
     float d = length(pos-c)/(10*r_size);
     float v = smoothstep(0.,1.,cos(d-time*rate*4.));
     v = v / 2 + 0.5;
-    float d2 = length(pos-c2)/(20*r_size);
+    float d2 = length(rpos1-c2)/(20*r_size);
     float v2 = smoothstep(0.,1.,   cos(d2-time*rate*5.));
     v2 = v2 / 2 + 0.5;
-    float d3 = length(pos-c3)/(30*r_size);
+    float d3 = length(rpos2-c3)/(30*r_size);
     float v3 = smoothstep(0.,1.,   cos(d3-time*rate*6.));
     v3 = v3 / 2 + 0.5;
     return half4(v, v2, v3, 1);
@@ -91,3 +100,17 @@ fragment float4 pixelShader() {
     return float4(1, 1, 0, 1); // Draw every pixel red.
 }
 
+fragment float4 contrastFilter(VertexOut vout [[stage_in]],
+                               constant float2& u_resolution [[buffer(0)]],
+                               constant uint& u_frame [[buffer(1)]],
+                               constant float& u_time [[buffer(2)]],
+                               texture2d<float> inputTexture [[texture(0)]]) {
+    
+    float angle = u_time;
+    float2 rpos = pos - u_resolution/2;
+    rpos = V2R(rpos, angle);
+    rpos += u_resolution/2;
+    float4 pixelColor = inputTexture.sample(sampler(mag_filter::linear, min_filter::linear), rpos/u_resolution);
+    //    return float4(ripple(pos, u_resolution, u_time));
+    return pow(pixelColor,1.8);
+}
