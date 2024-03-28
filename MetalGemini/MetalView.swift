@@ -16,8 +16,9 @@ struct ViewportSize {
 public let MAX_RENDER_BUFFERS = 4
 
 struct MetalView: NSViewRepresentable {
+    @ObservedObject var model: SharedDataModel // Reference the ObservableObject
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(self, model: model)
     }
 
     func makeNSView(context: Context) -> MTKView {
@@ -35,7 +36,7 @@ struct MetalView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: MTKView, context: Context) {
-        print("updateNSView called")
+//        print("updateNSView called")
     }
     
     func sizeThatFits( _ proposal: ProposedViewSize, 
@@ -47,6 +48,7 @@ struct MetalView: NSViewRepresentable {
 
 
     class Coordinator: NSObject, MTKViewDelegate {
+        var model: SharedDataModel
         var parent: MetalView
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
@@ -60,12 +62,13 @@ struct MetalView: NSViewRepresentable {
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
 
-        init(_ parent: MetalView) {
+        init(_ parent: MetalView, model: SharedDataModel ) {
             self.parent = parent
             self.startDate = Date()
             self.frameCounter = 0
             self.renderBuffers = []
             self.pipelineStates = []
+            self.model = model
             super.init()
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
@@ -97,7 +100,7 @@ struct MetalView: NSViewRepresentable {
                     }
 
                     // 3. Create a render pipeline state
-                    var pipelineDescriptor = MTLRenderPipelineDescriptor()
+                    let pipelineDescriptor = MTLRenderPipelineDescriptor()
                     pipelineDescriptor.vertexFunction = vertexFunction
                     pipelineDescriptor.fragmentFunction = fragmentFunction
                     pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
@@ -213,7 +216,7 @@ struct MetalView: NSViewRepresentable {
             commandBuffer.present(drawable)
             commandBuffer.commit()
             frameCounter += 1
-
+            model.frameCount = frameCounter
         }
     }
 }
