@@ -33,27 +33,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Create the main menu
         mainMenu = NSMenu(title: "MainMenu")
-        let appMenuItem = NSMenu(title: "MetalGemini")
-        appMenuItem.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        let appMenu1 = NSMenuItem()
-        appMenu1.submenu = appMenuItem
-        mainMenu.addItem(appMenu1)
+        let appMenu = NSMenu(title: "MetalGemini")
+        appMenu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let appMenuItem = NSMenuItem()
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
 
         // Create the application's submenus (File, Edit, etc.)
         let fileMenu = NSMenu(title: "File")
         // Add items to your file menu...
-        let appMenu = NSMenuItem()
-        appMenu.submenu = fileMenu
-        mainMenu.addItem(appMenu)
-        
-        // File Menu
-//        let fileMenu = NSMenu(title: "File")
+        let fileMenuItem = NSMenuItem()
+        fileMenuItem.submenu = fileMenu
         let newItem = NSMenuItem(title: "New", action: #selector(createNewFile), keyEquivalent: "n")
         fileMenu.addItem(newItem)
         fileMenu.addItem(NSMenuItem.separator()) // Add a separator
-//        fileMenu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-//        mainMenu.addItem(fileMenu)
-
+        mainMenu.addItem(fileMenuItem)
+        
+//        let windowMenu = NSMenu(title: "Window")
+//        let windowMenuItem = NSMenuItem()
+//        let showWindowItem = NSMenuItem(title: "Show", action: #selector(showRenderWindow), keyEquivalent: "n")
+//        windowMenu.addItem(showWindowItem)
+//        windowMenu.addItem(NSMenuItem.separator()) // Add a separator
+//        windowMenuItem.submenu = windowMenu
+//        mainMenu.addItem(windowMenuItem)
+        NSApp.windowsMenu = NSMenu(title: "Window") // Add a default Window menu
 
         // Set the main menu
         NSApplication.shared.mainMenu = mainMenu
@@ -63,3 +66,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true // Let SwiftUI manage window closing
     }
 }
+
