@@ -25,20 +25,22 @@ class SharedDataModel: ObservableObject {
     @Published var lastFrame: UInt32 = 0
     @Published var fps: Double = 0
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
+    @Published var selectedFile: URL? = nil
 }
 
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
     @StateObject var model = SharedDataModel()
-    
+
     var date = Date()
-    
+
     var body: some View {
         VStack{
             MetalView(model: model)
                 .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
             Text("FPS: \(model.fps)")
+            Text("File: \(String(describing: model.selectedFile))")
             Button("Open File") {
                 let fileDialog = FileDialog(selectedURL: $selectedURL)
                 fileDialog.openDialog()
@@ -48,8 +50,16 @@ struct ContentView: View {
         .onChange(of: model.frameCount) {
             doFrame()
         }
+        .onChange(of: selectedURL) {
+            handleFileChange()
+        }
     }
-    
+
+    func handleFileChange() {
+        model.selectedFile = selectedURL
+
+    }
+
     func doFrame() {
         let now = Date().timeIntervalSince1970
         let delta = now - model.lastTime
