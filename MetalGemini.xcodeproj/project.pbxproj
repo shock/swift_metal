@@ -15,6 +15,7 @@
 		B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = B5E711BC2BB463B20092172A /* PixelShaders.metal */; };
 		B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711F82BB4ED500092172A /* CustomWindowController.swift */; };
 		B5E711FB2BB4F3BB0092172A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FA2BB4F3BB0092172A /* main.swift */; };
+		B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FC2BB5A8F70092172A /* FileDialog.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,8 @@
 		B5E711BC2BB463B20092172A /* PixelShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = PixelShaders.metal; sourceTree = "<group>"; };
 		B5E711F82BB4ED500092172A /* CustomWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWindowController.swift; sourceTree = "<group>"; };
 		B5E711FA2BB4F3BB0092172A /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		B5E711FC2BB5A8F70092172A /* FileDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDialog.swift; sourceTree = "<group>"; };
+		B5E711FE2BB5B4E50092172A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +64,7 @@
 		B5E711AA2BB462F80092172A /* MetalGemini */ = {
 			isa = PBXGroup;
 			children = (
+				B5E711FE2BB5B4E50092172A /* Info.plist */,
 				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
 				B5E711AD2BB462F80092172A /* ContentView.swift */,
 				B5E711BA2BB463510092172A /* MetalView.swift */,
@@ -69,6 +73,7 @@
 				B5E711B12BB462FA0092172A /* Preview Content */,
 				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
 				B5E711FA2BB4F3BB0092172A /* main.swift */,
+				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
 			);
 			path = MetalGemini;
 			sourceTree = "<group>";
@@ -155,6 +160,7 @@
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
 				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
+				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
 				B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */,
 			);
@@ -295,6 +301,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MetalGemini/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -322,6 +329,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MetalGemini/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

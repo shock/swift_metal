@@ -28,6 +28,7 @@ class SharedDataModel: ObservableObject {
 }
 
 struct ContentView: View {
+    @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
     @StateObject var model = SharedDataModel()
     
@@ -37,7 +38,12 @@ struct ContentView: View {
         VStack{
             MetalView(model: model)
                 .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-            Text("FPS: \(model.fps)").padding([.bottom],6)
+            Text("FPS: \(model.fps)")
+            Button("Open File") {
+                let fileDialog = FileDialog(selectedURL: $selectedURL)
+                fileDialog.openDialog()
+            }
+            .padding([.bottom],6)
         }
         .onChange(of: model.frameCount) {
             doFrame()
