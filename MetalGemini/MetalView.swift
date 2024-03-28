@@ -38,8 +38,8 @@ struct MetalView: NSViewRepresentable {
     func updateNSView(_ nsView: MTKView, context: Context) {
 //        print("updateNSView called")
     }
-    
-    func sizeThatFits( _ proposal: ProposedViewSize, 
+
+    func sizeThatFits( _ proposal: ProposedViewSize,
                        nsView: Self.NSViewType,
                        context: Self.Context ) -> CGSize? {
         return nil
@@ -75,13 +75,15 @@ struct MetalView: NSViewRepresentable {
                 self.metalDevice = metalDevice
             }
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
-            
-            
+
+
             // Load the shader and create the pipeline state
             setupShaders() // You'll implement this function
         }
 
         func setupShaders() {
+            numBuffers = 0
+            pipelineStates.removeAll()
             // 1. Load the Metal library
             guard let library = metalDevice.makeDefaultLibrary() else {
                 fatalError("Could not load default Metal library")
@@ -118,12 +120,12 @@ struct MetalView: NSViewRepresentable {
 
         }
 
-        
+
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
             let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm,
-                                                                                width: Int(size.width), 
-                                                                                height: Int(size.height), 
+                                                                                width: Int(size.width),
+                                                                                height: Int(size.height),
                                                                                 mipmapped: false)
             offscreenTextureDescriptor.usage = [.renderTarget, .shaderRead]
             let buffer = metalDevice.makeTexture(descriptor: offscreenTextureDescriptor)!
@@ -138,13 +140,18 @@ struct MetalView: NSViewRepresentable {
                 renderBuffers.append(createRenderBuffer(size))
             }
         }
-        
+
         func updateViewportSize(_ size: CGSize) {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
             viewportSizeBuffer = metalDevice.makeBuffer(bytes: &viewportSize, length: MemoryLayout<ViewportSize>.size, options: [])
-            // frameCounter = 0
-            // startDate = Date()
             setupRenderBuffers(size)
+        }
+
+        func reloadShaders() {
+            frameCounter = 0
+            startDate = Date()
+            model.reloadShaders = false
+            model.resetFrame()
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -168,17 +175,20 @@ struct MetalView: NSViewRepresentable {
 
             // pass ellapsed time to fragment shader (u_time)
             encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
-            
+
             // pass the render pass number
             var pNum = passNum
             passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
             encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
 
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
-            
+
         }
-        
+
         func draw(in view: MTKView) {
+            if( model.reloadShaders ) {
+                reloadShaders()
+            }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
@@ -186,7 +196,7 @@ struct MetalView: NSViewRepresentable {
                 // Pass 1: Render to the offscreen texture
                 let renderPassDescriptor = MTLRenderPassDescriptor()
                 if i < numBuffers-1 {
-                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]                
+                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
                     renderPassDescriptor.colorAttachments[0].loadAction = .load
                 } else {
                     renderPassDescriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen

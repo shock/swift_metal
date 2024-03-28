@@ -21,7 +21,7 @@ vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
         { 1.0, -1.0},
         { 1.0,  1.0},
     };
-    
+
     VertexOut out;
     out.position = float4(positions[vertexID], 0.0, 1.0);
     return out;
@@ -66,7 +66,7 @@ fragment float4 fragmentShader0(VertexOut vout [[stage_in]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
                                ) {
-    
+
     return float4(ripple(pos, u_resolution, u_time));
 }
 
@@ -80,7 +80,7 @@ fragment float4 fragmentShader1(VertexOut vout [[stage_in]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
                                ) {
-    
+
     float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
     //    return float4(ripple(pos, u_resolution, u_time));
     return pow(pixelColor,3.);
