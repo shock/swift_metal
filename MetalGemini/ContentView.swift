@@ -33,8 +33,7 @@ struct ContentView: View {
             Text("Reload: \(model.reloadShaders)")
             Text("File: \(String(describing: model.selectedFile))")
             Button("Open File") {
-                let fileDialog = FileDialog(selectedURL: $selectedURL)
-                fileDialog.openDialog()
+                fileDialog()
             }
             .padding([.bottom],6)
         }
@@ -45,7 +44,11 @@ struct ContentView: View {
             handleFileChange()
         }
     }
-
+    
+    func fileDialog() {
+        let fileDialog = FileDialog(selectedURL: $selectedURL)
+        fileDialog.openDialog()
+    }
     func handleFileChange() {
         model.loadShaderFile(selectedURL)
     }
