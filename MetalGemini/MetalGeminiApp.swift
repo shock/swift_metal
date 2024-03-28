@@ -24,11 +24,13 @@ struct MetalGeminiApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: CustomWindowController! // Store window controller reference
     var mainMenu: NSMenu! // Store the main menu
-    
+    var viewModel = RenderDataModel() // Create the ViewModel instance here
+
     @objc func createNewFile() {}
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        windowController = CustomWindowController(rootView: ContentView())
+//        windowController = CustomWindowController(rootView: ContentView().environmentObject(viewModel))
+        windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(nil)
 
         // Create the main menu

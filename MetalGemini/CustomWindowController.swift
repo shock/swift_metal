@@ -10,7 +10,7 @@ import Cocoa
 import SwiftUI
 
 class CustomWindowController: NSWindowController {
-    convenience init(rootView: ContentView) {
+    convenience init<Content: View>(rootView: Content) {
         let hostingController = NSHostingController(rootView: rootView)
         hostingController.view.frame = NSRect(origin: .zero, size: NSSize(width: 600, height: 450)) // Set the frame size
         let window = NSWindow(contentViewController: hostingController)

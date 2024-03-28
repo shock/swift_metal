@@ -23,7 +23,8 @@ extension EnvironmentValues {
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
-    @StateObject var model = RenderDataModel()
+//    @StateObject var model = RenderDataModel()
+    @ObservedObject var model: RenderDataModel
 
     var body: some View {
         VStack{
@@ -67,5 +68,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(model: RenderDataModel())
 }
