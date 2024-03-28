@@ -13,6 +13,13 @@ extension UTType {
     public static let metal = UTType(importedAs: "com.apple.metal")
 }
 
+private class FileDialogOpen {
+    static let shared = FileDialogOpen()
+    var isOpen = false
+
+    private init() { }
+}
+
 class FileDialog {
     @Binding var selectedURL: URL? // Binding for communication with SwiftUI view
 
@@ -22,6 +29,8 @@ class FileDialog {
     }
 
     func openDialog() {
+        if( FileDialogOpen.shared.isOpen ) { return }
+        FileDialogOpen.shared.isOpen = true
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = false
@@ -31,6 +40,7 @@ class FileDialog {
             if result == .OK {
                 self.selectedURL = panel.url // Do something with the selected URL
             }
+            FileDialogOpen.shared.isOpen = false
         }
     }
 }
