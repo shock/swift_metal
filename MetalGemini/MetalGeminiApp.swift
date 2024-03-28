@@ -60,6 +60,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return false // Let SwiftUI manage window closing
+        return true // Let SwiftUI manage window closing
     }
 }
