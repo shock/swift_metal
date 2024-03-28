@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B5B3CE432BB6102F002F55B3 /* RenderDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */; };
 		B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */; };
 		B5E711AE2BB462F80092172A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AD2BB462F80092172A /* ContentView.swift */; };
 		B5E711B02BB462FA0092172A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E711AF2BB462FA0092172A /* Assets.xcassets */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderDataModel.swift; sourceTree = "<group>"; };
 		B5E711A82BB462F80092172A /* MetalGemini.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalGemini.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalGeminiApp.swift; sourceTree = "<group>"; };
 		B5E711AD2BB462F80092172A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
 				B5E711FA2BB4F3BB0092172A /* main.swift */,
 				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
+				B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */,
 			);
 			path = MetalGemini;
 			sourceTree = "<group>";
@@ -159,6 +162,7 @@
 				B5E711BB2BB463510092172A /* MetalView.swift in Sources */,
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
+				B5B3CE432BB6102F002F55B3 /* RenderDataModel.swift in Sources */,
 				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
 				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
