@@ -16,6 +16,7 @@ struct MetalGeminiApp: App {
         WindowGroup {
             // Empty content here; window will be managed in the AppDelegate
         }
+        .windowStyle(HiddenTitleBarWindowStyle())
     }
 }
 
@@ -26,5 +27,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         windowController = CustomWindowController(rootView: ContentView())
         windowController.showWindow(nil)
+    }
+    
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true // Let SwiftUI manage window closing
     }
 }
