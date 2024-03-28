@@ -16,7 +16,7 @@ struct MetalGeminiApp: App {
         WindowGroup {
             // Empty content here; window will be managed in the AppDelegate
         }
-        .windowStyle(HiddenTitleBarWindowStyle())
+//        .windowStyle(HiddenTitleBarWindowStyle())
     }
 }
 

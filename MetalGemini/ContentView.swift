@@ -20,13 +20,41 @@ extension EnvironmentValues {
     }
 }
 
+class SharedDataModel: ObservableObject {
+    @Published var frameCount: UInt32 = 0
+    @Published var lastFrame: UInt32 = 0
+    @Published var fps: Double = 0
+    @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
+}
+
 struct ContentView: View {
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
-
+    @StateObject var model = SharedDataModel()
+    
+    var date = Date()
+    
     var body: some View {
-        MetalView()
-            .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
+        VStack{
+            MetalView(model: model)
+                .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
+            Text("FPS: \(model.fps)").padding([.bottom],6)
+        }
+        .onChange(of: model.frameCount) {
+            doFrame()
+        }
     }
+    
+    func doFrame() {
+        let now = Date().timeIntervalSince1970
+        let delta = now - model.lastTime
+        if( delta ) > 1 {
+            model.lastTime = now
+            let frames = model.frameCount - model.lastFrame
+            model.lastFrame = model.frameCount
+            model.fps = Double(frames) / delta
+        }
+     }
+
 }
 
 #Preview {
