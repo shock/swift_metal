@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-@main
+//@main
 struct MetalGeminiApp: App {
     // Declare a window controller property
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -27,6 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         windowController = CustomWindowController(rootView: ContentView())
         windowController.showWindow(nil)
+        
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
