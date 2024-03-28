@@ -9,9 +9,22 @@ import SwiftUI
 
 @main
 struct MetalGeminiApp: App {
+    // Declare a window controller property
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            // Empty content here; window will be managed in the AppDelegate
         }
+    }
+}
+
+// Separate AppDelegate class
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var windowController: CustomWindowController! // Store window controller reference
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        windowController = CustomWindowController(rootView: ContentView())
+        windowController.showWindow(nil)
     }
 }
