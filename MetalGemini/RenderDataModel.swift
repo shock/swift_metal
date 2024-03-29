@@ -13,6 +13,8 @@ class RenderDataModel: ObservableObject {
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
     @Published var selectedFile: URL? = nil
     @Published var reloadShaders = false
+    @Published var openFileDialog = false
+    
     var fileDescriptor: Int32 = -1
     var fileMonitorSource: DispatchSourceFileSystemObject?
 

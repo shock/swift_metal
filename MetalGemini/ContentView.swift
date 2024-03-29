@@ -23,19 +23,13 @@ extension EnvironmentValues {
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
-//    @StateObject var model = RenderDataModel()
     @ObservedObject var model: RenderDataModel
 
     var body: some View {
         VStack{
             MetalView(model: model)
                 .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-            Text("FPS: \(model.fps)")
-            Text("Reload: \(model.reloadShaders)")
-            Text("File: \(String(describing: model.selectedFile))")
-            Button("Open File") {
-                fileDialog()
-            }
+            Text("FPS: \(String(format: "Angle: %.2f", model.fps))")
             .padding([.bottom],6)
         }
         .onChange(of: model.frameCount) {
@@ -43,6 +37,10 @@ struct ContentView: View {
         }
         .onChange(of: selectedURL) {
             handleFileChange()
+        }
+        .onChange(of: model.openFileDialog) {
+            if model.openFileDialog { fileDialog() }
+            model.openFileDialog = false
         }
     }
     
