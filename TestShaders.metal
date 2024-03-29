@@ -7,7 +7,7 @@
 
 #include <metal_stdlib>
 using namespace metal;
-
+#include "/Users/billdoughty/src/wdd/macos/metal/MetalGemini/include.metal"
 struct VertexOut {
     float4 position [[position]];
 };
@@ -30,7 +30,7 @@ struct VertexOut {
 #define V2R(p,a) (cos(a)*p+sin(a)*float2(p.y,-p.x))
 
 half4 ripple(float2 pos, float2 size, float time) {
-    float angle = time*10;
+    float angle = -time*10;
     float2 rpos1 = pos - size/2;
     rpos1 = V2R(rpos1, -angle);
     rpos1 += size/2;
