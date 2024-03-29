@@ -94,39 +94,34 @@ struct MetalView: NSViewRepresentable {
                 fatalError("Could not find vertexShader function")
             }
             
-            var dynamicLibrary: MTLDynamicLibrary? = nil
-            
             if( shaderFileURL != nil ) {
                 let fileURL = shaderFileURL!
+                let cwd = FileManager.default.currentDirectoryPath
+                let dirUrl = fileURL.deletingLastPathComponent()
+                print("FD: \(dirUrl.path)")
+                if !FileManager.default.changeCurrentDirectoryPath(dirUrl.path) {
+                    print("Failed to CD to \(dirUrl.path)")
+                } else {
+                    print("CWD: \(FileManager.default.currentDirectoryPath)")
+                }
                 do {
                     let options = MTLCompileOptions()
                     options.libraryType = MTLLibraryType.executable
                     options.installName  = "cannot_be_empty"
                     let source = try String(contentsOf: fileURL, encoding: .utf8)
-                    print("****************************************")
-                    print(source)
-                    print("****************************************")
-                    library = try metalDevice.makeLibrary(source: source, options: options)
-//                    dynamicLibrary = try metalDevice.makeDynamicLibrary(library: library2)
+                    let tryLibrary = try metalDevice.makeLibrary(source: source, options: options)
+                    library = tryLibrary
                 } catch {
-                    fatalError("Couldn't load shader library at \(fileURL)\n\(error)")
+                    print("Couldn't load shader library at \(fileURL)\n\(error)")
+                    print("CWD: \(FileManager.default.currentDirectoryPath)")
                     // TODO: show pink/black screen or display errors as text in view
                 }
+                FileManager.default.changeCurrentDirectoryPath(cwd)
             }
 
             do {
                 for i in 0..<MAX_RENDER_BUFFERS {
 
-                    // Load the fragment shader
-//                    var fragFunction: Int32;
-                    if( false ) {
-//                        guard let fragmentFunction = dynamicLibrary.makeFunction(name: "fragmentShader\(i)") else {
-//                            print("Could not find fragmentShader\(i)")
-//                            return
-//                        }
-//                        fragFunction = fragmentFunction
-                    } else {
-                    }
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
                         return
