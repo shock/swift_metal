@@ -29,7 +29,7 @@ struct ContentView: View {
         VStack{
             MetalView(model: model)
                 .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-            Text("FPS: \(String(format: "Angle: %.2f", model.fps))")
+            Text(String(format: "FPS: %.2f", model.fps))
             .padding([.bottom],6)
         }
         .onChange(of: model.frameCount) {

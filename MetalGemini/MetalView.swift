@@ -77,31 +77,61 @@ struct MetalView: NSViewRepresentable {
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
 
 
-            // Load the shader and create the pipeline state
-            setupShaders() // You'll implement this function
+            // Load the default shaders and create the pipeline states
+            setupShaders(nil)
         }
 
-        func setupShaders() {
+        func setupShaders(_ shaderFileURL: URL?) {
             numBuffers = 0
             pipelineStates.removeAll()
-            // 1. Load the Metal library
-            guard let library = metalDevice.makeDefaultLibrary() else {
+
+            // Load the default Metal library
+            guard var library = metalDevice.makeDefaultLibrary() else {
                 fatalError("Could not load default Metal library")
             }
-            do {
+            // Load the default vertex shader
+            guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
+                fatalError("Could not find vertexShader function")
+            }
+            
+            var dynamicLibrary: MTLDynamicLibrary? = nil
+            
+            if( shaderFileURL != nil ) {
+                let fileURL = shaderFileURL!
+                do {
+                    let options = MTLCompileOptions()
+                    options.libraryType = MTLLibraryType.executable
+                    options.installName  = "cannot_be_empty"
+                    let source = try String(contentsOf: fileURL, encoding: .utf8)
+                    print("****************************************")
+                    print(source)
+                    print("****************************************")
+                    library = try metalDevice.makeLibrary(source: source, options: options)
+//                    dynamicLibrary = try metalDevice.makeDynamicLibrary(library: library2)
+                } catch {
+                    fatalError("Couldn't load shader library at \(fileURL)\n\(error)")
+                    // TODO: show pink/black screen or display errors as text in view
+                }
+            }
 
+            do {
                 for i in 0..<MAX_RENDER_BUFFERS {
-                    // 2. Get the shader function
+
+                    // Load the fragment shader
+//                    var fragFunction: Int32;
+                    if( false ) {
+//                        guard let fragmentFunction = dynamicLibrary.makeFunction(name: "fragmentShader\(i)") else {
+//                            print("Could not find fragmentShader\(i)")
+//                            return
+//                        }
+//                        fragFunction = fragmentFunction
+                    } else {
+                    }
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
                         return
                     }
-
-                    guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                        fatalError("Could not find vertexShader function")
-                    }
-
-                    // 3. Create a render pipeline state
+                    // Create a render pipeline state
                     let pipelineDescriptor = MTLRenderPipelineDescriptor()
                     pipelineDescriptor.vertexFunction = vertexFunction
                     pipelineDescriptor.fragmentFunction = fragmentFunction
@@ -119,8 +149,6 @@ struct MetalView: NSViewRepresentable {
             }
 
         }
-
-
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
             let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm,
@@ -152,6 +180,7 @@ struct MetalView: NSViewRepresentable {
             startDate = Date()
             model.reloadShaders = false
             model.resetFrame()
+            setupShaders(model.selectedFile)
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
