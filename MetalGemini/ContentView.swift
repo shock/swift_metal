@@ -27,10 +27,19 @@ struct ContentView: View {
 
     var body: some View {
         VStack{
-            MetalView(model: model)
-                .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-            Text(String(format: "FPS: %.2f", model.fps))
-            .padding([.bottom],6)
+            if model.shaderError == nil {
+                MetalView(model: model)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
+                Text(String(format: "FPS: %.2f", model.fps))
+                    .padding([.bottom],6)
+            } else {
+                Text(model.shaderError!)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .font(.body) // Adjust font size as needed
+                    .multilineTextAlignment(.leading) // Set text alignment to leading (left-justified)
+                    .padding()
+            }
         }
         .onChange(of: model.frameCount) {
             doFrame()
@@ -43,7 +52,7 @@ struct ContentView: View {
             model.openFileDialog = false
         }
     }
-    
+
     func fileDialog() {
         let fileDialog = FileDialog(selectedURL: $selectedURL)
         fileDialog.openDialog()

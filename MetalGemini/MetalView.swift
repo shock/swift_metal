@@ -93,37 +93,40 @@ struct MetalView: NSViewRepresentable {
             guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
                 fatalError("Could not find vertexShader function")
             }
-            
+
             if( shaderFileURL != nil ) {
                 let fileURL = shaderFileURL!
                 let cwd = FileManager.default.currentDirectoryPath
                 let dirUrl = fileURL.deletingLastPathComponent()
-                print("FD: \(dirUrl.path)")
+                // print("FD: \(dirUrl.path)")
                 if !FileManager.default.changeCurrentDirectoryPath(dirUrl.path) {
-                    print("Failed to CD to \(dirUrl.path)")
+                    // print("Failed to CD to \(dirUrl.path)")
                 } else {
-                    print("CWD: \(FileManager.default.currentDirectoryPath)")
+                    print("Changing directory to: \(FileManager.default.currentDirectoryPath)")
                 }
                 do {
                     let options = MTLCompileOptions()
                     options.libraryType = MTLLibraryType.executable
-                    options.installName  = "cannot_be_empty"
+//                    options.installName  = "cannot_be_empty"
                     let source = try String(contentsOf: fileURL, encoding: .utf8)
                     let tryLibrary = try metalDevice.makeLibrary(source: source, options: options)
                     library = tryLibrary
+                    model.shaderError = nil
                 } catch {
                     print("Couldn't load shader library at \(fileURL)\n\(error)")
-                    print("CWD: \(FileManager.default.currentDirectoryPath)")
+                    model.shaderError = "\(error)"
+                    // print("CWD: \(FileManager.default.currentDirectoryPath)")
                     // TODO: show pink/black screen or display errors as text in view
                 }
                 FileManager.default.changeCurrentDirectoryPath(cwd)
             }
 
             do {
-                for i in 0..<MAX_RENDER_BUFFERS {
+                    for i in 0..<MAX_RENDER_BUFFERS {
 
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
+                        print("")
                         return
                     }
                     // Create a render pipeline state
@@ -140,7 +143,7 @@ struct MetalView: NSViewRepresentable {
                  print("Failed to setup shaders: \(error)")
             }
             if numBuffers < 1 {
-                fatalError("Must have at least one fragment shader.")
+                fatalError("Must have at least one fragment shader named `fragmentShader0`.")
             }
 
         }

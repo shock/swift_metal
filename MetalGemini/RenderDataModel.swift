@@ -14,6 +14,7 @@ class RenderDataModel: ObservableObject {
     @Published var selectedFile: URL? = nil
     @Published var reloadShaders = false
     @Published var openFileDialog = false
+    @Published var shaderError: String? = nil
 
     var fileDescriptor: Int32 = -1
     var fileMonitorSource: DispatchSourceFileSystemObject?
@@ -40,12 +41,14 @@ class RenderDataModel: ObservableObject {
         }
 
         fileMonitorSource?.cancel()
-        selectedFile = selectedURL
         fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
         fileMonitorSource?.setEventHandler {
+            self.shaderError = nil
             self.reloadShaders = true
         }
-        self.reloadShaders = true
+        shaderError = nil
+        selectedFile = selectedURL
+        reloadShaders = true
         fileMonitorSource?.resume()
 
     }
