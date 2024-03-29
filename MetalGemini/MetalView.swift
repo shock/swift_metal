@@ -16,7 +16,7 @@ struct ViewportSize {
 public let MAX_RENDER_BUFFERS = 4
 
 struct MetalView: NSViewRepresentable {
-    @ObservedObject var model: SharedDataModel // Reference the ObservableObject
+    @ObservedObject var model: RenderDataModel // Reference the ObservableObject
     func makeCoordinator() -> Coordinator {
         Coordinator(self, model: model)
     }
@@ -48,7 +48,7 @@ struct MetalView: NSViewRepresentable {
 
 
     class Coordinator: NSObject, MTKViewDelegate {
-        var model: SharedDataModel
+        var model: RenderDataModel
         var parent: MetalView
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
@@ -62,7 +62,7 @@ struct MetalView: NSViewRepresentable {
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
 
-        init(_ parent: MetalView, model: SharedDataModel ) {
+        init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
             self.startDate = Date()
             self.frameCounter = 0

@@ -24,11 +24,15 @@ struct MetalGeminiApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: CustomWindowController! // Store window controller reference
     var mainMenu: NSMenu! // Store the main menu
-    
-    @objc func createNewFile() {}
+    var viewModel = RenderDataModel() // Create the ViewModel instance here
+
+    @objc func createNewFile() {
+        viewModel.openFileDialog = true
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        windowController = CustomWindowController(rootView: ContentView())
+//        windowController = CustomWindowController(rootView: ContentView().environmentObject(viewModel))
+        windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(nil)
 
         // Create the main menu
@@ -44,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add items to your file menu...
         let fileMenuItem = NSMenuItem()
         fileMenuItem.submenu = fileMenu
-        let newItem = NSMenuItem(title: "New", action: #selector(createNewFile), keyEquivalent: "n")
+        let newItem = NSMenuItem(title: "Open", action: #selector(createNewFile), keyEquivalent: "o")
         fileMenu.addItem(newItem)
         fileMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(fileMenuItem)
