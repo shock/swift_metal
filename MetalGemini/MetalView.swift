@@ -77,31 +77,60 @@ struct MetalView: NSViewRepresentable {
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
 
 
-            // Load the shader and create the pipeline state
-            setupShaders() // You'll implement this function
+            // Load the default shaders and create the pipeline states
+            setupShaders(nil)
         }
 
-        func setupShaders() {
+        func setupShaders(_ shaderFileURL: URL?) {
             numBuffers = 0
             pipelineStates.removeAll()
-            // 1. Load the Metal library
-            guard let library = metalDevice.makeDefaultLibrary() else {
+
+            // Load the default Metal library
+            guard var library = metalDevice.makeDefaultLibrary() else {
                 fatalError("Could not load default Metal library")
             }
-            do {
+            // Load the default vertex shader
+            guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
+                fatalError("Could not find vertexShader function")
+            }
 
-                for i in 0..<MAX_RENDER_BUFFERS {
-                    // 2. Get the shader function
+            if( shaderFileURL != nil ) {
+                let fileURL = shaderFileURL!
+                let metalLibURL = fileURL.deletingPathExtension().appendingPathExtension("metallib")
+                let cwd = FileManager.default.currentDirectoryPath
+                let dirUrl = fileURL.deletingLastPathComponent()
+                // print("FD: \(dirUrl.path)")
+                if !FileManager.default.changeCurrentDirectoryPath(dirUrl.path) {
+                    // print("Failed to CD to \(dirUrl.path)")
+                } else {
+                    // print("Changing directory to: \(FileManager.default.currentDirectoryPath)")
+                }
+                do {
+
+                    let compileResult = metalToAir(srcURL: fileURL)
+                    if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
+                    // print("compileResult: \(compileResult)")
+                    let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
+                    library = tryLibrary
+                    model.shaderError = nil
+                } catch {
+                    print("Couldn't load shader library at \(metalLibURL)\n\(error)")
+                    model.shaderError = "\(error)"
+                    // print("CWD: \(FileManager.default.currentDirectoryPath)")
+                    // TODO: show pink/black screen or display errors as text in view
+                }
+                FileManager.default.changeCurrentDirectoryPath(cwd)
+            }
+
+            do {
+                    for i in 0..<MAX_RENDER_BUFFERS {
+
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
+                        print("Stopping search.")
                         return
                     }
-
-                    guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                        fatalError("Could not find vertexShader function")
-                    }
-
-                    // 3. Create a render pipeline state
+                    // Create a render pipeline state
                     let pipelineDescriptor = MTLRenderPipelineDescriptor()
                     pipelineDescriptor.vertexFunction = vertexFunction
                     pipelineDescriptor.fragmentFunction = fragmentFunction
@@ -115,12 +144,10 @@ struct MetalView: NSViewRepresentable {
                  print("Failed to setup shaders: \(error)")
             }
             if numBuffers < 1 {
-                fatalError("Must have at least one fragment shader.")
+                fatalError("Must have at least one fragment shader named `fragmentShader0`.")
             }
 
         }
-
-
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
             let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm,
@@ -152,6 +179,7 @@ struct MetalView: NSViewRepresentable {
             startDate = Date()
             model.reloadShaders = false
             model.resetFrame()
+            setupShaders(model.selectedFile)
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
