@@ -159,6 +159,8 @@ struct MetalView: NSViewRepresentable {
         func updateViewportSize(_ size: CGSize) {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
             viewportSizeBuffer = metalDevice.makeBuffer(bytes: &viewportSize, length: MemoryLayout<ViewportSize>.size, options: [])
+            model.size.width = size.width
+            model.size.height = size.height
             setupRenderBuffers(size)
         }
 

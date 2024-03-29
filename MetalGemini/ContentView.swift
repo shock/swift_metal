@@ -31,8 +31,6 @@ struct ContentView: View {
                 MetalView(model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-                Text(String(format: "FPS: %.2f", model.fps))
-                    .padding([.bottom],6)
             } else {
                 Text(model.shaderError!)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,6 +67,7 @@ struct ContentView: View {
             let frames = model.frameCount - model.lastFrame
             model.lastFrame = model.frameCount
             model.fps = Double(frames) / delta
+            model.updateTitle()
         }
      }
 

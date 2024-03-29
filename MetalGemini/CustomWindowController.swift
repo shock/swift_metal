@@ -25,21 +25,21 @@ class CustomWindowController: NSWindowController {
         // Call the setup method immediately after initialization
         setupObservers()
     }
-    
+
     private func setupObservers() {
         viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
-        
+
         // add a listener to the model's selectedFile attribute
         // if it changes, run the closure
-        viewModel?.$selectedFile.sink { [weak self] (newTitle: URL?) in
-            
+        viewModel?.$title.sink { [weak self] (newTitle: String?) in
+
             // DispatchQueue.main.async may not be necessary, but the window
             // title may only be updated by the main thread.
             DispatchQueue.main.async {
-                self?.window?.title = "Metal Shader: \(newTitle?.lastPathComponent ?? "<no file>")"
+                self?.window?.title = "\(newTitle ?? "<no file>")"
             }
         }
-        .store(in: &cancellables) 
+        .store(in: &cancellables)
         // stores in cancellables so it gets cleaned up when the controller is torn
         // down.  This doesn't matter here, but in a more dynamic class, it would.
     }
