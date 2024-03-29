@@ -96,24 +96,25 @@ struct MetalView: NSViewRepresentable {
 
             if( shaderFileURL != nil ) {
                 let fileURL = shaderFileURL!
+                let metalLibURL = fileURL.deletingPathExtension().appendingPathExtension("metallib")
                 let cwd = FileManager.default.currentDirectoryPath
                 let dirUrl = fileURL.deletingLastPathComponent()
                 // print("FD: \(dirUrl.path)")
                 if !FileManager.default.changeCurrentDirectoryPath(dirUrl.path) {
                     // print("Failed to CD to \(dirUrl.path)")
                 } else {
-                    print("Changing directory to: \(FileManager.default.currentDirectoryPath)")
+                    // print("Changing directory to: \(FileManager.default.currentDirectoryPath)")
                 }
                 do {
-                    let options = MTLCompileOptions()
-                    options.libraryType = MTLLibraryType.executable
-//                    options.installName  = "cannot_be_empty"
-                    let source = try String(contentsOf: fileURL, encoding: .utf8)
-                    let tryLibrary = try metalDevice.makeLibrary(source: source, options: options)
+
+                    let compileResult = metalToAir(srcURL: fileURL)
+                    if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
+                    // print("compileResult: \(compileResult)")
+                    let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
                     model.shaderError = nil
                 } catch {
-                    print("Couldn't load shader library at \(fileURL)\n\(error)")
+                    print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     model.shaderError = "\(error)"
                     // print("CWD: \(FileManager.default.currentDirectoryPath)")
                     // TODO: show pink/black screen or display errors as text in view
@@ -126,7 +127,7 @@ struct MetalView: NSViewRepresentable {
 
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
-                        print("")
+                        print("Stopping search.")
                         return
                     }
                     // Create a render pipeline state

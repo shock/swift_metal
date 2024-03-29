@@ -1,3 +1,6 @@
 # **/UserInterfaceState.xcuserstate
 **/.DS_Store
+**/*.air
+**/*.metallib
+**/*.metallibsym
 **/xcuserdata/

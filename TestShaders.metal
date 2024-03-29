@@ -7,7 +7,8 @@
 
 #include <metal_stdlib>
 using namespace metal;
-#include "/Users/billdoughty/src/wdd/macos/metal/MetalGemini/include.metal"
+#include "include.metal"
+
 struct VertexOut {
     float4 position [[position]];
 };
@@ -29,8 +30,8 @@ struct VertexOut {
 
 #define V2R(p,a) (cos(a)*p+sin(a)*float2(p.y,-p.x))
 
-half4 ripple(float2 pos, float2 size, float time) {
-    float angle = -time*10;
+float4 ripple(float2 pos, float2 size, float time) {
+    float angle = -time*2;
     float2 rpos1 = pos - size/2;
     rpos1 = V2R(rpos1, -angle);
     rpos1 += size/2;
@@ -51,7 +52,8 @@ half4 ripple(float2 pos, float2 size, float time) {
     float d3 = length(rpos2-c3)/(30*r_size);
     float v3 = smoothstep(0.,1.,   cos(d3-time*rate*6.));
     v3 = v3 / 2 + 0.5;
-    return half4(v, v2, v3, 1.);
+    float4 color = float4(v, v2, v3, 1.);
+    return color;
 }
 
 #define pos vout.position.xy
@@ -82,6 +84,36 @@ fragment float4 fragmentShader1(VertexOut vout [[stage_in]],
                                ) {
 
     float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
-    //    return float4(ripple(pos, u_resolution, u_time));
     return pow(pixelColor,10.);
+}
+
+fragment float4 fragmentShader2(VertexOut vout [[stage_in]],
+                               constant float2& u_resolution [[buffer(0)]],
+                               constant uint& u_frame [[buffer(1)]],
+                               constant float& u_time [[buffer(2)]],
+                               constant uint& u_pass [[buffer(3)]],
+                               texture2d<float> buffer0 [[texture(0)]],
+                               texture2d<float> buffer1 [[texture(1)]],
+                               texture2d<float> buffer2 [[texture(2)]],
+                               texture2d<float> buffer3 [[texture(3)]]
+                               ) {
+
+    float4 pixelColor = buffer1.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
+    return SS(pixelColor);
+}
+
+fragment float4 fragmentShader3(VertexOut vout [[stage_in]],
+                               constant float2& u_resolution [[buffer(0)]],
+                               constant uint& u_frame [[buffer(1)]],
+                               constant float& u_time [[buffer(2)]],
+                               constant uint& u_pass [[buffer(3)]],
+                               texture2d<float> buffer0 [[texture(0)]],
+                               texture2d<float> buffer1 [[texture(1)]],
+                               texture2d<float> buffer2 [[texture(2)]],
+                               texture2d<float> buffer3 [[texture(3)]]
+                               ) {
+
+    pos.x += sin((pos.x/100)*u_time*0.2)*100;
+    float4 pixelColor = buffer2.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
+    return SS(pixelColor);
 }
