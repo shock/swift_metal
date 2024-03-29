@@ -15,15 +15,24 @@ class RenderDataModel: ObservableObject {
     @Published var reloadShaders = false
     @Published var openFileDialog = false
     @Published var shaderError: String? = nil
+    @Published var title: String? = nil
 
+    var size: CGSize = CGSize(width:0,height:0)
     var fileDescriptor: Int32 = -1
     var fileMonitorSource: DispatchSourceFileSystemObject?
+
+    func updateTitle() {
+        let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
+        let size = String(format: "%.0fx%.0f", size.width, size.height)
+        title = "\(file) - \(size) - \(String(format: "%.1f FPS", fps))"
+    }
 
     func resetFrame() {
         frameCount = 0
         lastFrame = 0
         fps = 0
         lastTime = Date().timeIntervalSince1970
+        updateTitle()
     }
 
     func loadShaderFile(_ fileURL: URL?) {
