@@ -98,12 +98,21 @@ struct MetalView: NSViewRepresentable {
                 let fileURL = shaderFileURL!
                 let metalLibURL = fileURL.deletingPathExtension().appendingPathExtension("metallib")
                 do {
-
                     let compileResult = metalToAir(srcURL: fileURL)
                     if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
                     model.shaderError = nil
+                    let paths = compileResult.stdOut!.components(separatedBy: "\n")
+                    var urls: [URL] = []
+                    for path in paths {
+                        if path != "" {
+                            let url = URL(fileURLWithPath: path)
+                            urls.append(url)
+                        }
+                    }
+                                model.shaderURLs = urls
+                    model.monitorShaderFiles()
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     model.shaderError = "\(error)"

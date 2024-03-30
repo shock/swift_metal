@@ -4,3 +4,4 @@
 **/*.metallib
 **/*.metallibsym
 **/xcuserdata/
+shaders/
