@@ -18,8 +18,9 @@ class RenderDataModel: ObservableObject {
     @Published var title: String? = nil
 
     var size: CGSize = CGSize(width:0,height:0)
-    var fileDescriptor: Int32 = -1
-    var fileMonitorSource: DispatchSourceFileSystemObject?
+    var fileDescriptors: [Int32] = []
+    var shaderURLs: [URL] = []
+    var fileMonitorSources: [DispatchSourceFileSystemObject] = []
 
     func updateTitle() {
         let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
@@ -35,30 +36,48 @@ class RenderDataModel: ObservableObject {
         updateTitle()
     }
 
+    func monitorShaderFiles() {
+        for fileDescriptor in fileDescriptors {
+            if fileDescriptor != -1 {
+                close(fileDescriptor)
+            }
+        }
+        fileDescriptors.removeAll()
+        
+        for shaderURL in shaderURLs {
+            let fileDescriptor = open(shaderURL.path, O_EVTONLY)
+            if fileDescriptor == -1 {
+                print("Unable to open file: \(shaderURL)")
+                return
+            }
+            fileDescriptors.append(fileDescriptor)
+        }
+        
+        for fileMonitorSource in fileMonitorSources {
+            fileMonitorSource.cancel()
+        }
+        fileMonitorSources.removeAll()
+        
+        for fileDescriptor in fileDescriptors {
+            let fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
+            fileMonitorSource.setEventHandler {
+                self.shaderError = nil
+                self.reloadShaders = true
+            }
+            fileMonitorSource.resume()
+            fileMonitorSources.append(fileMonitorSource)
+        }
+    }
+    
     func loadShaderFile(_ fileURL: URL?) {
         guard let selectedURL = fileURL else {
             print("Unable to set file: \(String(describing: fileURL))")
             return
         }
-        if fileDescriptor != -1 {
-            close(fileDescriptor)
-        }
-        fileDescriptor = open(selectedURL.path, O_EVTONLY)
-        if fileDescriptor == -1 {
-            print("Unable to open file: \(selectedURL)")
-            return
-        }
 
-        fileMonitorSource?.cancel()
-        fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
-        fileMonitorSource?.setEventHandler {
-            self.shaderError = nil
-            self.reloadShaders = true
-        }
         shaderError = nil
         selectedFile = selectedURL
         reloadShaders = true
-        fileMonitorSource?.resume()
 
     }
 }

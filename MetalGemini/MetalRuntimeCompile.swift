@@ -19,8 +19,11 @@ import Foundation
 // Also: https://developer.apple.com/documentation/metal/shader_libraries/building_a_shader_library_by_precompiling_source_files
 
 
+// Get all the included file paths
+// cpp TestShaders.metal 2> /dev/null | egrep -e "# \d+\s+\"" | sed -n 's/.*"\(.*\)".*/\1/p' | grep -v '<' | sort | uniq | sed -e 's/\.\///g'
+
 func metalToAir(srcURL: URL) -> ShellExecResult {
-        
+
     let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
     let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension("metallib")
 
@@ -35,6 +38,12 @@ func metalToAir(srcURL: URL) -> ShellExecResult {
     command = "xcrun -sdk macosx metal-dsymutil -flat -remove-source \(metalLibURL.path)"
     execResult = shell_exec(command, cwd: nil)
     if execResult.exitCode != 0 { return execResult }
+
+    command = "cpp \(srcURL.path) 2> /dev/null | egrep -e \"# \\d+\\s+\\\"\" | sed -n 's/.*\"\\(.*\\)\".*/\\1/p' | grep -v '<' | sort | uniq"
+    print(command)
+    execResult = shell_exec(command, cwd: nil)
+    if execResult.exitCode != 0 { return execResult }
+    print(execResult.stdOut!)
 
     return execResult
 }
