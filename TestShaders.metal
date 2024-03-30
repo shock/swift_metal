@@ -1,30 +1,21 @@
 //
-//  PixelShaders.metal
+//  TestShaders.metal
 //  MetalGemini
 //
-//  Created by Gemini on 3/27/24.
+//  Created by Bill Doughty on 3/28/24.
 //
 
 #include <metal_stdlib>
 using namespace metal;
 
-vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
-    const float2 positions[6] = {
-        {-1.0, -1.0},
-        { 1.0, -1.0},
-        {-1.0,  1.0},
-        {-1.0,  1.0},
-        { 1.0, -1.0},
-        { 1.0,  1.0},
-    };
+#define SS(in) smoothstep(0.,1.,in)
+#define SS4(in) SS(SS(SS(SS(in))))
 
-    return float4(positions[vertexID], 0.0, 1.0);
-}
 
 #define V2R(p,a) (cos(a)*p+sin(a)*float2(p.y,-p.x))
 
-float4 ripple(float2 pos, float2 size, float time) {
-    float angle = time;
+float4 circles(float2 pos, float2 size, float time) {
+    float angle = -time*2;
     float2 rpos1 = pos - size/2;
     rpos1 = V2R(rpos1, -angle);
     rpos1 += size/2;
@@ -45,8 +36,11 @@ float4 ripple(float2 pos, float2 size, float time) {
     float d3 = length(rpos2-c3)/(30*r_size);
     float v3 = smoothstep(0.,1.,   cos(d3-time*rate*6.));
     v3 = v3 / 2 + 0.5;
-    return float4(v, v2, v3, 1.);
+    float4 color = float4(v, v2, v3, 1.);
+    return color;
 }
+
+#define pos frag_coord.xy
 
 fragment float4 fragmentShader0(float4 frag_coord [[position]],
                                constant float2& u_resolution [[buffer(0)]],
@@ -57,9 +51,9 @@ fragment float4 fragmentShader0(float4 frag_coord [[position]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
-                               ) {
+) {
 
-    return float4(ripple(frag_coord.xy, u_resolution, u_time));
+    return float4(circles(pos, u_resolution, u_time*0.5));
 }
 
 fragment float4 fragmentShader1(float4 frag_coord [[position]],
@@ -71,10 +65,10 @@ fragment float4 fragmentShader1(float4 frag_coord [[position]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
-                               ) {
+) {
 
-    float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
-    return pow(pixelColor,3.);
+    float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
+    return pow(pixelColor,10.);
 }
 
 fragment float4 fragmentShader2(float4 frag_coord [[position]],
@@ -86,12 +80,39 @@ fragment float4 fragmentShader2(float4 frag_coord [[position]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
-                               ) {
+) {
 
-    float4 pixelColor = buffer1.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
+    float4 pixelColor = buffer1.sample(sampler(mag_filter::linear, min_filter::linear), pos/u_resolution);
+    return SS(pixelColor);
+}
+
+fragment float4 fragmentShader3(float4 frag_coord [[position]],
+                               constant float2& u_resolution [[buffer(0)]],
+                               constant uint& u_frame [[buffer(1)]],
+                               constant float& u_time [[buffer(2)]],
+                               constant uint& u_pass [[buffer(3)]],
+                               texture2d<float> buffer0 [[texture(0)]],
+                               texture2d<float> buffer1 [[texture(1)]],
+                               texture2d<float> buffer2 [[texture(2)]],
+                               texture2d<float> buffer3 [[texture(3)]]
+) {
+
+    // add ripples
+    float speed = 0.1;
+    float strength = 10;
+    float frequency = 20;
+    float2 normalizedPosition = pos / u_resolution;
+    float moveAmount = u_time * speed;
+
+    float2 ppos = pos.xy;
+    ppos.x += sin((normalizedPosition.x + moveAmount) * frequency) * strength;
+    ppos.y += cos((normalizedPosition.y + moveAmount) * frequency) * strength;
+
+    float4 pixelColor = buffer2.sample(sampler(mag_filter::linear, min_filter::linear), ppos/u_resolution);
+
     // vignetting
     float2 q = frag_coord.xy/u_resolution.xy;
-    pixelColor *= 0.1 + 0.9*pow(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y),0.15);
+    pixelColor *= 0.05 + 0.95*pow(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y),0.15);
 
-    return pow(pixelColor,3.);
+    return pixelColor;
 }

@@ -27,23 +27,33 @@ func metalToAir(srcURL: URL) -> ShellExecResult {
     let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
     let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension("metallib")
 
-    var command = "xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+    var command = "cpp \(srcURL.path) 2> /dev/null | egrep -e \"# \\d+\\s+\\\"\" | sed -n 's/.*\"\\(.*\\)\".*/\\1/p' | grep -v '<' | sort | uniq"
+    print(command)
     var execResult = shell_exec(command, cwd: nil)
     if execResult.exitCode != 0 { return execResult }
+    let filePaths = execResult.stdOut
+
+    command = "xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+    execResult = shell_exec(command, cwd: nil)
+    if execResult.exitCode != 0 {
+        execResult.stdOut = filePaths
+        return execResult
+    }
 
     command = "xcrun -sdk macosx metal -frecord-sources -o \(metalLibURL.path) \(airURL.path)"
     execResult = shell_exec(command, cwd: nil)
-    if execResult.exitCode != 0 { return execResult }
+    if execResult.exitCode != 0 {
+        execResult.stdOut = filePaths
+        return execResult
+    }
 
     command = "xcrun -sdk macosx metal-dsymutil -flat -remove-source \(metalLibURL.path)"
     execResult = shell_exec(command, cwd: nil)
-    if execResult.exitCode != 0 { return execResult }
+    if execResult.exitCode != 0 {
+        execResult.stdOut = filePaths
+        return execResult
+    }
 
-    command = "cpp \(srcURL.path) 2> /dev/null | egrep -e \"# \\d+\\s+\\\"\" | sed -n 's/.*\"\\(.*\\)\".*/\\1/p' | grep -v '<' | sort | uniq"
-    print(command)
-    execResult = shell_exec(command, cwd: nil)
-    if execResult.exitCode != 0 { return execResult }
-    print(execResult.stdOut!)
-
+    execResult.stdOut = filePaths
     return execResult
 }

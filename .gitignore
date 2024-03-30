@@ -4,4 +4,5 @@
 **/*.metallib
 **/*.metallibsym
 **/xcuserdata/
+*.code-workspace
 shaders/
