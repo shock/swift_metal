@@ -32,18 +32,23 @@ struct MetalView: NSViewRepresentable {
         mtkView.framebufferOnly = false
         mtkView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
         mtkView.drawableSize = mtkView.frame.size
+        mtkView.autoResizeDrawable = true  // setting this to false requires updateNSView to update the view's drawableSize
         return mtkView
     }
 
-    func updateNSView(_ nsView: MTKView, context: Context) {
-//        print("updateNSView called")
+    func updateNSView(_ mtkView: MTKView, context: Context) {
+        // with mtkView.autoResizeDrawable = false, we have to do this
+        // this is also how we avoid retina x2 texture sizes, which we may not always want to do
+        if( mtkView.frame.size != mtkView.drawableSize ) {
+            mtkView.drawableSize = mtkView.frame.size
+            print("updateNSView: mtkView.drawableSize resized: \(mtkView.frame.size)")
+        }
     }
 
     func sizeThatFits( _ proposal: ProposedViewSize,
                        nsView: Self.NSViewType,
                        context: Self.Context ) -> CGSize? {
         return nil
-//        return CGSizeMake(600,400)
     }
 
 
@@ -79,6 +84,9 @@ struct MetalView: NSViewRepresentable {
 
             // Load the default shaders and create the pipeline states
             setupShaders(nil)
+            
+            // must initialize render buffers
+            updateViewportSize(CGSize(width:2,height:2))
         }
 
         func setupShaders(_ shaderFileURL: URL?) {
@@ -184,7 +192,8 @@ struct MetalView: NSViewRepresentable {
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-            updateViewportSize(size);
+            print("drawableSizeWillChange size: \(size)")
+            updateViewportSize(size)
             frameCounter = 0
         }
 
@@ -222,7 +231,9 @@ struct MetalView: NSViewRepresentable {
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
-            for i in 0..<numBuffers {
+            var i:Int32
+            
+            for i in 0..<(numBuffers) {
                 // Pass 1: Render to the offscreen texture
                 let renderPassDescriptor = MTLRenderPassDescriptor()
                 if i < numBuffers-1 {
@@ -253,9 +264,28 @@ struct MetalView: NSViewRepresentable {
                 // pass2Encoder.endEncoding()
             }
 
+//            let blitEncoder = commandBuffer.makeBlitCommandEncoder()!
+//            let offscreenTexture:MTLTexture = renderBuffers[i]!
+//            
+//            print("offscreenTexture.width: \(offscreenTexture.width)")
+//            print("offscreenTexture.height: \(offscreenTexture.height)")
+//            // Perform the blit from the offscreen texture to the curr!ent drawable
+//            blitEncoder.copy(from: offscreenTexture,
+//                            sourceSlice: 0,
+//                            sourceLevel: 0,
+//                            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+//                            sourceSize: MTLSize(width: offscreenTexture.width, height: offscreenTexture.height, depth: 1),
+//                            to: drawable.texture,
+//                            destinationSlice: 0,
+//                            destinationLevel: 0,
+//                            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+//
+//            blitEncoder.endEncoding()
+
             commandBuffer.present(drawable)
             commandBuffer.commit()
             frameCounter += 1
+//            if( frameCounter % 100 == 0 ) { print("currentDrawable.size: \(view.drawableSize)") }
             model.frameCount = frameCounter
         }
     }
