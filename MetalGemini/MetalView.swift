@@ -84,7 +84,7 @@ struct MetalView: NSViewRepresentable {
 
             // Load the default shaders and create the pipeline states
             setupShaders(nil)
-            
+
             // must initialize render buffers
             updateViewportSize(CGSize(width:2,height:2))
         }
@@ -231,15 +231,19 @@ struct MetalView: NSViewRepresentable {
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
-            var i:Int32
-            
-            for i in 0..<(numBuffers) {
-                // Pass 1: Render to the offscreen texture
+            var i=0
+
+            // iterate through the shaders, giving them each access to all of the buffers
+            // (see the pipeline setup)
+            while i < (numBuffers) {
                 let renderPassDescriptor = MTLRenderPassDescriptor()
-                if i < numBuffers-1 {
+                if i < numBuffers-1 || true { // without the true, we'd render the last shader's output directly on the view's drawable
                     renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
                     renderPassDescriptor.colorAttachments[0].loadAction = .load
                 } else {
+                    // if we wanted to render directly to the view's drawable buffer on the last pass
+                    // this is how we'd do it.  but, since the final blit is so fast, we're keeping it
+                    // since we may replace these graphics pipelines with compute pipelines
                     renderPassDescriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
                     renderPassDescriptor.colorAttachments[0].loadAction = .clear
                 }
@@ -251,42 +255,29 @@ struct MetalView: NSViewRepresentable {
                 setupRenderEncoder(commandEncoder, 0)
                 commandEncoder.endEncoding()
 
-                // // Pass 2: Render to a new render pass, processing the offscreen texture
-                // let pass2Descriptor = MTLRenderPassDescriptor()
-                // pass2Descriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
-                // pass2Descriptor.colorAttachments[0].loadAction = .clear
-                // pass2Descriptor.colorAttachments[0].storeAction = .store
-
-                // guard let pass2Encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass2Descriptor) else { return }
-
-                // pass2Encoder.setRenderPipelineState(pipelineStates[0])
-                // setupRenderEncoder(pass2Encoder, 1)
-                // pass2Encoder.endEncoding()
+                i += 1
             }
 
-//            let blitEncoder = commandBuffer.makeBlitCommandEncoder()!
-//            let offscreenTexture:MTLTexture = renderBuffers[i]!
-//            
-//            print("offscreenTexture.width: \(offscreenTexture.width)")
-//            print("offscreenTexture.height: \(offscreenTexture.height)")
-//            // Perform the blit from the offscreen texture to the curr!ent drawable
-//            blitEncoder.copy(from: offscreenTexture,
-//                            sourceSlice: 0,
-//                            sourceLevel: 0,
-//                            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-//                            sourceSize: MTLSize(width: offscreenTexture.width, height: offscreenTexture.height, depth: 1),
-//                            to: drawable.texture,
-//                            destinationSlice: 0,
-//                            destinationLevel: 0,
-//                            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-//
-//            blitEncoder.endEncoding()
+            // blit the last buffer to the drawable.  this is very fast!
+            let blitEncoder = commandBuffer.makeBlitCommandEncoder()!
+            let lastRenderedBuffer:MTLTexture = renderBuffers[i-1]!
+
+            blitEncoder.copy(from: lastRenderedBuffer,
+                            sourceSlice: 0,
+                            sourceLevel: 0,
+                            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                            sourceSize: MTLSize(width: lastRenderedBuffer.width, height: lastRenderedBuffer.height, depth: 1),
+                            to: drawable.texture,
+                            destinationSlice: 0,
+                            destinationLevel: 0,
+                            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+            blitEncoder.endEncoding()
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
             frameCounter += 1
-//            if( frameCounter % 100 == 0 ) { print("currentDrawable.size: \(view.drawableSize)") }
-            model.frameCount = frameCounter
+            model.frameCount = frameCounter // right now, this will trigger a view update since the RenderModel is
+                                            // observed by ContentView
         }
     }
 }
