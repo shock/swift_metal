@@ -99,10 +99,6 @@ struct MetalView: NSViewRepresentable {
                 let metalLibURL = fileURL.deletingPathExtension().appendingPathExtension("metallib")
                 do {
                     let compileResult = metalToAir(srcURL: fileURL)
-                    if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
-                    let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
-                    library = tryLibrary
-                    model.shaderError = nil
                     let paths = compileResult.stdOut!.components(separatedBy: "\n")
                     var urls: [URL] = []
                     for path in paths {
@@ -111,8 +107,13 @@ struct MetalView: NSViewRepresentable {
                             urls.append(url)
                         }
                     }
-                                model.shaderURLs = urls
+                    model.shaderURLs = urls
                     model.monitorShaderFiles()
+
+                    if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
+                    let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
+                    library = tryLibrary
+                    model.shaderError = nil
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     model.shaderError = "\(error)"
@@ -178,11 +179,13 @@ struct MetalView: NSViewRepresentable {
             startDate = Date()
             model.reloadShaders = false
             model.resetFrame()
+            setupRenderBuffers(model.size)
             setupShaders(model.selectedFile)
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
             updateViewportSize(size);
+            frameCounter = 0
         }
 
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {

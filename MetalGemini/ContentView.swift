@@ -32,11 +32,17 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
             } else {
-                Text(model.shaderError!)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .font(.body) // Adjust font size as needed
-                    .multilineTextAlignment(.leading) // Set text alignment to leading (left-justified)
-                    .padding()
+                ScrollView {
+                    VStack {
+                        Text(model.shaderError!)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .font(.body) // Adjust font size as needed
+                            .multilineTextAlignment(.leading) // Set text alignment to leading (left-justified)
+                            .lineLimit(nil)
+                            .textSelection(.enabled)
+                    }.frame(maxWidth: .infinity)
+                }
+                .padding()
             }
         }
         .onChange(of: model.frameCount) {
@@ -64,6 +70,9 @@ struct ContentView: View {
         let delta = now - model.lastTime
         if( delta ) > 1 {
             model.lastTime = now
+            if( model.frameCount < model.lastFrame ) {
+                model.lastFrame = model.frameCount
+            }
             let frames = model.frameCount - model.lastFrame
             model.lastFrame = model.frameCount
             model.fps = Double(frames) / delta
