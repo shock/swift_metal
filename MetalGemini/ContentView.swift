@@ -28,9 +28,15 @@ struct ContentView: View {
     var body: some View {
         VStack{
             if model.shaderError == nil {
-                MetalView(model: model)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
+                VStack{
+                    MetalView(model: model)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
+                    // Button to start rendering
+                    Button("Start Rendering") {
+                        model.coordinator?.startRendering()
+                    }
+                }
             } else {
                 ScrollView {
                     VStack {

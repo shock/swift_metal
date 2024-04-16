@@ -66,6 +66,9 @@ struct MetalView: NSViewRepresentable {
         var passNumBuffer: MTLBuffer?
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
+        var renderTimer: Timer?
+        var renderingActive = false
+
 
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
@@ -75,6 +78,7 @@ struct MetalView: NSViewRepresentable {
             self.pipelineStates = []
             self.model = model
             super.init()
+            model.coordinator = self
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
@@ -223,13 +227,27 @@ struct MetalView: NSViewRepresentable {
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
 
         }
+        
+        // Setup the timer to trigger offscreen rendering
+        func startRendering() {
+            renderTimer = Timer.scheduledTimer(timeInterval: 1.0 / 1000.0, target: self, selector: #selector(renderOffscreen), userInfo: nil, repeats: true)
+            RunLoop.current.add(renderTimer!, forMode: .common)
+        }
 
-        func draw(in view: MTKView) {
+        // Cancel the timer to trigger offscreen rendering
+        func stopRendering() {
+            renderTimer?.invalidate()
+            renderTimer = nil
+        }
+
+        @objc private func renderOffscreen() {
+            if( renderingActive ) { return }
+            renderingActive = true
+                
             if( model.reloadShaders ) {
                 reloadShaders()
             }
-            guard let drawable = view.currentDrawable,
-                  let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
+            guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
             var i=0
 
@@ -237,16 +255,8 @@ struct MetalView: NSViewRepresentable {
             // (see the pipeline setup)
             while i < (numBuffers) {
                 let renderPassDescriptor = MTLRenderPassDescriptor()
-                if i < numBuffers-1 || true { // without the true, we'd render the last shader's output directly on the view's drawable
-                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
-                    renderPassDescriptor.colorAttachments[0].loadAction = .load
-                } else {
-                    // if we wanted to render directly to the view's drawable buffer on the last pass
-                    // this is how we'd do it.  but, since the final blit is so fast, we're keeping it
-                    // since we may replace these graphics pipelines with compute pipelines
-                    renderPassDescriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
-                    renderPassDescriptor.colorAttachments[0].loadAction = .clear
-                }
+                renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
+                renderPassDescriptor.colorAttachments[0].loadAction = .load
                 renderPassDescriptor.colorAttachments[0].storeAction = .store
 
                 guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
@@ -257,10 +267,22 @@ struct MetalView: NSViewRepresentable {
 
                 i += 1
             }
+//            commandBuffer.present(drawable)
+            commandBuffer.commit()
+            frameCounter += 1
+            renderingActive = false
+        }
+
+        func draw(in view: MTKView) {
+            if( model.reloadShaders ) {
+                reloadShaders()
+            }
+            guard let drawable = view.currentDrawable,
+                  let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
             // blit the last buffer to the drawable.  this is very fast!
             let blitEncoder = commandBuffer.makeBlitCommandEncoder()!
-            let lastRenderedBuffer:MTLTexture = renderBuffers[i-1]!
+            let lastRenderedBuffer:MTLTexture = renderBuffers[numBuffers-1]!
 
             blitEncoder.copy(from: lastRenderedBuffer,
                             sourceSlice: 0,
@@ -275,7 +297,6 @@ struct MetalView: NSViewRepresentable {
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
-            frameCounter += 1
             model.frameCount = frameCounter // right now, this will trigger a view update since the RenderModel is
                                             // observed by ContentView
         }

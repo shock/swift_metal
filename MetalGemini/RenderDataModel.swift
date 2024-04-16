@@ -21,6 +21,7 @@ class RenderDataModel: ObservableObject {
     var fileDescriptors: [Int32] = []
     var shaderURLs: [URL] = []
     var fileMonitorSources: [DispatchSourceFileSystemObject] = []
+    var coordinator: MetalView.Coordinator?
 
     func updateTitle() {
         let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
