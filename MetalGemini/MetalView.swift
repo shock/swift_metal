@@ -67,7 +67,9 @@ struct MetalView: NSViewRepresentable {
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
         var renderTimer: Timer?
-        var renderingActive = false
+        var renderingActive = true
+        private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
+        private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
 
 
         init(_ parent: MetalView, model: RenderDataModel ) {
@@ -196,9 +198,22 @@ struct MetalView: NSViewRepresentable {
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            renderSemaphore.wait()  // wait until the resource is free to use
+            defer { renderSemaphore.signal() }  // signal that the resource is free now
             print("drawableSizeWillChange size: \(size)")
             updateViewportSize(size)
             frameCounter = 0
+        }
+
+        // Setup the timer to trigger offscreen rendering
+        func startRendering() {
+            renderingActive = true
+            renderOffscreen()
+        }
+
+        // Cancel the timer to trigger offscreen rendering
+        func stopRendering() {
+            renderingActive = false
         }
 
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
@@ -228,52 +243,48 @@ struct MetalView: NSViewRepresentable {
 
         }
         
-        // Setup the timer to trigger offscreen rendering
-        func startRendering() {
-            renderTimer = Timer.scheduledTimer(timeInterval: 1.0 / 1000.0, target: self, selector: #selector(renderOffscreen), userInfo: nil, repeats: true)
-            RunLoop.current.add(renderTimer!, forMode: .common)
-        }
-
-        // Cancel the timer to trigger offscreen rendering
-        func stopRendering() {
-            renderTimer?.invalidate()
-            renderTimer = nil
-        }
-
         @objc private func renderOffscreen() {
-            if( renderingActive ) { return }
-            renderingActive = true
+            renderQueue.async { [weak self] in
+                guard let self = self else { return }
+                if( !renderingActive ) { return }
                 
-            if( model.reloadShaders ) {
-                reloadShaders()
+                self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
+                defer { self.renderSemaphore.signal() }  // Release the lock after updating
+
+                if( model.reloadShaders ) {
+                    reloadShaders()
+                }
+                guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
+                
+                var i=0
+                
+                // iterate through the shaders, giving them each access to all of the buffers
+                // (see the pipeline setup)
+                while i < (numBuffers) {
+                    let renderPassDescriptor = MTLRenderPassDescriptor()
+                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
+                    renderPassDescriptor.colorAttachments[0].loadAction = .load
+                    renderPassDescriptor.colorAttachments[0].storeAction = .store
+                    
+                    guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
+                    
+                    commandEncoder.setRenderPipelineState(pipelineStates[i])
+                    setupRenderEncoder(commandEncoder, 0)
+                    commandEncoder.endEncoding()
+                    
+                    i += 1
+                }
+                //            commandBuffer.present(drawable)
+                commandBuffer.commit()
+                frameCounter += 1
+                self.renderOffscreen()
             }
-            guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
-
-            var i=0
-
-            // iterate through the shaders, giving them each access to all of the buffers
-            // (see the pipeline setup)
-            while i < (numBuffers) {
-                let renderPassDescriptor = MTLRenderPassDescriptor()
-                renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
-                renderPassDescriptor.colorAttachments[0].loadAction = .load
-                renderPassDescriptor.colorAttachments[0].storeAction = .store
-
-                guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
-
-                commandEncoder.setRenderPipelineState(pipelineStates[i])
-                setupRenderEncoder(commandEncoder, 0)
-                commandEncoder.endEncoding()
-
-                i += 1
-            }
-//            commandBuffer.present(drawable)
-            commandBuffer.commit()
-            frameCounter += 1
-            renderingActive = false
         }
 
         func draw(in view: MTKView) {
+            renderSemaphore.wait()  // wait until the resource is free to use
+            defer { renderSemaphore.signal() }  // signal that the resource is free now
+
             if( model.reloadShaders ) {
                 reloadShaders()
             }

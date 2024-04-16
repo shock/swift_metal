@@ -33,8 +33,13 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
                     // Button to start rendering
-                    Button("Start Rendering") {
-                        model.coordinator?.startRendering()
+                    HStack{
+                        Button("Start Rendering") {
+                            model.coordinator?.startRendering()
+                        }
+                        Button("Stop Rendering") {
+                            model.coordinator?.stopRendering()
+                        }
                     }
                 }
             } else {
