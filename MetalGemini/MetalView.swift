@@ -59,11 +59,11 @@ struct MetalView: NSViewRepresentable {
         var metalCommandQueue: MTLCommandQueue!
         var pipelineStates: [MTLRenderPipelineState]
         var viewportSizeBuffer: MTLBuffer?
-        var frameCounter: UInt32
         var frameCounterBuffer: MTLBuffer?
-        var startDate: Date!
         var timeIntervalBuffer: MTLBuffer?
         var passNumBuffer: MTLBuffer?
+        var frameCounter: UInt32
+        var startDate: Date!
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
         var renderTimer: Timer?
@@ -90,6 +90,7 @@ struct MetalView: NSViewRepresentable {
 
             // Load the default shaders and create the pipeline states
             setupShaders(nil)
+            createUniformBuffers()
 
             // must initialize render buffers
             updateViewportSize(CGSize(width:2,height:2))
@@ -180,9 +181,17 @@ struct MetalView: NSViewRepresentable {
             }
         }
 
+        func createUniformBuffers() {
+            viewportSizeBuffer = metalDevice.makeBuffer(length: MemoryLayout<ViewportSize>.size, options: [])
+            frameCounterBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            timeIntervalBuffer = metalDevice.makeBuffer(length: MemoryLayout<Float>.size, options: .storageModeShared)
+            passNumBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+        }
+
         func updateViewportSize(_ size: CGSize) {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
-            viewportSizeBuffer = metalDevice.makeBuffer(bytes: &viewportSize, length: MemoryLayout<ViewportSize>.size, options: [])
+            let bufferPointer = viewportSizeBuffer!.contents()
+            memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
             model.size.width = size.width
             model.size.height = size.height
             setupRenderBuffers(size)
@@ -216,15 +225,31 @@ struct MetalView: NSViewRepresentable {
             renderingActive = false
         }
 
+        func updateUniforms(passNum:UInt32) {
+            var bufferPointer = frameCounterBuffer!.contents()
+            memcpy(bufferPointer, &frameCounter, MemoryLayout<UInt32>.size)
+            bufferPointer = timeIntervalBuffer!.contents()
+            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            memcpy(bufferPointer, &elapsedTime, MemoryLayout<Float>.size)
+            bufferPointer = passNumBuffer!.contents()
+            var pNum = passNum
+            memcpy(bufferPointer, &pNum, MemoryLayout<UInt32>.size)
+
+            // let bufferPointer = uniformBuffer?.contents()
+            // memcpy(bufferPointer, &uniforms, MemoryLayout<Uniforms>.size)
+        }
+
+
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
             for i in 0..<MAX_RENDER_BUFFERS {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
 
-            frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
-            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
-            timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
+            // frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            // var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            // timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
 
+            updateUniforms(passNum:passNum)
             // pass the viewport dimensions to the fragment shader (u_resolution)
             encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
 
@@ -235,19 +260,19 @@ struct MetalView: NSViewRepresentable {
             encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
 
             // pass the render pass number
-            var pNum = passNum
-            passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+//            var pNum = passNum
+            // passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
             encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
 
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
 
         }
-        
+
         @objc private func renderOffscreen() {
             renderQueue.async { [weak self] in
                 guard let self = self else { return }
                 if( !renderingActive ) { return }
-                
+
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
                 defer { self.renderSemaphore.signal() }  // Release the lock after updating
 
@@ -255,9 +280,9 @@ struct MetalView: NSViewRepresentable {
                     reloadShaders()
                 }
                 guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
-                
+
                 var i=0
-                
+
                 // iterate through the shaders, giving them each access to all of the buffers
                 // (see the pipeline setup)
                 while i < (numBuffers) {
@@ -265,13 +290,13 @@ struct MetalView: NSViewRepresentable {
                     renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
                     renderPassDescriptor.colorAttachments[0].loadAction = .load
                     renderPassDescriptor.colorAttachments[0].storeAction = .store
-                    
+
                     guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
-                    
+
                     commandEncoder.setRenderPipelineState(pipelineStates[i])
                     setupRenderEncoder(commandEncoder, 0)
                     commandEncoder.endEncoding()
-                    
+
                     i += 1
                 }
                 //            commandBuffer.present(drawable)
