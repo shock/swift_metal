@@ -298,13 +298,12 @@ struct MetalView: NSViewRepresentable {
                     i += 1
                 }
                 //            commandBuffer.present(drawable)
-                commandBuffer.commit()
-                frameCounter += 1
                 
-                // Sleep for a certain time interval
-                Thread.sleep(forTimeInterval: 0.1)  // Sleeps for 10 milliseconds
-
-                self.renderOffscreen()
+                commandBuffer.addScheduledHandler { commandBuffer in
+                    self.frameCounter += 1
+                    self.renderOffscreen()
+                }
+                commandBuffer.commit()
             }
         }
 
