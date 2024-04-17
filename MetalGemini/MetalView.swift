@@ -59,13 +59,18 @@ struct MetalView: NSViewRepresentable {
         var metalCommandQueue: MTLCommandQueue!
         var pipelineStates: [MTLRenderPipelineState]
         var viewportSizeBuffer: MTLBuffer?
-        var frameCounter: UInt32
         var frameCounterBuffer: MTLBuffer?
-        var startDate: Date!
         var timeIntervalBuffer: MTLBuffer?
         var passNumBuffer: MTLBuffer?
+        var frameCounter: UInt32
+        var startDate: Date!
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
+        var renderTimer: Timer?
+        var renderingActive = true
+        private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
+        private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
+
 
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
@@ -75,6 +80,7 @@ struct MetalView: NSViewRepresentable {
             self.pipelineStates = []
             self.model = model
             super.init()
+            model.coordinator = self
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
@@ -84,6 +90,7 @@ struct MetalView: NSViewRepresentable {
 
             // Load the default shaders and create the pipeline states
             setupShaders(nil)
+            createUniformBuffers()
 
             // must initialize render buffers
             updateViewportSize(CGSize(width:2,height:2))
@@ -174,9 +181,17 @@ struct MetalView: NSViewRepresentable {
             }
         }
 
+        func createUniformBuffers() {
+            viewportSizeBuffer = metalDevice.makeBuffer(length: MemoryLayout<ViewportSize>.size, options: [])
+            frameCounterBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            timeIntervalBuffer = metalDevice.makeBuffer(length: MemoryLayout<Float>.size, options: .storageModeShared)
+            passNumBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+        }
+
         func updateViewportSize(_ size: CGSize) {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
-            viewportSizeBuffer = metalDevice.makeBuffer(bytes: &viewportSize, length: MemoryLayout<ViewportSize>.size, options: [])
+            let bufferPointer = viewportSizeBuffer!.contents()
+            memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
             model.size.width = size.width
             model.size.height = size.height
             setupRenderBuffers(size)
@@ -189,23 +204,50 @@ struct MetalView: NSViewRepresentable {
             model.resetFrame()
             setupRenderBuffers(model.size)
             setupShaders(model.selectedFile)
+            print("shaders loaded successfully")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            renderSemaphore.wait()  // wait until the resource is free to use
+            defer { renderSemaphore.signal() }  // signal that the resource is free now
             print("drawableSizeWillChange size: \(size)")
             updateViewportSize(size)
             frameCounter = 0
         }
+
+        // Setup the timer to trigger offscreen rendering
+        func startRendering() {
+            renderingActive = true
+            renderOffscreen()
+        }
+
+        // Cancel the timer to trigger offscreen rendering
+        func stopRendering() {
+            renderingActive = false
+        }
+
+        func updateUniforms(passNum:UInt32) {
+            var bufferPointer = frameCounterBuffer!.contents()
+            memcpy(bufferPointer, &frameCounter, MemoryLayout<UInt32>.size)
+            bufferPointer = timeIntervalBuffer!.contents()
+            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            memcpy(bufferPointer, &elapsedTime, MemoryLayout<Float>.size)
+            bufferPointer = passNumBuffer!.contents()
+            var pNum = passNum
+            memcpy(bufferPointer, &pNum, MemoryLayout<UInt32>.size)
+        }
+
 
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
             for i in 0..<MAX_RENDER_BUFFERS {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
 
-            frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
-            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
-            timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
+            // frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            // var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            // timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
 
+            updateUniforms(passNum:passNum)
             // pass the viewport dimensions to the fragment shader (u_resolution)
             encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
 
@@ -216,51 +258,73 @@ struct MetalView: NSViewRepresentable {
             encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
 
             // pass the render pass number
-            var pNum = passNum
-            passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+//            var pNum = passNum
+            // passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
             encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
 
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
 
         }
 
+        @objc private func renderOffscreen() {
+            renderQueue.async { [weak self] in
+                guard let self = self else { return }
+                if( !renderingActive && !model.vsyncOn ) { return }
+
+                self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
+                defer { self.renderSemaphore.signal() }  // Release the lock after updating
+
+                if( model.reloadShaders ) {
+                    reloadShaders()
+                }
+                guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
+
+                var i=0
+
+                // iterate through the shaders, giving them each access to all of the buffers
+                // (see the pipeline setup)
+                while i < (numBuffers) {
+                    let renderPassDescriptor = MTLRenderPassDescriptor()
+                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
+                    renderPassDescriptor.colorAttachments[0].loadAction = .load
+                    renderPassDescriptor.colorAttachments[0].storeAction = .store
+
+                    guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
+
+                    commandEncoder.setRenderPipelineState(pipelineStates[i])
+                    setupRenderEncoder(commandEncoder, 0)
+                    commandEncoder.endEncoding()
+
+                    i += 1
+                }
+
+                if( !model.vsyncOn ) {
+                    commandBuffer.addScheduledHandler { commandBuffer in
+                        self.frameCounter += 1
+                        self.renderOffscreen()
+                    }
+                }
+                self.frameCounter += 1
+                commandBuffer.commit()
+            }
+        }
+
         func draw(in view: MTKView) {
+            renderSemaphore.wait()  // wait until the resource is free to use
+            defer { renderSemaphore.signal() }  // signal that the resource is free now
+
             if( model.reloadShaders ) {
                 reloadShaders()
             }
+            
+            if( model.vsyncOn ) { renderOffscreen() }
+            
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
-            var i=0
-
-            // iterate through the shaders, giving them each access to all of the buffers
-            // (see the pipeline setup)
-            while i < (numBuffers) {
-                let renderPassDescriptor = MTLRenderPassDescriptor()
-                if i < numBuffers-1 || true { // without the true, we'd render the last shader's output directly on the view's drawable
-                    renderPassDescriptor.colorAttachments[0].texture = renderBuffers[i]
-                    renderPassDescriptor.colorAttachments[0].loadAction = .load
-                } else {
-                    // if we wanted to render directly to the view's drawable buffer on the last pass
-                    // this is how we'd do it.  but, since the final blit is so fast, we're keeping it
-                    // since we may replace these graphics pipelines with compute pipelines
-                    renderPassDescriptor.colorAttachments[0].texture = view.currentDrawable!.texture // Render to screen
-                    renderPassDescriptor.colorAttachments[0].loadAction = .clear
-                }
-                renderPassDescriptor.colorAttachments[0].storeAction = .store
-
-                guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
-
-                commandEncoder.setRenderPipelineState(pipelineStates[i])
-                setupRenderEncoder(commandEncoder, 0)
-                commandEncoder.endEncoding()
-
-                i += 1
-            }
-
             // blit the last buffer to the drawable.  this is very fast!
             let blitEncoder = commandBuffer.makeBlitCommandEncoder()!
-            let lastRenderedBuffer:MTLTexture = renderBuffers[i-1]!
+            let lastRenderedBuffer:MTLTexture = renderBuffers[numBuffers-1]!
 
             blitEncoder.copy(from: lastRenderedBuffer,
                             sourceSlice: 0,
@@ -275,7 +339,6 @@ struct MetalView: NSViewRepresentable {
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
-            frameCounter += 1
             model.frameCount = frameCounter // right now, this will trigger a view update since the RenderModel is
                                             // observed by ContentView
         }
