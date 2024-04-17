@@ -204,6 +204,7 @@ struct MetalView: NSViewRepresentable {
             model.resetFrame()
             setupRenderBuffers(model.size)
             setupShaders(model.selectedFile)
+            print("shaders loaded successfully")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -234,9 +235,6 @@ struct MetalView: NSViewRepresentable {
             bufferPointer = passNumBuffer!.contents()
             var pNum = passNum
             memcpy(bufferPointer, &pNum, MemoryLayout<UInt32>.size)
-
-            // let bufferPointer = uniformBuffer?.contents()
-            // memcpy(bufferPointer, &uniforms, MemoryLayout<Uniforms>.size)
         }
 
 
@@ -302,6 +300,10 @@ struct MetalView: NSViewRepresentable {
                 //            commandBuffer.present(drawable)
                 commandBuffer.commit()
                 frameCounter += 1
+                
+                // Sleep for a certain time interval
+                Thread.sleep(forTimeInterval: 0.1)  // Sleeps for 10 milliseconds
+
                 self.renderOffscreen()
             }
         }
