@@ -16,6 +16,7 @@ class RenderDataModel: ObservableObject {
     @Published var title: String? = nil
 
     var reloadShaders = false
+    var vsyncOn = true
     var shaderError: String? = nil
     var size: CGSize = CGSize(width:0,height:0)
     var fileDescriptors: [Int32] = []

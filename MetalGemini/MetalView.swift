@@ -269,7 +269,7 @@ struct MetalView: NSViewRepresentable {
         @objc private func renderOffscreen() {
             renderQueue.async { [weak self] in
                 guard let self = self else { return }
-                if( !renderingActive ) { return }
+                if( !renderingActive && !model.vsyncOn ) { return }
 
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
                 defer { self.renderSemaphore.signal() }  // Release the lock after updating
@@ -297,12 +297,14 @@ struct MetalView: NSViewRepresentable {
 
                     i += 1
                 }
-                //            commandBuffer.present(drawable)
-                
-                commandBuffer.addScheduledHandler { commandBuffer in
-                    self.frameCounter += 1
-                    self.renderOffscreen()
+
+                if( !model.vsyncOn ) {
+                    commandBuffer.addScheduledHandler { commandBuffer in
+                        self.frameCounter += 1
+                        self.renderOffscreen()
+                    }
                 }
+                self.frameCounter += 1
                 commandBuffer.commit()
             }
         }
@@ -314,6 +316,9 @@ struct MetalView: NSViewRepresentable {
             if( model.reloadShaders ) {
                 reloadShaders()
             }
+            
+            if( model.vsyncOn ) { renderOffscreen() }
+            
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 

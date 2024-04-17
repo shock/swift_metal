@@ -34,10 +34,12 @@ struct ContentView: View {
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
                     // Button to start rendering
                     HStack{
-                        Button("Start Rendering") {
+                        Button("VSync Off") {
+                            model.vsyncOn = false
                             model.coordinator?.startRendering()
                         }
-                        Button("Stop Rendering") {
+                        Button("VSync On") {
+                            model.vsyncOn = true
                             model.coordinator?.stopRendering()
                         }
                     }
