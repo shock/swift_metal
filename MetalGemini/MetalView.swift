@@ -298,6 +298,10 @@ struct MetalView: NSViewRepresentable {
                     i += 1
                 }
 
+                // This is the most optimal way I found to do offline rendering
+                // as quickly as possible.  The drawback is that slower renderings
+                // like circle_and_lines don't display smoothly even though
+                // framerates are faster than 60Hz.
                 if( !model.vsyncOn ) {
                     commandBuffer.addScheduledHandler { commandBuffer in
                         self.frameCounter += 1
