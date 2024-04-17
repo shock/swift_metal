@@ -21,6 +21,16 @@ vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
     return float4(positions[vertexID], 0.0, 1.0);
 }
 
+// needed to convert from .rgba16Unorm to .bgra8Unorm
+fragment float4 fragTransShader(float4 frag_coord [[position]],
+                               constant float2& u_resolution [[buffer(0)]],
+                               texture2d<float> buffer [[texture(0)]]
+                               )
+{
+    float4 pixelColor = buffer.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
+    return pixelColor;
+}
+
 #define V2R(p,a) (cos(a)*p+sin(a)*float2(p.y,-p.x))
 
 float4 ripple(float2 pos, float2 size, float time) {
@@ -57,8 +67,8 @@ fragment float4 fragmentShader0(float4 frag_coord [[position]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
-                               ) {
-
+                               ) 
+{
     return float4(ripple(frag_coord.xy, u_resolution, u_time));
 }
 
@@ -71,8 +81,8 @@ fragment float4 fragmentShader1(float4 frag_coord [[position]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
-                               ) {
-
+                               ) 
+{
     float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
     return pow(pixelColor,3.);
 }
@@ -86,8 +96,8 @@ fragment float4 fragmentShader2(float4 frag_coord [[position]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
-                               ) {
-
+                               ) 
+{
     float4 pixelColor = buffer1.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
     // vignetting
     float2 q = frag_coord.xy/u_resolution.xy;

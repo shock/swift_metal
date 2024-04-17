@@ -58,6 +58,7 @@ struct MetalView: NSViewRepresentable {
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
         var pipelineStates: [MTLRenderPipelineState]
+        var finalPipelineState: MTLRenderPipelineState?
         var viewportSizeBuffer: MTLBuffer?
         var frameCounterBuffer: MTLBuffer?
         var timeIntervalBuffer: MTLBuffer?
@@ -108,6 +109,9 @@ struct MetalView: NSViewRepresentable {
             guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
                 fatalError("Could not find vertexShader function")
             }
+            guard let fragTransFunction = library.makeFunction(name: "fragTransShader") else {
+                fatalError("Could not find fragTransShader function")
+            }
 
             if( shaderFileURL != nil ) {
                 let fileURL = shaderFileURL!
@@ -136,23 +140,31 @@ struct MetalView: NSViewRepresentable {
             }
 
             do {
-                    for i in 0..<MAX_RENDER_BUFFERS {
+                for i in 0..<MAX_RENDER_BUFFERS {
 
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
                         print("Stopping search.")
-                        return
+                        continue
                     }
                     // Create a render pipeline state
                     let pipelineDescriptor = MTLRenderPipelineDescriptor()
                     pipelineDescriptor.vertexFunction = vertexFunction
                     pipelineDescriptor.fragmentFunction = fragmentFunction
-                    pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+                    pipelineDescriptor.colorAttachments[0].pixelFormat = .rgba16Unorm
 
                     pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
                     numBuffers = i+1
                     print("numBuffers: \(numBuffers)")
                 }
+                let pipelineDescriptor = MTLRenderPipelineDescriptor()
+                pipelineDescriptor.vertexFunction = vertexFunction
+                pipelineDescriptor.fragmentFunction = fragTransFunction
+                pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+
+                finalPipelineState = ( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+
+                print("shaders loaded")
             } catch {
                  print("Failed to setup shaders: \(error)")
             }
@@ -163,7 +175,7 @@ struct MetalView: NSViewRepresentable {
         }
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
-            let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm,
+            let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba16Unorm,
                                                                                 width: Int(size.width),
                                                                                 height: Int(size.height),
                                                                                 mipmapped: false)
@@ -298,6 +310,10 @@ struct MetalView: NSViewRepresentable {
                     i += 1
                 }
 
+                // This is the most optimal way I found to do offline rendering
+                // as quickly as possible.  The drawback is that slower renderings
+                // like circle_and_lines don't display smoothly even though
+                // framerates are faster than 60Hz.
                 if( !model.vsyncOn ) {
                     commandBuffer.addScheduledHandler { commandBuffer in
                         self.frameCounter += 1
@@ -316,31 +332,31 @@ struct MetalView: NSViewRepresentable {
             if( model.reloadShaders ) {
                 reloadShaders()
             }
-            
+
             if( model.vsyncOn ) { renderOffscreen() }
-            
+            guard finalPipelineState != nil else { return }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
-            // blit the last buffer to the drawable.  this is very fast!
-            let blitEncoder = commandBuffer.makeBlitCommandEncoder()!
-            let lastRenderedBuffer:MTLTexture = renderBuffers[numBuffers-1]!
+            let renderPassDescriptor = view.currentRenderPassDescriptor!
 
-            blitEncoder.copy(from: lastRenderedBuffer,
-                            sourceSlice: 0,
-                            sourceLevel: 0,
-                            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-                            sourceSize: MTLSize(width: lastRenderedBuffer.width, height: lastRenderedBuffer.height, depth: 1),
-                            to: drawable.texture,
-                            destinationSlice: 0,
-                            destinationLevel: 0,
-                            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-            blitEncoder.endEncoding()
+            // renderPassDescriptor.colorAttachments[0].texture = renderBuffers[numBuffers-1]
+            renderPassDescriptor.colorAttachments[0].loadAction = .load
+            renderPassDescriptor.colorAttachments[0].storeAction = .store
+
+            guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
+
+            commandEncoder.setRenderPipelineState(finalPipelineState!)
+            commandEncoder.setFragmentTexture(renderBuffers[numBuffers-1], index: 0)
+            commandEncoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
+            commandEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+
+            commandEncoder.endEncoding()
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
-            model.frameCount = frameCounter // right now, this will trigger a view update since the RenderModel is
-                                            // observed by ContentView
+            model.frameCount = frameCounter // right now, this will trigger a view update since the RenderModel's
+                                            // frameCount is observed by ContentView
         }
     }
 }
