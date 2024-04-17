@@ -17,6 +17,8 @@ public let MAX_RENDER_BUFFERS = 4
 
 struct MetalView: NSViewRepresentable {
     @ObservedObject var model: RenderDataModel // Reference the ObservableObject
+    let retinaEnabled = false
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self, model: model)
     }
@@ -37,11 +39,13 @@ struct MetalView: NSViewRepresentable {
     }
 
     func updateNSView(_ mtkView: MTKView, context: Context) {
-        // with mtkView.autoResizeDrawable = false, we have to do this
-        // this is also how we avoid retina x2 texture sizes, which we may not always want to do
-        if( mtkView.frame.size != mtkView.drawableSize ) {
-            mtkView.drawableSize = mtkView.frame.size
-            print("updateNSView: mtkView.drawableSize resized: \(mtkView.frame.size)")
+        if( !retinaEnabled ) {
+            // with mtkView.autoResizeDrawable = false, we have to do this
+            // also, this is also how we avoid retina x2 texture sizes, which we may not always want to do
+            if( mtkView.frame.size != mtkView.drawableSize ) {
+                mtkView.drawableSize = mtkView.frame.size
+                print("updateNSView: mtkView.drawableSize resized: \(mtkView.frame.size)")
+            }
         }
     }
 
