@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MetalKit
+import SwiftOSC
 
 struct ViewportSize {
     var width: Float
@@ -75,7 +76,7 @@ struct MetalView: NSViewRepresentable {
         var renderingActive = true
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
-
+        private var oscServer: OSCServerManager!
 
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
@@ -86,6 +87,8 @@ struct MetalView: NSViewRepresentable {
             self.model = model
             super.init()
             model.coordinator = self
+            self.oscServer = OSCServerManager(metalView: self)
+            setupOSCServer()
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
@@ -99,6 +102,15 @@ struct MetalView: NSViewRepresentable {
 
             // must initialize render buffers
             updateViewportSize(CGSize(width:2,height:2))
+        }
+
+        func setupOSCServer() {
+            oscServer.startServer()
+        }
+
+        func recvOscMsg(_ message: OSCMessage) {
+            // Handle incoming OSC message here
+            print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
         }
 
         func setupShaders(_ shaderFileURL: URL?) {
@@ -130,6 +142,10 @@ struct MetalView: NSViewRepresentable {
                             urls.append(url)
                         }
                     }
+
+                    // Setup the model to monitor updates to the shader file and/or any of it's includes.
+                    // We do this even if the compilation failed, so if the error is corrected, we'll
+                    // automatically retry compilation.
                     model.shaderURLs = urls
                     model.monitorShaderFiles()
 
@@ -259,25 +275,11 @@ struct MetalView: NSViewRepresentable {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
 
-            // frameCounterBuffer = metalDevice.makeBuffer(bytes: &frameCounter, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
-            // var elapsedTime = Float(-startDate.timeIntervalSinceNow)
-            // timeIntervalBuffer = metalDevice.makeBuffer(bytes: &elapsedTime, length: MemoryLayout<Float>.size, options: .storageModeShared)
-
             updateUniforms(passNum:passNum)
-            // pass the viewport dimensions to the fragment shader (u_resolution)
             encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
-
-            // pass the frame number to the fragment shader (u_frame)
             encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
-
-            // pass ellapsed time to fragment shader (u_time)
             encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
-
-            // pass the render pass number
-//            var pNum = passNum
-            // passNumBuffer = metalDevice.makeBuffer(bytes: &pNum, length: MemoryLayout<UInt32>.size, options: .storageModeShared)
             encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
-
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
 
         }

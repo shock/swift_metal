@@ -6,3 +6,4 @@
 **/xcuserdata/
 *.code-workspace
 shaders/
+Pods/

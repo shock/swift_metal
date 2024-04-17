@@ -22,15 +22,32 @@ import Foundation
 // Get all the included file paths
 // cpp TestShaders.metal 2> /dev/null | egrep -e "# \d+\s+\"" | sed -n 's/.*"\(.*\)".*/\1/p' | grep -v '<' | sort | uniq | sed -e 's/\.\///g'
 
+struct MetalCompileResult {
+    var exitCode: Int32 = 0
+    var stdOut: String?
+    var stdErr: String?
+    var paths: String?
+}
+
+func cpShellExecResultToMetalCompileResult( _ ser: ShellExecResult ) -> MetalCompileResult
+{
+    var mcr = MetalCompileResult()
+    mcr.exitCode = ser.exitCode
+    mcr.stdOut = ser.stdOut
+    mcr.stdErr = ser.stdErr
+    return mcr
+}
+
 func metalToAir(srcURL: URL) -> ShellExecResult {
 
     let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
     let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension("metallib")
-
+//    let returnStruct = MetalCompileResult()
     var command = "cpp \(srcURL.path) 2> /dev/null | egrep -e \"# \\d+\\s+\\\"\" | sed -n 's/.*\"\\(.*\\)\".*/\\1/p' | grep -v '<' | sort | uniq"
-    print(command)
     var execResult = shell_exec(command, cwd: nil)
-    if execResult.exitCode != 0 { return execResult }
+    if execResult.exitCode != 0 {
+        return execResult
+    }
     let filePaths = execResult.stdOut
 
     command = "xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
