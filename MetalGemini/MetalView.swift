@@ -14,6 +14,7 @@ struct ViewportSize {
 }
 
 public let MAX_RENDER_BUFFERS = 4
+public let MAX_QUEUED_COMMAND_BUFFERS = 2 // can't be higher than 2
 
 struct MetalView: NSViewRepresentable {
     @ObservedObject var model: RenderDataModel // Reference the ObservableObject
@@ -66,10 +67,12 @@ struct MetalView: NSViewRepresentable {
         var startDate: Date!
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
+        var queuedCmdBuffers = 0
         var renderTimer: Timer?
         var renderingActive = true
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
+        private var queueSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
 
 
         init(_ parent: MetalView, model: RenderDataModel ) {
@@ -298,14 +301,28 @@ struct MetalView: NSViewRepresentable {
                     i += 1
                 }
 
-                if( !model.vsyncOn ) {
-                    commandBuffer.addScheduledHandler { commandBuffer in
-                        self.frameCounter += 1
+                // this still causes a memory leak and is slower than
+                // than retrigger in addScheduledHandler with no queueing.
+                // the only advantage is that it seems to handle vsync smoothly
+                // where using addScheduledHandler to retrigger with no logical
+                // queueing is jerky on slower animations.
+                commandBuffer.addCompletedHandler { commandBuffer in
+                    self.queueSemaphore.wait()  // wait until the resource is free to use
+                    defer { self.queueSemaphore.signal() }  // signal that the resource is free now
+                    self.queuedCmdBuffers -= 1
+                    if( !self.model.vsyncOn && self.queuedCmdBuffers < MAX_QUEUED_COMMAND_BUFFERS ) {
                         self.renderOffscreen()
                     }
                 }
                 self.frameCounter += 1
                 commandBuffer.commit()
+                queueSemaphore.wait()  // wait until the resource is free to use
+                defer { queueSemaphore.signal() }  // signal that the resource is free now
+                queuedCmdBuffers += 1
+                if( !model.vsyncOn && queuedCmdBuffers < MAX_QUEUED_COMMAND_BUFFERS ) {
+                    renderOffscreen()
+                }
+
             }
         }
 
@@ -316,9 +333,9 @@ struct MetalView: NSViewRepresentable {
             if( model.reloadShaders ) {
                 reloadShaders()
             }
-            
+
             if( model.vsyncOn ) { renderOffscreen() }
-            
+
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
