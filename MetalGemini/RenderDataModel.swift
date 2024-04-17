@@ -12,11 +12,11 @@ class RenderDataModel: ObservableObject {
     @Published var fps: Double = 0
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
     @Published var selectedFile: URL? = nil
-    @Published var reloadShaders = false
     @Published var openFileDialog = false
-    @Published var shaderError: String? = nil
     @Published var title: String? = nil
 
+    var reloadShaders = false
+    var shaderError: String? = nil
     var size: CGSize = CGSize(width:0,height:0)
     var fileDescriptors: [Int32] = []
     var shaderURLs: [URL] = []
@@ -30,11 +30,13 @@ class RenderDataModel: ObservableObject {
     }
 
     func resetFrame() {
-        frameCount = 0
-        lastFrame = 0
-        fps = 0
-        lastTime = Date().timeIntervalSince1970
-        updateTitle()
+        DispatchQueue.main.async {
+            self.frameCount = 0
+            self.lastFrame = 0
+            self.fps = 0
+            self.lastTime = Date().timeIntervalSince1970
+            self.updateTitle()
+        }
     }
 
     func monitorShaderFiles() {
@@ -44,7 +46,7 @@ class RenderDataModel: ObservableObject {
             }
         }
         fileDescriptors.removeAll()
-        
+
         for shaderURL in shaderURLs {
             let fileDescriptor = open(shaderURL.path, O_EVTONLY)
             if fileDescriptor == -1 {
@@ -53,12 +55,12 @@ class RenderDataModel: ObservableObject {
             }
             fileDescriptors.append(fileDescriptor)
         }
-        
+
         for fileMonitorSource in fileMonitorSources {
             fileMonitorSource.cancel()
         }
         fileMonitorSources.removeAll()
-        
+
         for fileDescriptor in fileDescriptors {
             let fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
             fileMonitorSource.setEventHandler {
@@ -69,7 +71,7 @@ class RenderDataModel: ObservableObject {
             fileMonitorSources.append(fileMonitorSource)
         }
     }
-    
+
     func loadShaderFile(_ fileURL: URL?) {
         guard let selectedURL = fileURL else {
             print("Unable to set file: \(String(describing: fileURL))")
