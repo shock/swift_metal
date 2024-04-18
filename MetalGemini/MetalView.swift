@@ -77,7 +77,8 @@ struct MetalView: NSViewRepresentable {
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
         private var oscServer: OSCServerManager!
-
+        private var uniformManager = UniformManager()
+        
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
             self.startDate = Date()
@@ -110,6 +111,13 @@ struct MetalView: NSViewRepresentable {
 
         func recvOscMsg(_ message: OSCMessage) {
             // Handle incoming OSC message here
+            
+            let oscRegex = /(.*)/
+            if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
+                print(firstMatch.0)
+            }
+
+//            uniformManager.setUniformTuple(message.address.string)
             print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
         }
 
@@ -153,11 +161,17 @@ struct MetalView: NSViewRepresentable {
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
                     model.shaderError = nil
+
+                    // detect any uniform metadata in the shader source
+                    uniformManager.resetMapping()
+                    let error = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
+                    if( error != nil ) { throw error! }
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     model.shaderError = "\(error)"
                 }
             }
+            
 
             do {
                 for i in 0..<MAX_RENDER_BUFFERS {
@@ -214,7 +228,7 @@ struct MetalView: NSViewRepresentable {
         }
 
         func createUniformBuffers() {
-            viewportSizeBuffer = metalDevice.makeBuffer(length: MemoryLayout<ViewportSize>.size, options: [])
+            viewportSizeBuffer = metalDevice.makeBuffer(length: MemoryLayout<ViewportSize>.size, options: .storageModeShared)
             frameCounterBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
             timeIntervalBuffer = metalDevice.makeBuffer(length: MemoryLayout<Float>.size, options: .storageModeShared)
             passNumBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
@@ -267,6 +281,7 @@ struct MetalView: NSViewRepresentable {
             bufferPointer = passNumBuffer!.contents()
             var pNum = passNum
             memcpy(bufferPointer, &pNum, MemoryLayout<UInt32>.size)
+            uniformManager.mapUniformsToBuffer()
         }
 
 
@@ -280,6 +295,7 @@ struct MetalView: NSViewRepresentable {
             encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
             encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
             encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
+            encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 4)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
 
         }
