@@ -26,6 +26,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var mainMenu: NSMenu! // Store the main menu
     var viewModel = RenderDataModel() // Create the ViewModel instance here
 
+    // Initialize a variable to track the VSync state
+    var vsyncEnabled: Bool = false {
+        didSet {
+            viewModel.coordinator?.updateVSyncState(vsyncEnabled)
+        }
+    }
+
+    @objc func toggleVSync(sender: NSMenuItem) {
+        vsyncEnabled.toggle()
+        sender.state = vsyncEnabled ? .on : .off
+    }
+
     @objc func createNewFile() {
         viewModel.openFileDialog = true
     }
@@ -65,6 +77,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(self)
 
+        viewModel.coordinator?.updateVSyncState(vsyncEnabled)
         // Create the main menu
         mainMenu = NSMenu(title: "MainMenu")
         let appMenu = NSMenu(title: "MetalGemini")
@@ -87,8 +100,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add items to your file menu...
         let viewMenuItem = NSMenuItem()
         viewMenuItem.submenu = viewMenu
-        newItem = NSMenuItem(title: "Set Size", action: #selector(createNewFile), keyEquivalent: "o")
-        viewMenu.addItem(newItem)
+        let vsyncItem = NSMenuItem(title: "Enable VSync", action: #selector(toggleVSync), keyEquivalent: "v")
+        vsyncItem.state = vsyncEnabled ? .on : .off
+        viewMenu.addItem(vsyncItem)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)
 

@@ -283,6 +283,16 @@ struct MetalView: NSViewRepresentable {
             renderingActive = false
         }
 
+        func updateVSyncState(_ enabled: Bool) {
+            // Update your rendering logic here based on the VSync state
+            model.vsyncOn = enabled
+            if enabled {
+                stopRendering()
+            } else {
+                startRendering()
+            }
+        }
+
         func updateUniforms(passNum:UInt32) {
             var bufferPointer = frameCounterBuffer!.contents()
             memcpy(bufferPointer, &frameCounter, MemoryLayout<UInt32>.size)
