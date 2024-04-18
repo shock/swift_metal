@@ -131,7 +131,6 @@ class UniformManager
         dirty = false
         if debug { print("Updating uniforms buffer") }
         guard let buffer = self.buffer else { return }
-        let bufferContents = buffer.contents().bindMemory(to: Float.self, capacity: buffer.length / MemoryLayout<Float>.size)
 
         var offset = 0
         for i in 0..<indexMap.count {
@@ -175,7 +174,7 @@ class UniformManager
 
     func printUniforms() {
         for i in 0..<indexMap.count  {
-            let (key,type) = indexMap[i]
+            let (key,_) = indexMap[i]
             let float4 = float4dict.get(key)
             print("\(key),\(float4.x),\(float4.y),\(float4.z),\(float4.w)")
         }
@@ -203,13 +202,22 @@ class UniformManager
         // example line:
         //   float myFloatValue;  // @uniform
 
-        let metadataRegex = /\s?(\w+)\s+(\w+).+@uniform/
+        let structRegex = /\s*struct\s+(\w+)\s*\{\s*\/\/\s*@uniform/
+        let endStructRegex = /\s*\}\;/
+        let metadataRegex = /\s?(float\d?)\s+(\w+)/
 
         var index = 0
+        var insideStruct = false
         for line in lines {
-            if let firstMatch = line.firstMatch(of: metadataRegex) {
-                index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1))
+            if( insideStruct ) {
+                if let firstMatch = line.firstMatch(of: metadataRegex) {
+                    index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1))
+                }
+                if( line.firstMatch(of: endStructRegex) != nil ) {
+                    break
+                }
             }
+            if( line.firstMatch(of: structRegex) != nil ) { insideStruct = true }
         }
         let numUniforms = index + 1
         let length = MemoryLayout<SIMD4<Float>>.size*numUniforms
