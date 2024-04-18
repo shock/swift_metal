@@ -31,9 +31,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-//        windowController = CustomWindowController(rootView: ContentView().environmentObject(viewModel))
         windowController = CustomWindowController(rootView: ContentView(model: viewModel))
-        windowController.showWindow(nil)
+        windowController.showWindow(self)
 
         // Create the main menu
         mainMenu = NSMenu(title: "MainMenu")
@@ -53,13 +52,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         fileMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(fileMenuItem)
         
-//        let windowMenu = NSMenu(title: "Window")
-//        let windowMenuItem = NSMenuItem()
-//        let showWindowItem = NSMenuItem(title: "Show", action: #selector(showRenderWindow), keyEquivalent: "n")
-//        windowMenu.addItem(showWindowItem)
-//        windowMenu.addItem(NSMenuItem.separator()) // Add a separator
-//        windowMenuItem.submenu = windowMenu
-//        mainMenu.addItem(windowMenuItem)
         NSApp.windowsMenu = NSMenu(title: "Window") // Add a default Window menu
 
         // Set the main menu

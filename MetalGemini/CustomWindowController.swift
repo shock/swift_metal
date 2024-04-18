@@ -10,7 +10,7 @@ import Cocoa
 import SwiftUI
 import Combine
 
-class CustomWindowController: NSWindowController {
+class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private var viewModel: RenderDataModel?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -23,6 +23,7 @@ class CustomWindowController: NSWindowController {
         window.title = "Metal Shader: <default>"  // Set the default title
 
         // Call the setup method immediately after initialization
+        setupWindowProperties()
         setupObservers()
     }
 
@@ -46,6 +47,25 @@ class CustomWindowController: NSWindowController {
 
     override func windowDidLoad() {
         super.windowDidLoad()
+    }
+
+    private func setupWindowProperties() {
+        window?.delegate = self
+        loadWindowFrame()
+    }
+
+    private func loadWindowFrame() {
+        if let frameString = UserDefaults.standard.string(forKey: "LastWindowFrame") {
+            let frame = NSRectFromString(frameString)
+            window?.setFrame(frame, display: true)
+        }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        if let window = window {
+            let frameString = NSStringFromRect(window.frame)
+            UserDefaults.standard.set(frameString, forKey: "LastWindowFrame")
+        }
     }
 
 }
