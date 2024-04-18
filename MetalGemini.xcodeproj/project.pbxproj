@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0462BD08B7E00CBCA26 /* OSCManager.swift */; };
+		B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0482BD0948900CBCA26 /* UniformManager.swift */; };
 		B5B3CE432BB6102F002F55B3 /* RenderDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */; };
 		B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE472BB718EC002F55B3 /* ShellExec.swift */; };
 		B5B3CE4A2BB71EA1002F55B3 /* MetalRuntimeCompile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */; };
@@ -20,9 +22,14 @@
 		B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711F82BB4ED500092172A /* CustomWindowController.swift */; };
 		B5E711FB2BB4F3BB0092172A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FA2BB4F3BB0092172A /* main.swift */; };
 		B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FC2BB5A8F70092172A /* FileDialog.swift */; };
+		F38C44B34255F25673DD50B7 /* Pods_MetalGemini.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetalGemini.release.xcconfig"; path = "Target Support Files/Pods-MetalGemini/Pods-MetalGemini.release.xcconfig"; sourceTree = "<group>"; };
+		0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MetalGemini.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B597D0462BD08B7E00CBCA26 /* OSCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCManager.swift; sourceTree = "<group>"; };
+		B597D0482BD0948900CBCA26 /* UniformManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformManager.swift; sourceTree = "<group>"; };
 		B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderDataModel.swift; sourceTree = "<group>"; };
 		B5B3CE472BB718EC002F55B3 /* ShellExec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellExec.swift; sourceTree = "<group>"; };
 		B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRuntimeCompile.swift; sourceTree = "<group>"; };
@@ -40,6 +47,7 @@
 		B5E711FA2BB4F3BB0092172A /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		B5E711FC2BB5A8F70092172A /* FileDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDialog.swift; sourceTree = "<group>"; };
 		B5E711FE2BB5B4E50092172A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetalGemini.debug.xcconfig"; path = "Target Support Files/Pods-MetalGemini/Pods-MetalGemini.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,12 +55,30 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F38C44B34255F25673DD50B7 /* Pods_MetalGemini.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6DC832680E2FFC633D55F242 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7951CD2BA597900F42AD297F /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */,
+				04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		B5E7119F2BB462F80092172A = {
 			isa = PBXGroup;
 			children = (
@@ -60,6 +86,8 @@
 				B5E711BC2BB463B20092172A /* PixelShaders.metal */,
 				B5E711AA2BB462F80092172A /* MetalGemini */,
 				B5E711A92BB462F80092172A /* Products */,
+				7951CD2BA597900F42AD297F /* Pods */,
+				6DC832680E2FFC633D55F242 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,6 +116,8 @@
 				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
 				B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */,
 				B5B3CE4B2BB72502002F55B3 /* Extensions.swift */,
+				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
+				B597D0482BD0948900CBCA26 /* UniformManager.swift */,
 			);
 			path = MetalGemini;
 			sourceTree = "<group>";
@@ -107,9 +137,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B5E711B72BB462FA0092172A /* Build configuration list for PBXNativeTarget "MetalGemini" */;
 			buildPhases = (
+				186FD187C9A61DD24DA0A8DD /* [CP] Check Pods Manifest.lock */,
 				B5E711A42BB462F80092172A /* Sources */,
 				B5E711A52BB462F80092172A /* Frameworks */,
 				B5E711A62BB462F80092172A /* Resources */,
+				C7CDA06F6B38100583E9AC0A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -165,6 +197,48 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		186FD187C9A61DD24DA0A8DD /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-MetalGemini-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		C7CDA06F6B38100583E9AC0A /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MetalGemini/Pods-MetalGemini-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MetalGemini/Pods-MetalGemini-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MetalGemini/Pods-MetalGemini-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		B5E711A42BB462F80092172A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -174,9 +248,11 @@
 				B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */,
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
+				B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */,
 				B5B3CE432BB6102F002F55B3 /* RenderDataModel.swift in Sources */,
 				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
 				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
+				B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */,
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
 				B5B3CE4A2BB71EA1002F55B3 /* MetalRuntimeCompile.swift in Sources */,
 				B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */,
@@ -224,7 +300,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -287,7 +363,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -307,6 +383,7 @@
 		};
 		B5E711B82BB462FA0092172A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -335,6 +412,7 @@
 		};
 		B5E711B92BB462FA0092172A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
