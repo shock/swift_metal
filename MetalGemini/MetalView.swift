@@ -78,7 +78,7 @@ struct MetalView: NSViewRepresentable {
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
         private var oscServer: OSCServerManager!
         private var uniformManager = UniformManager()
-        
+
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
             self.startDate = Date()
@@ -111,13 +111,24 @@ struct MetalView: NSViewRepresentable {
 
         func recvOscMsg(_ message: OSCMessage) {
             // Handle incoming OSC message here
-            
-            let oscRegex = /(.*)/
+
+            let oscRegex = /[\/\d]*?(\w+).*/
             if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
-                print(firstMatch.0)
+                let name = firstMatch.1
+                print(name)
+                var tuple:[Float] = []
+                for argument in message.arguments {
+                    if let float = argument as? Float {
+                        tuple.append(float)
+                    } else if let double = argument as? Double {
+                        print("WARNING: \(name) sent \(double) as double")
+                    }
+
+                }
+                uniformManager.setUniformTuple(String(name), values: tuple)
+
             }
 
-//            uniformManager.setUniformTuple(message.address.string)
             print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
         }
 
@@ -171,7 +182,7 @@ struct MetalView: NSViewRepresentable {
                     model.shaderError = "\(error)"
                 }
             }
-            
+
 
             do {
                 for i in 0..<MAX_RENDER_BUFFERS {
