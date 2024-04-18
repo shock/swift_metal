@@ -293,7 +293,7 @@ struct MetalView: NSViewRepresentable {
             }
         }
 
-        func updateUniforms(passNum:UInt32) {
+        func updateUniforms(passNum:UInt32) throws {
             var bufferPointer = frameCounterBuffer!.contents()
             memcpy(bufferPointer, &frameCounter, MemoryLayout<UInt32>.size)
             bufferPointer = timeIntervalBuffer!.contents()
@@ -302,7 +302,7 @@ struct MetalView: NSViewRepresentable {
             bufferPointer = passNumBuffer!.contents()
             var pNum = passNum
             memcpy(bufferPointer, &pNum, MemoryLayout<UInt32>.size)
-            uniformManager.mapUniformsToBuffer()
+            try uniformManager.mapUniformsToBuffer()
         }
 
 
@@ -311,14 +311,17 @@ struct MetalView: NSViewRepresentable {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
 
-            updateUniforms(passNum:passNum)
-            encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
-            encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
-            encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
-            encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
-            encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 4)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
-
+            do {
+                try updateUniforms(passNum:passNum)
+                encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
+                encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
+                encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
+                encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
+                encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 4)
+                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+            } catch {
+                print("Failed to setup render encoder: \(error)")
+            }
         }
 
         @objc private func renderOffscreen() {
