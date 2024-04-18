@@ -29,7 +29,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Initialize a variable to track the VSync state
     var vsyncEnabled: Bool = false {
         didSet {
-            viewModel.coordinator?.updateVSyncState(vsyncEnabled)
+            DispatchQueue.main.async {
+                self.viewModel.coordinator?.updateVSyncState(self.vsyncEnabled)
+                UserDefaults.standard.set(self.vsyncEnabled, forKey: "VSyncEnabled")
+                self.updateMenuState()
+            }
+        }
+    }
+
+    private func updateMenuState() {
+        if let menu = NSApplication.shared.mainMenu {
+            let vsyncItem = menu.item(withTitle: "Enable VSync")
+            vsyncItem?.state = vsyncEnabled ? .on : .off
         }
     }
 
@@ -76,6 +87,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(self)
+
+        // Load the saved VSync state if available
+        if let savedVSyncEnabled = UserDefaults.standard.object(forKey: "VSyncEnabled") as? Bool {
+            vsyncEnabled = savedVSyncEnabled
+        }
 
         viewModel.coordinator?.updateVSyncState(vsyncEnabled)
         // Create the main menu
