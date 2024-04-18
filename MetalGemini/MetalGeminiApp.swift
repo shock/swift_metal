@@ -29,7 +29,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func createNewFile() {
         viewModel.openFileDialog = true
     }
-    
+
+    @objc func promptForWindowSize() {
+        let alert = NSAlert()
+        alert.messageText = "Resize Window"
+        alert.informativeText = "Enter the new width and height for the window."
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        alert.alertStyle = .informational
+
+        let inputWidth = NSTextField(frame: NSRect(x: 0, y: 58, width: 200, height: 24))
+        inputWidth.placeholderString = "Width"
+        let inputHeight = NSTextField(frame: NSRect(x: 0, y: 32, width: 200, height: 24))
+        inputHeight.placeholderString = "Height"
+
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 82))
+        view.addSubview(inputWidth)
+        view.addSubview(inputHeight)
+        alert.accessoryView = view
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            let width = CGFloat(Double(inputWidth.stringValue) ?? 600) // Default width if parsing fails
+            let height = CGFloat(Double(inputHeight.stringValue) ?? 450) // Default height if parsing fails
+            resizeMainWindow(width: width, height: height)
+        }
+    }
+
+    func resizeMainWindow(width: CGFloat, height: CGFloat) {
+        windowController.window?.setContentSize(NSSize(width: width, height: height))
+        windowController.window?.center()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(self)
@@ -47,19 +78,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add items to your file menu...
         let fileMenuItem = NSMenuItem()
         fileMenuItem.submenu = fileMenu
-        let newItem = NSMenuItem(title: "Open", action: #selector(createNewFile), keyEquivalent: "o")
+        var newItem = NSMenuItem(title: "Open", action: #selector(createNewFile), keyEquivalent: "o")
         fileMenu.addItem(newItem)
         fileMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(fileMenuItem)
-        
+
+        let viewMenu = NSMenu(title: "View")
+        // Add items to your file menu...
+        let viewMenuItem = NSMenuItem()
+        viewMenuItem.submenu = viewMenu
+        newItem = NSMenuItem(title: "Set Size", action: #selector(createNewFile), keyEquivalent: "o")
+        viewMenu.addItem(newItem)
+        viewMenu.addItem(NSMenuItem.separator()) // Add a separator
+        mainMenu.addItem(viewMenuItem)
+
+        let windowMenu = NSMenu(title: "Window")
+        // Add items to your file menu...
+        let windowMenuItem = NSMenuItem()
+        windowMenuItem.submenu = windowMenu
+        newItem = NSMenuItem(title: "Resize Window", action: #selector(promptForWindowSize), keyEquivalent: "r")
+        windowMenu.addItem(newItem)
+        windowMenu.addItem(NSMenuItem.separator()) // Add a separator
+        mainMenu.addItem(windowMenuItem)
+
         NSApp.windowsMenu = NSMenu(title: "Window") // Add a default Window menu
 
         // Set the main menu
         NSApplication.shared.mainMenu = mainMenu
     }
-    
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true // Let SwiftUI manage window closing
     }
 }
-
