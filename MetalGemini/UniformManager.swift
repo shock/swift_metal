@@ -52,7 +52,7 @@ class Float4Dictionary
 class UniformManager
 {
     var parameterMap: [String: Int] = [:]
-    var indexMap: [String] = []
+    var indexMap: [(String,String)] = []
     var float4dict = Float4Dictionary()
     var dirty = true
     var buffer: MTLBuffer?
@@ -69,9 +69,9 @@ class UniformManager
         dirty = true
     }
 
-    private func setIndex(name: String ) -> Int
+    private func setIndex(name: String, type: String ) -> Int
     {
-        indexMap.append(name)
+        indexMap.append((name,type))
         let index = indexMap.count-1
         parameterMap[name] = index
         dirty = true
@@ -99,7 +99,7 @@ class UniformManager
         guard let buffer = self.buffer else { return }
         let bufferContents = buffer.contents().assumingMemoryBound(to: SIMD4<Float>.self)
         for i in 0..<indexMap.count  {
-            let key = indexMap[i]
+            let (key,type) = indexMap[i]
             let float4 = float4dict.get(key)
             bufferContents[i] = float4
         }
@@ -107,7 +107,7 @@ class UniformManager
 
     func printUniforms() {
         for i in 0..<indexMap.count  {
-            let key = indexMap[i]
+            let (key,type) = indexMap[i]
             let float4 = float4dict.get(key)
             print("\(key),\(float4.x),\(float4.y),\(float4.z),\(float4.w)")
         }
@@ -140,7 +140,7 @@ class UniformManager
         var index = 0
         for line in lines {
             if let firstMatch = line.firstMatch(of: metadataRegex) {
-                index = setIndex(name: String(firstMatch.2))
+                index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1))
             }
         }
         let numUniforms = index + 1
