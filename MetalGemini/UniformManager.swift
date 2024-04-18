@@ -25,7 +25,7 @@ class Float4Dictionary
 
     func setTuple( _ key: String, values: [Float])
     {
-        var value = values.toSIMD4()
+        let value = values.toSIMD4()
         map[key] = value
     }
 
@@ -37,6 +37,24 @@ class Float4Dictionary
     func get( _ key: String, _ defaultValue: SIMD4<Float> = SIMD4<Float>(0,0,0,0) ) -> SIMD4<Float>
     {
         return map[key, default: defaultValue]
+    }
+
+    func getAsFloat( _ key: String, _ defaultValue: Float = 0 ) -> Float
+    {
+        guard let float4 = map[key] else { return defaultValue }
+        return float4.x
+    }
+
+    func getAsFloat2( _ key: String, _ defaultValue: SIMD2<Float> = SIMD2<Float>(0,0)) -> SIMD2<Float>
+    {
+        guard let float4 = map[key] else { return defaultValue }
+        return SIMD2<Float>(float4.x,float4.y)
+    }
+
+    func getAsFloat3( _ key: String, _ defaultValue: SIMD3<Float> = SIMD3<Float>(0,0,0)) -> SIMD3<Float>
+    {
+        guard let float4 = map[key] else { return defaultValue }
+        return SIMD3<Float>(float4.x,float4.y,float4.z)
     }
 
     func delete( _ key: String ) -> SIMD4<Float>?
