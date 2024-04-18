@@ -10,7 +10,7 @@ import Cocoa
 import SwiftUI
 import Combine
 
-class CustomWindowController: NSWindowController {
+class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private var viewModel: RenderDataModel?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -22,12 +22,14 @@ class CustomWindowController: NSWindowController {
         self.init(window: window)
         window.title = "Metal Shader: <default>"  // Set the default title
 
+        viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
+
         // Call the setup method immediately after initialization
         setupObservers()
+        setupWindowProperties()
     }
 
     private func setupObservers() {
-        viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
 
         // add a listener to the model's selectedFile attribute
         // if it changes, run the closure
@@ -46,6 +48,41 @@ class CustomWindowController: NSWindowController {
 
     override func windowDidLoad() {
         super.windowDidLoad()
+    }
+
+    private func setupWindowProperties() {
+        window?.delegate = self
+        loadWindowFrame()
+        loadLastFileOpened()
+    }
+
+    private func loadLastFileOpened() {
+        if let fileURL = UserDefaults.standard.string(forKey: "LastFileOpened"),
+           let viewModel = viewModel {
+            viewModel.loadShaderFile(URL(string:fileURL))
+        }
+    }
+
+    private func loadWindowFrame() {
+        if let frameString = UserDefaults.standard.string(forKey: "LastWindowFrame") {
+            let frame = NSRectFromString(frameString)
+            window?.setFrame(frame, display: true)
+        }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        viewModel?.coordinator?.stopRendering()
+        if let window = window {
+            let frameString = NSStringFromRect(window.frame)
+            UserDefaults.standard.set(frameString, forKey: "LastWindowFrame")
+        }
+        if let viewModel = viewModel {
+            if( viewModel.selectedFile != nil )
+            {
+                let path = viewModel.selectedFile!.path(percentEncoded: false)
+                UserDefaults.standard.set(path, forKey: "LastFileOpened")
+            }
+        }
     }
 
 }
