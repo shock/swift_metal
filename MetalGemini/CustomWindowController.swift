@@ -22,13 +22,14 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         self.init(window: window)
         window.title = "Metal Shader: <default>"  // Set the default title
 
+        viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
+
         // Call the setup method immediately after initialization
-        setupWindowProperties()
         setupObservers()
+        setupWindowProperties()
     }
 
     private func setupObservers() {
-        viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
 
         // add a listener to the model's selectedFile attribute
         // if it changes, run the closure
@@ -52,6 +53,14 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private func setupWindowProperties() {
         window?.delegate = self
         loadWindowFrame()
+        loadLastFileOpened()
+    }
+
+    private func loadLastFileOpened() {
+        if let fileURL = UserDefaults.standard.string(forKey: "LastFileOpened"),
+           let viewModel = viewModel {
+            viewModel.loadShaderFile(URL(string:fileURL))
+        }
     }
 
     private func loadWindowFrame() {
@@ -62,9 +71,17 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
     }
 
     func windowWillClose(_ notification: Notification) {
+        viewModel?.coordinator?.stopRendering()
         if let window = window {
             let frameString = NSStringFromRect(window.frame)
             UserDefaults.standard.set(frameString, forKey: "LastWindowFrame")
+        }
+        if let viewModel = viewModel {
+            if( viewModel.selectedFile != nil )
+            {
+                let path = viewModel.selectedFile!.path(percentEncoded: false)
+                UserDefaults.standard.set(path, forKey: "LastFileOpened")
+            }
         }
     }
 
