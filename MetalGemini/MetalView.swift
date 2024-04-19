@@ -115,7 +115,6 @@ struct MetalView: NSViewRepresentable {
             let oscRegex = /[\/\d]*?(\w+).*/
             if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
                 let name = firstMatch.1
-                print(name)
                 var tuple:[Float] = []
                 for argument in message.arguments {
                     if let float = argument as? Float {
@@ -128,8 +127,7 @@ struct MetalView: NSViewRepresentable {
                 uniformManager.setUniformTuple(String(name), values: tuple)
 
             }
-
-            print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
+//            print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
         }
 
         func setupShaders(_ shaderFileURL: URL?) {
@@ -171,7 +169,9 @@ struct MetalView: NSViewRepresentable {
                     if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
-                    model.shaderError = nil
+                    DispatchQueue.main.async {
+                        self.model.shaderError = nil
+                    }
 
                     // detect any uniform metadata in the shader source
                     uniformManager.resetMapping()
@@ -179,7 +179,9 @@ struct MetalView: NSViewRepresentable {
                     if( error != nil ) { throw error! }
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
-                    model.shaderError = "\(error)"
+                    DispatchQueue.main.async {
+                        self.model.shaderError = "\(error)"
+                    }
                 }
             }
 
@@ -401,8 +403,8 @@ struct MetalView: NSViewRepresentable {
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
-            model.frameCount = frameCounter // right now, this will trigger a view update since the RenderModel's
-                                            // frameCount is observed by ContentView
+            self.model.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
+            // frameCount is observed by ContentView
         }
     }
 }
