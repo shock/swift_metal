@@ -13,6 +13,7 @@ import Combine
 class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private var viewModel: RenderDataModel?
     private var cancellables: Set<AnyCancellable> = []
+    private var keyboardView: KeyboardView!
 
     convenience init(rootView: ContentView) {
         let hostingController = NSHostingController(rootView: rootView)
@@ -25,6 +26,11 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
 
         // Call the setup method immediately after initialization
+
+        keyboardView = KeyboardView()
+        window.contentView?.addSubview(keyboardView)
+        window.makeFirstResponder(keyboardView)
+
         setupObservers()
         setupWindowProperties()
     }
