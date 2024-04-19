@@ -14,10 +14,10 @@ class RenderDataModel: ObservableObject {
     @Published var selectedFile: URL? = nil
     @Published var openFileDialog = false
     @Published var title: String? = nil
+    @Published var shaderError: String? = nil
 
     var reloadShaders = false
     var vsyncOn = true
-    var shaderError: String? = nil
     var size: CGSize = CGSize(width:0,height:0)
     var fileDescriptors: [Int32] = []
     var shaderURLs: [URL] = []
