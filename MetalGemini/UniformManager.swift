@@ -104,10 +104,11 @@ class UniformManager
     var float4dict = Float4Dictionary() // Dictionary to store uniform values
     var dirty = true // Flag to indicate if the buffer needs updating
     var buffer: MTLBuffer? // Metal buffer for storing uniform data
-    var debug = true // Debug flag to enable logging
+    var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
     var uniformProjectDirURL: URL? // Directory URL for the project
     let bookmarkID = "com.wdoughty.metaltoy.projectdir" // Bookmark ID for sandboxed file access
+    private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
 
     private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
     private var saveQueue = DispatchQueue(label: "net.wdoughty.saveUniformsQueue") // Queue for saving operations
@@ -189,6 +190,8 @@ class UniformManager
 
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
     func resetMapping() {
+        semaphore.wait()
+        defer { semaphore.signal() }
         parameterMap.removeAll()
         indexMap.removeAll()
         dirty = true
@@ -196,6 +199,8 @@ class UniformManager
 
     // Clear all uniforms from the dictionary and mark as dirty
     func clearUniforms() {
+        semaphore.wait()
+        defer { semaphore.signal() }
         float4dict.clear()
         dirty = true
     }
@@ -213,6 +218,10 @@ class UniformManager
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false)
     {
+        if !suppressSave {
+            semaphore.wait()
+        }
+        defer { semaphore.signal() }
         float4dict.setTuple(name, values: values)
         dirty = true
         if( !suppressSave ) {
@@ -224,6 +233,8 @@ class UniformManager
     // Set a SIMD4<Float> uniform value and schedule a file save
     func setUniform( _ name: String, _ simd4: SIMD4<Float> )
     {
+        semaphore.wait()
+        defer { semaphore.signal() }
         float4dict.set(name, simd4)
         dirty = true
         requestSaveUniforms() // This debounces and schedules a save operation
@@ -231,6 +242,8 @@ class UniformManager
 
     // Update the uniforms buffer if necessary, handling data alignment and copying
     func mapUniformsToBuffer() throws {
+        semaphore.wait()
+        defer { semaphore.signal() }
         if !dirty { return }
         dirty = false
         if debug { print("Updating uniforms buffer") }
@@ -387,6 +400,8 @@ class UniformManager
     func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL) -> String?
     {
         resetMapping()
+        semaphore.wait()
+        defer { semaphore.signal() }
         guard
             let shaderSource = getShaderSource(srcURL: srcURL)
             else { return "Failed to read shader file: \(srcURL)" }
