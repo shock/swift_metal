@@ -319,7 +319,7 @@ class UniformManager
 
         let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
         if( bookmarkData == nil ) {
-            selectDirectory()
+            print("no bookmark")
         }
 
         // Accessing the bookmark to perform file operations
@@ -329,7 +329,6 @@ class UniformManager
                 print("Data written successfully to \(fileUrl.path)")
             } catch {
                 print("Failed to save uniforms: \(error)")
-                selectDirectory()
             }
         }
 
@@ -435,6 +434,11 @@ class UniformManager
         }
         uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
+        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
+        if( bookmarkData == nil ) {
+            print("WARNING: no project directory bookmark found")
+            selectDirectory()
+        }
         loadUniformsFromFile()
         return nil
     }

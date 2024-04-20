@@ -334,9 +334,6 @@ struct MetalView: NSViewRepresentable {
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
                 defer { self.renderSemaphore.signal() }  // Release the lock after updating
 
-                if( model.reloadShaders ) {
-                    reloadShaders()
-                }
                 guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
                 var i=0
