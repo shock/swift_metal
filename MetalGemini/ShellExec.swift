@@ -31,17 +31,17 @@ func shell_exec(_ command: String, cwd: String? ) -> ShellExecResult {
     task.launchPath = "/bin/bash"
     task.standardInput = nil
     task.launch()
+    task.waitUntilExit()  // Wait for the process to finish
 
     // print("executing command: \(cmd)")
     var execResult = ShellExecResult()
+    execResult.exitCode = task.terminationStatus
     var data = pipeOut.fileHandleForReading.readDataToEndOfFile()
     execResult.stdOut = String(data: data, encoding: .utf8)!
     data = pipeErr.fileHandleForReading.readDataToEndOfFile()
     execResult.stdErr = String(data: data, encoding: .utf8)!
     if execResult.stdErr == "" {
         execResult.stdErr = nil;
-    } else {
-        execResult.exitCode = 1;
     }
     execResult.command = cmd
 

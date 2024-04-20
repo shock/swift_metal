@@ -107,11 +107,11 @@ class UniformManager
     var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
     var uniformProjectDirURL: URL? // Directory URL for the project
-    let bookmarkID = "com.wdoughty.metaltoy.projectdir" // Bookmark ID for sandboxed file access
+    let bookmarkID = "net.wdoughty.metaltoy.projectdir" // Bookmark ID for sandboxed file access
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
 
     private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
-    private var saveQueue = DispatchQueue(label: "net.wdoughty.saveUniformsQueue") // Queue for saving operations
+    private var saveQueue = DispatchQueue(label: "net.wdoughty.metaltoy.saveUniformsQueue") // Queue for saving operations
 
     init() {}
 
@@ -377,7 +377,7 @@ class UniformManager
     // Get the shader source from a URL and parse it for uniform struct definitions
     private func getShaderSource(srcURL: URL) -> String?
     {
-        let command = "cpp \(srcURL.path) 2> /dev/null"
+        let command = "cpp \(srcURL.path) 2> /dev/null | cat" // hack to avoid error status on cpp
         let execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             return nil

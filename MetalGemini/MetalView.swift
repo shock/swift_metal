@@ -166,7 +166,7 @@ struct MetalView: NSViewRepresentable {
                     model.shaderURLs = urls
                     model.monitorShaderFiles()
 
-                    if( compileResult.stdErr != nil ) { throw compileResult.stdErr! }
+                    if( compileResult.exitCode != 0 ) { throw compileResult.stdErr ?? "Unknown error" }
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
                     DispatchQueue.main.async {
