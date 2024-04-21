@@ -26,6 +26,10 @@ class OSCServerManager: ObservableObject {
     func stopServer() {
         server.stop()
     }
+
+    deinit {
+        stopServer()
+    }
 }
 
 extension OSCServerManager: OSCServerDelegate {

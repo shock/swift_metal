@@ -16,12 +16,24 @@ struct ViewportSize {
 
 public let MAX_RENDER_BUFFERS = 4
 
+
+// we need this to get access to the inner class of MetalView
+typealias MetalViewCoordinator = MetalView.Coordinator
+// we need this because makeCoordinator gets called every time MetalView
+// is hidden, and if we don't reuse an existing coordinator, a new and gets created
+// which creates a new OSC server and starts ravaging the CPU
+var existingCoordinator: MetalViewCoordinator?
+
 struct MetalView: NSViewRepresentable {
     @ObservedObject var model: RenderDataModel // Reference the ObservableObject
     let retinaEnabled = false
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(self, model: model)
+        if let coordinator = existingCoordinator {
+            return coordinator
+        }
+        existingCoordinator = Coordinator(self, model: model)
+        return existingCoordinator!
     }
 
     func makeNSView(context: Context) -> MTKView {
@@ -57,6 +69,7 @@ struct MetalView: NSViewRepresentable {
     }
 
 
+
     class Coordinator: NSObject, MTKViewDelegate {
         var model: RenderDataModel
         var parent: MetalView
@@ -88,7 +101,7 @@ struct MetalView: NSViewRepresentable {
             self.model = model
             super.init()
             model.coordinator = self
-            self.oscServer = OSCServerManager(metalView: self)
+            oscServer = OSCServerManager(metalView: self)
             setupOSCServer()
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
@@ -407,6 +420,11 @@ struct MetalView: NSViewRepresentable {
             commandBuffer.commit()
             self.model.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
             // frameCount is observed by ContentView
+        }
+
+        deinit { // Unfortunately, this doesn't get called even when the view disappears
+            print( "Coordinator deinit")
+            self.oscServer = nil
         }
     }
 }
