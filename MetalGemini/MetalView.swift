@@ -131,6 +131,8 @@ struct MetalView: NSViewRepresentable {
         }
 
         func setupShaders(_ shaderFileURL: URL?) {
+            stopRendering() // ensure offline rendering is disabled
+
             numBuffers = 0
             pipelineStates.removeAll()
 
@@ -212,6 +214,9 @@ struct MetalView: NSViewRepresentable {
                 finalPipelineState = ( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
 
                 print("shaders loaded")
+                DispatchQueue.main.async {
+                    self.updateVSyncState(self.model.vsyncOn) // renable offline rendering if vsync is false
+                }
             } catch {
                  print("Failed to setup shaders: \(error)")
             }
@@ -274,13 +279,13 @@ struct MetalView: NSViewRepresentable {
             frameCounter = 0
         }
 
-        // Setup the timer to trigger offscreen rendering
+        // Enable offscreen rendering
         func startRendering() {
             renderingActive = true
             renderOffscreen()
         }
 
-        // Cancel the timer to trigger offscreen rendering
+        // Disable offscreen rendering
         func stopRendering() {
             renderingActive = false
         }

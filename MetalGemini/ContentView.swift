@@ -38,12 +38,13 @@ struct ContentView: View {
                 ScrollView {
                     VStack {
                         Text(model.shaderError!)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .font(.body) // Adjust font size as needed
+//                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .font(.system(size: 13, weight: .medium, design: .monospaced)) // Using a monospaced medium font
                             .multilineTextAlignment(.leading) // Set text alignment to leading (left-justified)
                             .lineLimit(nil)
                             .textSelection(.enabled)
-                    }.frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .padding()
             }
