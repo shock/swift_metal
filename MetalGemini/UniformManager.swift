@@ -117,25 +117,28 @@ class UniformManager
 
     // Open a panel to select a directory for storing project files
     func selectDirectory() {
-        let openPanel = NSOpenPanel()
-        openPanel.title = "Choose a directory"
-        openPanel.message = "Select the directory containing your shader file"
-        openPanel.showsResizeIndicator = true
-        openPanel.showsHiddenFiles = false
-        openPanel.canChooseDirectories = true
-        openPanel.canCreateDirectories = true
-        openPanel.canChooseFiles = false
-        openPanel.allowsMultipleSelection = false
+        DispatchQueue.main.async {
 
-        openPanel.begin { (result) in
-            if result == .OK {
-                if let selectedPath = openPanel.url {
-                    print("Directory selected: \(selectedPath.path)")
-                    self.storeSecurityScopedBookmark(for: selectedPath, withIdentifier: self.bookmarkID)
-                    self.uniformProjectDirURL = selectedPath
+            let openPanel = NSOpenPanel()
+            openPanel.title = "Choose a directory"
+            openPanel.message = "Select the directory containing your shader file"
+            openPanel.showsResizeIndicator = true
+            openPanel.showsHiddenFiles = false
+            openPanel.canChooseDirectories = true
+            openPanel.canCreateDirectories = true
+            openPanel.canChooseFiles = false
+            openPanel.allowsMultipleSelection = false
+
+            openPanel.begin { (result) in
+                if result == .OK {
+                    if let selectedPath = openPanel.url {
+                        print("Directory selected: \(selectedPath.path)")
+                        self.storeSecurityScopedBookmark(for: selectedPath, withIdentifier: self.bookmarkID)
+                        self.uniformProjectDirURL = selectedPath
+                    }
+                } else {
+                    print("User cancelled the open panel")
                 }
-            } else {
-                print("User cancelled the open panel")
             }
         }
     }
