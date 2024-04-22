@@ -338,7 +338,7 @@ struct MetalView: NSViewRepresentable {
                 encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
                 encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
                 encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 4)
-                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             } catch {
                 print("Failed to setup render encoder: \(error)")
             }

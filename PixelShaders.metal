@@ -9,15 +9,11 @@
 using namespace metal;
 
 vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
-    const float2 positions[6] = {
+    const float2 positions[3] = {
         {-1.0, -1.0},
-        { 1.0, -1.0},
-        {-1.0,  1.0},
-        {-1.0,  1.0},
-        { 1.0, -1.0},
-        { 1.0,  1.0},
+        { 3.0, -1.0},
+        {-1.0,  3.0},
     };
-
     return float4(positions[vertexID], 0.0, 1.0);
 }
 
