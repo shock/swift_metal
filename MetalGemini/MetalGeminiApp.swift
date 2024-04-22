@@ -25,6 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: CustomWindowController! // Store window controller reference
     var mainMenu: NSMenu! // Store the main menu
     var viewModel = RenderDataModel() // Create the ViewModel instance here
+    var resizeWindow: ((CGFloat, CGFloat) -> Void)?
 
     // Initialize a variable to track the VSync state
     var vsyncEnabled: Bool = false {
@@ -81,12 +82,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func resizeMainWindow(width: CGFloat, height: CGFloat) {
         windowController.window?.setContentSize(NSSize(width: width, height: height))
-        windowController.window?.center()
+//        windowController.window?.center()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(self)
+
+        resizeWindow = { [weak self] width, height in
+            DispatchQueue.main.async {
+                self?.resizeMainWindow(width: width, height: height)
+            }
+        }
 
         // Load the saved VSync state if available
         if let savedVSyncEnabled = UserDefaults.standard.object(forKey: "VSyncEnabled") as? Bool {

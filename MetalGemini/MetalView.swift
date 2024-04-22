@@ -196,6 +196,10 @@ struct MetalView: NSViewRepresentable {
                     uniformManager.resetMapping()
                     let error = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
                     if( error != nil ) { throw error! }
+                    let appDelegate = NSApplication.shared.delegate as? AppDelegate
+                    if let view_u = uniformManager.getUniformFloat4("u_resolution") {
+                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
+                    }
                     uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)],
                         suppressSave: true)
                 } catch {

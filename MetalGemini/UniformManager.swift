@@ -289,6 +289,14 @@ class UniformManager
     func printUniforms() {
         print(uniformsToString())
     }
+    
+    func getUniformFloat4( _ name: String ) -> SIMD4<Float>? {
+        guard parameterMap[name] != nil else {
+            return nil
+        }
+        let data = float4dict.get(name)
+        return data
+    }
 
     // Convert uniforms to a string representation for debugging
     func uniformsToString() -> String {
