@@ -14,6 +14,7 @@ struct ViewportSize {
     var height: Float
 }
 
+
 public let MAX_RENDER_BUFFERS = 4
 
 
@@ -69,6 +70,12 @@ struct MetalView: NSViewRepresentable {
     }
 
 
+    struct SysUniforms {
+        var vpSize: ViewportSize
+        var frameCount: UInt32
+        var timeInterval: Float
+        var passNum: UInt32
+    }
 
     class Coordinator: NSObject, MTKViewDelegate {
         var model: RenderDataModel
@@ -77,10 +84,7 @@ struct MetalView: NSViewRepresentable {
         var metalCommandQueue: MTLCommandQueue!
         var pipelineStates: [MTLRenderPipelineState]
         var finalPipelineState: MTLRenderPipelineState?
-        var viewportSizeBuffer: MTLBuffer?
-        var frameCounterBuffer: MTLBuffer?
-        var timeIntervalBuffer: MTLBuffer?
-        var passNumBuffer: MTLBuffer?
+        var sysUniformBuffer: MTLBuffer?
         var frameCounter: UInt32
         var startDate: Date!
         var renderBuffers: [MTLTexture?]
@@ -261,15 +265,13 @@ struct MetalView: NSViewRepresentable {
         }
 
         func createUniformBuffers() {
-            viewportSizeBuffer = metalDevice.makeBuffer(length: MemoryLayout<ViewportSize>.size, options: .storageModeShared)
-            frameCounterBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
-            timeIntervalBuffer = metalDevice.makeBuffer(length: MemoryLayout<Float>.size, options: .storageModeShared)
-            passNumBuffer = metalDevice.makeBuffer(length: MemoryLayout<UInt32>.size, options: .storageModeShared)
+            // 32 bytes is more than enough to hold SysUniforms, packed
+            sysUniformBuffer = metalDevice.makeBuffer(length: 32, options: .storageModeShared)
         }
 
         func updateViewportSize(_ size: CGSize) {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
-            let bufferPointer = viewportSizeBuffer!.contents()
+            let bufferPointer = sysUniformBuffer!.contents()
             memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
             model.size.width = size.width
             model.size.height = size.height
@@ -317,14 +319,39 @@ struct MetalView: NSViewRepresentable {
         }
 
         func updateUniforms(passNum:UInt32) throws {
-            var bufferPointer = frameCounterBuffer!.contents()
-            memcpy(bufferPointer, &frameCounter, MemoryLayout<UInt32>.size)
-            bufferPointer = timeIntervalBuffer!.contents()
+            var offset = MemoryLayout<ViewportSize>.size // for viewport
+            let bufferPointer = sysUniformBuffer!.contents()
+
+            // Ensure the offset is aligned
+            var memAlign = MemoryLayout<UInt32>.alignment
+            var memSize = MemoryLayout<UInt32>.size
+            offset = (offset + memAlign - 1) / memAlign * memAlign
+            // Copy the data
+            memcpy(bufferPointer.advanced(by: offset), &frameCounter, memSize)
+            // Update the offset
+            offset += memSize
+
             var elapsedTime = Float(-startDate.timeIntervalSinceNow)
-            memcpy(bufferPointer, &elapsedTime, MemoryLayout<Float>.size)
-            bufferPointer = passNumBuffer!.contents()
+            // Ensure the offset is aligned
+            memAlign = MemoryLayout<Float>.alignment
+            memSize = MemoryLayout<Float>.size
+            offset = (offset + memAlign - 1) / memAlign * memAlign
+            // Copy the data
+            memcpy(bufferPointer.advanced(by: offset), &elapsedTime, memSize)
+            // Update the offset
+            offset += memSize
+
+
             var pNum = passNum
-            memcpy(bufferPointer, &pNum, MemoryLayout<UInt32>.size)
+            // Ensure the offset is aligned
+            memAlign = MemoryLayout<UInt32>.alignment
+            memSize = MemoryLayout<UInt32>.size
+            offset = (offset + memAlign - 1) / memAlign * memAlign
+            // Copy the data
+            memcpy(bufferPointer.advanced(by: offset), &pNum, memSize)
+            // Update the offset
+            offset += memSize
+
             try uniformManager.mapUniformsToBuffer()
         }
 
@@ -336,11 +363,8 @@ struct MetalView: NSViewRepresentable {
 
             do {
                 try updateUniforms(passNum:passNum)
-                encoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
-                encoder.setFragmentBuffer(frameCounterBuffer, offset: 0, index: 1)
-                encoder.setFragmentBuffer(timeIntervalBuffer, offset: 0, index: 2)
-                encoder.setFragmentBuffer(passNumBuffer, offset: 0, index: 3)
-                encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 4)
+                encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
+                encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             } catch {
                 print("Failed to setup render encoder: \(error)")
@@ -414,8 +438,8 @@ struct MetalView: NSViewRepresentable {
 
             commandEncoder.setRenderPipelineState(finalPipelineState!)
             commandEncoder.setFragmentTexture(renderBuffers[numBuffers-1], index: 0)
-            commandEncoder.setFragmentBuffer(viewportSizeBuffer, offset: 0, index: 0)
-            commandEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+            commandEncoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
+            commandEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
             commandEncoder.endEncoding()
 
