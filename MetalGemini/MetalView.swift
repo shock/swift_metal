@@ -192,6 +192,8 @@ struct MetalView: NSViewRepresentable {
                     uniformManager.resetMapping()
                     let error = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
                     if( error != nil ) { throw error! }
+                    uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)],
+                        suppressSave: true)
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     DispatchQueue.main.async {
@@ -272,6 +274,7 @@ struct MetalView: NSViewRepresentable {
             model.size.width = size.width
             model.size.height = size.height
             setupRenderBuffers(size)
+            uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)])
         }
 
         func reloadShaders() {
