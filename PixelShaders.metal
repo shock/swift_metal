@@ -8,6 +8,14 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// this must be defined in every shader
+struct SysUniforms { // DO NOT CHANGE
+    float2 resolution;
+    uint frame;
+    float time;
+    uint pass;
+};
+
 vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
     const float2 positions[3] = {
         {-1.0, -1.0},
@@ -19,11 +27,11 @@ vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
 
 // needed to convert from .rgba16Unorm to .bgra8Unorm
 fragment float4 fragTransShader(float4 frag_coord [[position]],
-                               constant float2& u_resolution [[buffer(0)]],
-                               texture2d<float> buffer [[texture(0)]]
+                                constant SysUniforms& sys_u [[buffer(0)]],
+                                texture2d<float> buffer [[texture(0)]]
                                )
 {
-    float4 pixelColor = buffer.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
+    float4 pixelColor = buffer.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/sys_u.resolution);
     return pixelColor;
 }
 
@@ -55,48 +63,39 @@ float4 ripple(float2 pos, float2 size, float time) {
 }
 
 fragment float4 fragmentShader0(float4 frag_coord [[position]],
-                               constant float2& u_resolution [[buffer(0)]],
-                               constant uint& u_frame [[buffer(1)]],
-                               constant float& u_time [[buffer(2)]],
-                               constant uint& u_pass [[buffer(3)]],
-                               texture2d<float> buffer0 [[texture(0)]],
-                               texture2d<float> buffer1 [[texture(1)]],
-                               texture2d<float> buffer2 [[texture(2)]],
-                               texture2d<float> buffer3 [[texture(3)]]
-                               ) 
+                                constant SysUniforms& sys_u [[buffer(0)]],
+                                texture2d<float> buffer0 [[texture(0)]],
+                                texture2d<float> buffer1 [[texture(1)]],
+                                texture2d<float> buffer2 [[texture(2)]],
+                                texture2d<float> buffer3 [[texture(3)]]
+                               )
 {
-    return float4(ripple(frag_coord.xy, u_resolution, u_time));
+    return float4(ripple(frag_coord.xy, sys_u.resolution, sys_u.time));
 }
 
 fragment float4 fragmentShader1(float4 frag_coord [[position]],
-                               constant float2& u_resolution [[buffer(0)]],
-                               constant uint& u_frame [[buffer(1)]],
-                               constant float& u_time [[buffer(2)]],
-                               constant uint& u_pass [[buffer(3)]],
+                                constant SysUniforms& sys_u [[buffer(0)]],
                                texture2d<float> buffer0 [[texture(0)]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
                                ) 
 {
-    float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
+    float4 pixelColor = buffer0.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/sys_u.resolution);
     return pow(pixelColor,3.);
 }
 
 fragment float4 fragmentShader2(float4 frag_coord [[position]],
-                               constant float2& u_resolution [[buffer(0)]],
-                               constant uint& u_frame [[buffer(1)]],
-                               constant float& u_time [[buffer(2)]],
-                               constant uint& u_pass [[buffer(3)]],
+                                constant SysUniforms& sys_u [[buffer(0)]],
                                texture2d<float> buffer0 [[texture(0)]],
                                texture2d<float> buffer1 [[texture(1)]],
                                texture2d<float> buffer2 [[texture(2)]],
                                texture2d<float> buffer3 [[texture(3)]]
                                ) 
 {
-    float4 pixelColor = buffer1.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/u_resolution);
+    float4 pixelColor = buffer1.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/sys_u.resolution);
     // vignetting
-    float2 q = frag_coord.xy/u_resolution.xy;
+    float2 q = frag_coord.xy/sys_u.resolution.xy;
     pixelColor *= 0.1 + 0.9*pow(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y),0.15);
 
     return pow(pixelColor,3.);
