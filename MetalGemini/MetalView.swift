@@ -83,7 +83,6 @@ struct MetalView: NSViewRepresentable {
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
         var pipelineStates: [MTLRenderPipelineState]
-        var finalPipelineState: MTLRenderPipelineState?
         var sysUniformBuffer: MTLBuffer?
         var frameCounter: UInt32
         var startDate: Date!
@@ -161,9 +160,6 @@ struct MetalView: NSViewRepresentable {
             guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
                 fatalError("Could not find vertexShader function")
             }
-            guard let fragTransFunction = library.makeFunction(name: "fragTransShader") else {
-                fatalError("Could not find fragTransShader function")
-            }
 
             if( shaderFileURL != nil ) {
                 let fileURL = shaderFileURL!
@@ -196,10 +192,10 @@ struct MetalView: NSViewRepresentable {
                     uniformManager.resetMapping()
                     let error = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
                     if( error != nil ) { throw error! }
-                    let appDelegate = NSApplication.shared.delegate as? AppDelegate
-                    if let view_u = uniformManager.getUniformFloat4("u_resolution") {
-                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
-                    }
+//                    let appDelegate = NSApplication.shared.delegate as? AppDelegate
+//                    if let view_u = uniformManager.getUniformFloat4("u_resolution") {
+//                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
+//                    }
                     uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)],
                         suppressSave: true)
                 } catch {
@@ -207,44 +203,56 @@ struct MetalView: NSViewRepresentable {
                     DispatchQueue.main.async {
                         self.model.shaderError = "\(error)"
                     }
+                    return
                 }
             }
 
+            var fragmentFunctions: [MTLFunction] = []
 
             do {
-                for i in 0..<MAX_RENDER_BUFFERS {
-
+                for i in 0...MAX_RENDER_BUFFERS {
+                    
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
                         print("Stopping search.")
                         continue
                     }
+                    fragmentFunctions.append(fragmentFunction)
+                }
+                if fragmentFunctions.count < 1 {
+                    DispatchQueue.main.async {
+                        self.model.shaderError = "Must have at least one fragment shader named `fragmentShader0`"
+                    }
+                    return
+                }
+                numBuffers = fragmentFunctions.count-1
+                print("numBuffers: \(numBuffers)")
+                assert(numBuffers >= 0)
+                for i in 0..<numBuffers {
                     // Create a render pipeline state
                     let pipelineDescriptor = MTLRenderPipelineDescriptor()
                     pipelineDescriptor.vertexFunction = vertexFunction
-                    pipelineDescriptor.fragmentFunction = fragmentFunction
+                    pipelineDescriptor.fragmentFunction = fragmentFunctions[i]
                     pipelineDescriptor.colorAttachments[0].pixelFormat = .rgba16Unorm
 
                     pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
-                    numBuffers = i+1
-                    print("numBuffers: \(numBuffers)")
                 }
                 let pipelineDescriptor = MTLRenderPipelineDescriptor()
                 pipelineDescriptor.vertexFunction = vertexFunction
-                pipelineDescriptor.fragmentFunction = fragTransFunction
+                pipelineDescriptor.fragmentFunction = fragmentFunctions[numBuffers]
                 pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
-                finalPipelineState = ( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+                pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
 
                 print("shaders loaded")
                 DispatchQueue.main.async {
                     self.updateVSyncState(self.model.vsyncOn) // renable offline rendering if vsync is false
                 }
             } catch {
-                 print("Failed to setup shaders: \(error)")
-            }
-            if numBuffers < 1 {
-                fatalError("Must have at least one fragment shader named `fragmentShader0`.")
+                DispatchQueue.main.async {
+                    self.model.shaderError = "Failed to setup shaders: \(error)"
+                }
+                return
             }
 
         }
@@ -290,13 +298,12 @@ struct MetalView: NSViewRepresentable {
             model.resetFrame()
             setupRenderBuffers(model.size)
             setupShaders(model.selectedFile)
-            print("shaders loaded successfully")
+            print("shaders loading finished")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
-            print("drawableSizeWillChange size: \(size)")
             updateViewportSize(size)
             frameCounter = 0
         }
@@ -322,7 +329,7 @@ struct MetalView: NSViewRepresentable {
             }
         }
 
-        func updateUniforms(passNum:UInt32) throws {
+        func updateUniforms() throws {
             var offset = MemoryLayout<ViewportSize>.size // for viewport
             let bufferPointer = sysUniformBuffer!.contents()
 
@@ -346,7 +353,7 @@ struct MetalView: NSViewRepresentable {
             offset += memSize
 
 
-            var pNum = passNum
+            var pNum = numBuffers
             // Ensure the offset is aligned
             memAlign = MemoryLayout<UInt32>.alignment
             memSize = MemoryLayout<UInt32>.size
@@ -360,13 +367,20 @@ struct MetalView: NSViewRepresentable {
         }
 
 
-        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
+        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) {
             for i in 0..<MAX_RENDER_BUFFERS {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
-
+            // pass a dynamic reference to the last buffer rendered, if there is one
+            if numBuffers > 0 {
+                encoder.setFragmentTexture(renderBuffers[numBuffers-1], index: MAX_RENDER_BUFFERS)
+            }
+                
+            // now the first MAX_RENDER_BUFFERS+1 buffers are passed
+            // it's up to the shaders how to use them
+            
             do {
-                try updateUniforms(passNum:passNum)
+                try updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
                 encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
@@ -378,6 +392,7 @@ struct MetalView: NSViewRepresentable {
         @objc private func renderOffscreen() {
             renderQueue.async { [weak self] in
                 guard let self = self else { return }
+                guard self.numBuffers > 0 else { return }
                 if( !renderingActive && !model.vsyncOn ) { return }
 
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
@@ -398,7 +413,7 @@ struct MetalView: NSViewRepresentable {
                     guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
                     commandEncoder.setRenderPipelineState(pipelineStates[i])
-                    setupRenderEncoder(commandEncoder, 0)
+                    setupRenderEncoder(commandEncoder)
                     commandEncoder.endEncoding()
 
                     i += 1
@@ -410,7 +425,6 @@ struct MetalView: NSViewRepresentable {
                 // framerates are faster than 60Hz.
                 if( !model.vsyncOn ) {
                     commandBuffer.addScheduledHandler { commandBuffer in
-                        self.frameCounter += 1
                         self.renderOffscreen()
                     }
                 }
@@ -426,9 +440,10 @@ struct MetalView: NSViewRepresentable {
             if( model.reloadShaders ) {
                 reloadShaders()
             }
-
+            
+            guard pipelineStates.count - 1 == numBuffers else { return }
             if( model.vsyncOn ) { renderOffscreen() }
-            guard finalPipelineState != nil else { return }
+//            guard finalPipelineState != nil else { return }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
@@ -440,11 +455,8 @@ struct MetalView: NSViewRepresentable {
 
             guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
-            commandEncoder.setRenderPipelineState(finalPipelineState!)
-            commandEncoder.setFragmentTexture(renderBuffers[numBuffers-1], index: 0)
-            commandEncoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
-            commandEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-
+            commandEncoder.setRenderPipelineState(pipelineStates[numBuffers])
+            setupRenderEncoder(commandEncoder)
             commandEncoder.endEncoding()
 
             commandBuffer.present(drawable)
