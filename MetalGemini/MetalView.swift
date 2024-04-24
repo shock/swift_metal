@@ -410,7 +410,6 @@ struct MetalView: NSViewRepresentable {
                 // framerates are faster than 60Hz.
                 if( !model.vsyncOn ) {
                     commandBuffer.addScheduledHandler { commandBuffer in
-                        self.frameCounter += 1
                         self.renderOffscreen()
                     }
                 }
