@@ -290,13 +290,13 @@ struct MetalView: NSViewRepresentable {
             model.resetFrame()
             setupRenderBuffers(model.size)
             setupShaders(model.selectedFile)
-            print("shaders loaded successfully")
+            print("shaders loading finished")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
-            print("drawableSizeWillChange size: \(size)")
+//            print("drawableSizeWillChange size: \(size)")
             updateViewportSize(size)
             frameCounter = 0
         }
