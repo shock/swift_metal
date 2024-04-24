@@ -161,8 +161,8 @@ struct MetalView: NSViewRepresentable {
             guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
                 fatalError("Could not find vertexShader function")
             }
-            guard let fragTransFunction = library.makeFunction(name: "fragTransShader") else {
-                fatalError("Could not find fragTransShader function")
+            guard var fragTransFunction = library.makeFunction(name: "fragFinalPass") else {
+                fatalError("Could not find default fragFinalPass function")
             }
 
             if( shaderFileURL != nil ) {

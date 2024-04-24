@@ -26,7 +26,7 @@ vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
 }
 
 // needed to convert from .rgba16Unorm to .bgra8Unorm
-fragment float4 fragTransShader(float4 frag_coord [[position]],
+fragment float4 fragFinalPass(float4 frag_coord [[position]],
                                 constant SysUniforms& sys_u [[buffer(0)]],
                                 texture2d<float> buffer [[texture(0)]]
                                )
