@@ -322,7 +322,7 @@ struct MetalView: NSViewRepresentable {
             }
         }
 
-        func updateUniforms(passNum:UInt32) throws {
+        func updateUniforms() throws {
             var offset = MemoryLayout<ViewportSize>.size // for viewport
             let bufferPointer = sysUniformBuffer!.contents()
 
@@ -346,7 +346,7 @@ struct MetalView: NSViewRepresentable {
             offset += memSize
 
 
-            var pNum = passNum
+            var pNum = numBuffers
             // Ensure the offset is aligned
             memAlign = MemoryLayout<UInt32>.alignment
             memSize = MemoryLayout<UInt32>.size
@@ -360,13 +360,13 @@ struct MetalView: NSViewRepresentable {
         }
 
 
-        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, _ passNum: UInt32 ) {
+        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) {
             for i in 0..<MAX_RENDER_BUFFERS {
                 encoder.setFragmentTexture(renderBuffers[i], index: i)
             }
 
             do {
-                try updateUniforms(passNum:passNum)
+                try updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
                 encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
@@ -398,7 +398,7 @@ struct MetalView: NSViewRepresentable {
                     guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
                     commandEncoder.setRenderPipelineState(pipelineStates[i])
-                    setupRenderEncoder(commandEncoder, 0)
+                    setupRenderEncoder(commandEncoder)
                     commandEncoder.endEncoding()
 
                     i += 1
