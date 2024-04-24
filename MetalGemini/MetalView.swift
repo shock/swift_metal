@@ -83,7 +83,6 @@ struct MetalView: NSViewRepresentable {
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
         var pipelineStates: [MTLRenderPipelineState]
-        var finalPipelineState: MTLRenderPipelineState?
         var sysUniformBuffer: MTLBuffer?
         var frameCounter: UInt32
         var startDate: Date!
@@ -161,11 +160,6 @@ struct MetalView: NSViewRepresentable {
             guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
                 fatalError("Could not find vertexShader function")
             }
-//            guard var fragTransFunction = library.makeFunction(name: "fragFinalPass") else {
-//                fatalError("Could not find default fragFinalPass function")
-//            }
-//            
-//            var overrideFragTransFunction: MTLFunction?
 
             if( shaderFileURL != nil ) {
                 let fileURL = shaderFileURL!
@@ -204,11 +198,6 @@ struct MetalView: NSViewRepresentable {
 //                    }
                     uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)],
                         suppressSave: true)
-//                    overrideFragTransFunction = library.makeFunction(name: "fragFinalPass1")
-//                    if( overrideFragTransFunction != nil ) {
-////                        fragTransFunction = overrideFragTransFunction!
-//                        print("overrideFragTransFunction found")
-//                    }
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     DispatchQueue.main.async {
@@ -315,7 +304,6 @@ struct MetalView: NSViewRepresentable {
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
-//            print("drawableSizeWillChange size: \(size)")
             updateViewportSize(size)
             frameCounter = 0
         }
