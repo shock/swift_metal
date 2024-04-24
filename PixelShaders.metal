@@ -27,11 +27,15 @@ vertex float4 vertexShader(uint vertexID [[vertex_id]]) {
 
 // needed to convert from .rgba16Unorm to .bgra8Unorm
 fragment float4 fragFinalPass(float4 frag_coord [[position]],
-                                constant SysUniforms& sys_u [[buffer(0)]],
-                                texture2d<float> buffer [[texture(0)]]
+                              constant SysUniforms& sys_u [[buffer(0)]],
+                              texture2d<float> buffer0 [[texture(0)]],
+                              texture2d<float> buffer1 [[texture(1)]],
+                              texture2d<float> buffer2 [[texture(2)]],
+                              texture2d<float> buffer3 [[texture(3)]],
+                              texture2d<float> lastBuffer [[texture(4)]]
                                )
 {
-    float4 pixelColor = buffer.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/sys_u.resolution);
+    float4 pixelColor = lastBuffer.sample(sampler(mag_filter::linear, min_filter::linear), frag_coord.xy/sys_u.resolution);
     return pixelColor;
 }
 
