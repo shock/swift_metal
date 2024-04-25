@@ -85,7 +85,6 @@ struct MetalView: NSViewRepresentable {
         var pipelineStates: [MTLRenderPipelineState]
         var sysUniformBuffer: MTLBuffer?
         var frameCounter: UInt32
-        var startDate: Date!
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
         var renderTimer: Timer?
@@ -97,7 +96,6 @@ struct MetalView: NSViewRepresentable {
 
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
-            self.startDate = Date()
             self.frameCounter = 0
             self.renderBuffers = []
             self.pipelineStates = []
@@ -295,7 +293,7 @@ struct MetalView: NSViewRepresentable {
 
         func reloadShaders() {
             frameCounter = 0
-            startDate = Date()
+            model.startDate = Date()
             model.reloadShaders = false
             model.resetFrame()
             setupRenderBuffers(model.size)
@@ -343,7 +341,7 @@ struct MetalView: NSViewRepresentable {
             // Update the offset
             offset += memSize
 
-            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            var elapsedTime = Float(-model.startDate.timeIntervalSinceNow)
             // Ensure the offset is aligned
             memAlign = MemoryLayout<Float>.alignment
             memSize = MemoryLayout<Float>.size
@@ -442,6 +440,7 @@ struct MetalView: NSViewRepresentable {
                 reloadShaders()
             }
 
+            guard !model.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
             if( model.vsyncOn ) { renderOffscreen() }
 //            guard finalPipelineState != nil else { return }

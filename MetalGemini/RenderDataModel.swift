@@ -17,17 +17,30 @@ class RenderDataModel: ObservableObject {
     @Published var shaderError: String? = nil
 
     var reloadShaders = false
+    var size: CGSize = CGSize(width:0,height:0)
+    var fileDescriptors: [Int32] = []
+    var shaderURLs: [URL] = []
+    var fileMonitorSources: [DispatchSourceFileSystemObject] = []
+    var coordinator: MetalView.Coordinator?
+    var startDate = Date()
+    private var pauseTime = Date()
+
     var vsyncOn: Bool = true {
         didSet {
             self.coordinator?.updateVSyncState(self.vsyncOn)
             NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
         }
     }
-    var size: CGSize = CGSize(width:0,height:0)
-    var fileDescriptors: [Int32] = []
-    var shaderURLs: [URL] = []
-    var fileMonitorSources: [DispatchSourceFileSystemObject] = []
-    var coordinator: MetalView.Coordinator?
+
+    var renderingPaused: Bool = false {
+        didSet {
+            if renderingPaused {
+                pauseTime = Date()
+            } else {
+                startDate += Date().timeIntervalSince(pauseTime)
+            }
+        }
+    }
 
     func updateTitle() {
         let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
@@ -37,6 +50,7 @@ class RenderDataModel: ObservableObject {
 
     func resetFrame() {
         DispatchQueue.main.async {
+            self.startDate = Date()
             self.frameCount = 0
             self.lastFrame = 0
             self.fps = 0
@@ -89,14 +103,33 @@ class RenderDataModel: ObservableObject {
         reloadShaders = true
 
     }
+    
+    func rewind() {
+        startDate += 1
+    }
+     
+    func fforward() {
+        startDate -= 1
+    }
 }
 
 extension RenderDataModel: KeyboardViewDelegate {
     func keyDownEvent(keyCode: UInt16) {
         // Handle the key event, update the model
         // For example, toggle vsync based on a specific key
-        if keyCode == 49 { // Space bar
-            vsyncOn.toggle()
+        switch keyCode {
+        case 49:  // Space bar
+            break
+        case 125: // Down arrow
+            resetFrame()
+        case 126: // Up arrow
+            renderingPaused.toggle()
+        case 123: // Left arrow
+            rewind()
+        case 124: // Right arrow
+            fforward()
+        default:
+            break // Do nothing for other key codes
         }
     }
 }
