@@ -17,7 +17,12 @@ class RenderDataModel: ObservableObject {
     @Published var shaderError: String? = nil
 
     var reloadShaders = false
-    var vsyncOn = true
+    var vsyncOn: Bool = true {
+        didSet {
+            self.coordinator?.updateVSyncState(self.vsyncOn)
+            NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
+        }
+    }
     var size: CGSize = CGSize(width:0,height:0)
     var fileDescriptors: [Int32] = []
     var shaderURLs: [URL] = []
@@ -92,7 +97,6 @@ extension RenderDataModel: KeyboardViewDelegate {
         // For example, toggle vsync based on a specific key
         if keyCode == 49 { // Space bar
             vsyncOn.toggle()
-            coordinator?.updateVSyncState(vsyncOn)
         }
     }
 }

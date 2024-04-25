@@ -211,7 +211,7 @@ struct MetalView: NSViewRepresentable {
 
             do {
                 for i in 0...MAX_RENDER_BUFFERS {
-                    
+
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
                         print("Stopping search.")
@@ -246,7 +246,9 @@ struct MetalView: NSViewRepresentable {
 
                 print("shaders loaded")
                 DispatchQueue.main.async {
-                    self.updateVSyncState(self.model.vsyncOn) // renable offline rendering if vsync is false
+                    if !self.model.vsyncOn {
+                        self.startRendering() // renable offline rendering if vsync is false
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -321,7 +323,6 @@ struct MetalView: NSViewRepresentable {
 
         func updateVSyncState(_ enabled: Bool) {
             // Update your rendering logic here based on the VSync state
-            model.vsyncOn = enabled
             if enabled {
                 stopRendering()
             } else {
@@ -375,10 +376,10 @@ struct MetalView: NSViewRepresentable {
             if numBuffers > 0 {
                 encoder.setFragmentTexture(renderBuffers[numBuffers-1], index: MAX_RENDER_BUFFERS)
             }
-                
+
             // now the first MAX_RENDER_BUFFERS+1 buffers are passed
             // it's up to the shaders how to use them
-            
+
             do {
                 try updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
@@ -440,7 +441,7 @@ struct MetalView: NSViewRepresentable {
             if( model.reloadShaders ) {
                 reloadShaders()
             }
-            
+
             guard pipelineStates.count - 1 == numBuffers else { return }
             if( model.vsyncOn ) { renderOffscreen() }
 //            guard finalPipelineState != nil else { return }
