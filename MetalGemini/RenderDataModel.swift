@@ -85,3 +85,14 @@ class RenderDataModel: ObservableObject {
 
     }
 }
+
+extension RenderDataModel: KeyboardViewDelegate {
+    func keyDownEvent(keyCode: UInt16) {
+        // Handle the key event, update the model
+        // For example, toggle vsync based on a specific key
+        if keyCode == 49 { // Space bar
+            vsyncOn.toggle()
+            coordinator?.updateVSyncState(vsyncOn)
+        }
+    }
+}

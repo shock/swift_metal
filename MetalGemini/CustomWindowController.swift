@@ -27,12 +27,19 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
         // Call the setup method immediately after initialization
 
-        keyboardView = KeyboardView()
-        window.contentView?.addSubview(keyboardView)
-        window.makeFirstResponder(keyboardView)
-
+        setupKeyboardView()
         setupObservers()
         setupWindowProperties()
+    }
+
+    private func setupKeyboardView() {
+        keyboardView = KeyboardView()
+        if let contentViewBounds = window?.contentView?.bounds {
+            keyboardView.frame = contentViewBounds
+        }
+        keyboardView.delegate = viewModel!
+        window?.contentView?.addSubview(keyboardView)
+        window?.makeFirstResponder(keyboardView)
     }
 
     private func setupObservers() {

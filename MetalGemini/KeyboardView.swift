@@ -8,14 +8,21 @@
 import Foundation
 import Cocoa
 
+protocol KeyboardViewDelegate: AnyObject {
+    func keyDownEvent(keyCode: UInt16)
+}
+
 class KeyboardView: NSView {
-    
+
+    weak var delegate: KeyboardViewDelegate?
+
     override var acceptsFirstResponder: Bool { return true }
 
     override func keyDown(with event: NSEvent) {
         if event.isARepeat { return }
         print("Key down code: \(event.keyCode)")
-//        interpretKeyEvents([event])  // This will trigger keyUp and keyDown
+        delegate?.keyDownEvent(keyCode: event.keyCode)
+//        interpretKeyEvents([event])  // This seems to turn the event back over to the framework
     }
 
     override func keyUp(with event: NSEvent) {
