@@ -39,13 +39,18 @@ class RenderDataModel: ObservableObject {
             } else {
                 startDate += Date().timeIntervalSince(pauseTime)
             }
+            updateTitle()
         }
     }
 
     func updateTitle() {
         let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
         let size = String(format: "%.0fx%.0f", size.width, size.height)
-        title = "\(file) - \(size) - \(String(format: "%.1f FPS", fps))"
+        var fps = String(format: "FPS: %.0sf", fps)
+        if renderingPaused {
+            fps = "<PAUSED>"
+        }
+        title = "\(file) - \(size) - \(fps)"
     }
 
     func resetFrame() {

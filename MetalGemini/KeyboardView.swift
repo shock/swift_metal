@@ -19,7 +19,7 @@ class KeyboardView: NSView {
     override var acceptsFirstResponder: Bool { return true }
 
     override func keyDown(with event: NSEvent) {
-        if event.isARepeat { return }
+//        if event.isARepeat { return }
         print("Key down code: \(event.keyCode)")
         delegate?.keyDownEvent(keyCode: event.keyCode)
 //        interpretKeyEvents([event])  // This seems to turn the event back over to the framework
