@@ -19,10 +19,10 @@ class ShaderManager {
 
     func loadShader(fileURL: URL) -> Bool {
         do {
+            shaderURL = fileURL
             rawShaderSource = try getShaderSource()
             try parseFilesToMonitor()
             metallibURL = try metalToLib(srcURL: fileURL)
-            shaderURL = fileURL
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -105,7 +105,7 @@ extension ShaderManager {
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
-
-        throw "Unknown error compiling \(srcURL.path) to \(metalLibURL.path)"
+        
+        return metalLibURL
     }
 }

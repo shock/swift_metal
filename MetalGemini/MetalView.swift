@@ -88,6 +88,9 @@ struct MetalView: NSViewRepresentable {
         var numBuffers = 0
         var renderTimer: Timer?
         var renderingActive = true
+        var metallibURL: URL?
+//        var reloadShaders = false
+
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
 
@@ -107,14 +110,14 @@ struct MetalView: NSViewRepresentable {
 
 
             // Load the default shaders and create the pipeline states
-            setupShaders(nil)
+            setupShaders()
             createUniformBuffers()
 
             // must initialize render buffers
             updateViewportSize(CGSize(width:2,height:2))
         }
 
-        func setupShaders(_ shaderFileURL: URL?) {
+        func setupShaders() {
             stopRendering() // ensure offline rendering is disabled
 
             numBuffers = 0
@@ -129,43 +132,41 @@ struct MetalView: NSViewRepresentable {
                 fatalError("Could not find vertexShader function")
             }
 
-            if( shaderFileURL != nil ) {
-                let fileURL = shaderFileURL!
-                let metalLibURL = fileURL.deletingPathExtension().appendingPathExtension("metallib")
+            if( metallibURL != nil ) {
+                let metalLibURL = metallibURL!
                 do {
-                    let compileResult = metalToAir(srcURL: fileURL)
-                    let paths = compileResult.stdOut!.components(separatedBy: "\n")
-                    var urls: [URL] = []
-                    for path in paths {
-                        if path != "" {
-                            let url = URL(fileURLWithPath: path)
-                            urls.append(url)
-                        }
-                    }
+//                    let compileResult = metalToAir(srcURL: fileURL)
+//                    let paths = compileResult.stdOut!.components(separatedBy: "\n")
+//                    var urls: [URL] = []
+//                    for path in paths {
+//                        if path != "" {
+//                            let url = URL(fileURLWithPath: path)
+//                            urls.append(url)
+//                        }
+//                    }
 
-                    // Setup the model to monitor updates to the shader file and/or any of it's includes.
-                    // We do this even if the compilation failed, so if the error is corrected, we'll
-                    // automatically retry compilation.
-                    renderMgr.shaderURLs = urls
-                    renderMgr.monitorShaderFiles()
+//                    // Setup the model to monitor updates to the shader file and/or any of it's includes.
+//                    // We do this even if the compilation failed, so if the error is corrected, we'll
+//                    // automatically retry compilation.
+//                    renderMgr.shaderURLs = urls
+//                    renderMgr.monitorShaderFiles()
 
-                    if( compileResult.exitCode != 0 ) { throw compileResult.stdErr ?? "Unknown error" }
+//                    if( compileResult.exitCode != 0 ) { throw compileResult.stdErr ?? "Unknown error" }
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
-                    DispatchQueue.main.async {
-                        self.renderMgr.shaderError = nil
-                    }
+//                    DispatchQueue.main.async {
+//                        self.renderMgr.shaderError = nil
+//                    }
 
                     // detect any uniform metadata in the shader source
-                    renderMgr.uniformManager.resetMapping()
-                    let error = renderMgr.uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
-                    if( error != nil ) { throw error! }
+//                    let error = renderMgr.uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
+//                    if( error != nil ) { throw error! }
 //                    let appDelegate = NSApplication.shared.delegate as? AppDelegate
 //                    if let view_u = renderMgr.uniformManager.getUniformFloat4("u_resolution") {
 //                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
 //                    }
-                    renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)],
-                        suppressSave: true)
+//                    renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)],
+//                        suppressSave: true)
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     DispatchQueue.main.async {
@@ -267,7 +268,7 @@ struct MetalView: NSViewRepresentable {
             renderMgr.reloadShaders = false
             renderMgr.resetFrame()
             setupRenderBuffers(renderMgr.size)
-            setupShaders(renderMgr.selectedFile)
+            setupShaders()
             print("shaders loading finished")
         }
 
@@ -407,6 +408,7 @@ struct MetalView: NSViewRepresentable {
             defer { renderSemaphore.signal() }  // signal that the resource is free now
 
             if( renderMgr.reloadShaders ) {
+                renderMgr.reloadShaderFile()
                 reloadShaders()
             }
 

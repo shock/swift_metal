@@ -408,14 +408,11 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL) -> String?
+    func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
     {
         resetMapping()
         semaphore.wait()
         defer { semaphore.signal() }
-        guard
-            let shaderSource = getShaderSource(srcURL: srcURL)
-            else { return "Failed to read shader file: \(srcURL)" }
 
         let lines = shaderSource.components(separatedBy: "\n")
 

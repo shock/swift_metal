@@ -27,11 +27,13 @@ class RenderManager: ObservableObject {
     var coordinator: MetalView.Coordinator?
     var startDate = Date()
     var uniformManager = UniformManager()
+    var shaderManager = ShaderManager()
+
     private var pauseTime = Date()
 
     init() {
     }
-    
+
     var vsyncOn: Bool = true {
         didSet {
             self.coordinator?.updateVSyncState(self.vsyncOn)
@@ -102,7 +104,6 @@ class RenderManager: ObservableObject {
         for fileDescriptor in fileDescriptors {
             let fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
             fileMonitorSource.setEventHandler {
-                self.shaderError = nil
                 self.reloadShaders = true
             }
             fileMonitorSource.resume()
@@ -119,7 +120,22 @@ class RenderManager: ObservableObject {
         shaderError = nil
         selectedFile = selectedURL
         reloadShaders = true
+    }
 
+    func reloadShaderFile() {
+        guard let coordinator = coordinator else { return }
+        guard let selectedFile = selectedFile else { return }
+
+        self.shaderError = nil
+
+        if shaderManager.loadShader(fileURL: selectedFile) {
+            coordinator.metallibURL = shaderManager.metallibURL
+            shaderURLs = shaderManager.filesToMonitor
+            monitorShaderFiles()
+            shaderError = uniformManager.setupUniformsFromShader(metalDevice: coordinator.metalDevice!, srcURL: selectedFile, shaderSource: shaderManager.rawShaderSource!)
+        } else {
+            shaderError = shaderManager.errorMessage
+        }
     }
 
     func rewind() {
