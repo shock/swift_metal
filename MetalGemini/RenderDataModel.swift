@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import Cocoa
+
 class RenderDataModel: ObservableObject {
     @Published var frameCount: UInt32 = 0
     @Published var lastFrame: UInt32 = 0
@@ -46,11 +48,15 @@ class RenderDataModel: ObservableObject {
     func updateTitle() {
         let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
         let size = String(format: "%.0fx%.0f", size.width, size.height)
-        var fps = String(format: "FPS: %.0sf", fps)
+        var fps = String(format: "FPS: %.0f", fps)
         if renderingPaused {
             fps = "<PAUSED>"
+        } else {
+            pauseTime = Date()
         }
-        title = "\(file) - \(size) - \(fps)"
+        let elapsedTime = pauseTime.timeIntervalSince(startDate);
+
+        title = "\(file) - \(size) - \(fps) - \(elapsedTime.formattedMMSS())"
     }
 
     func resetFrame() {
@@ -108,20 +114,21 @@ class RenderDataModel: ObservableObject {
         reloadShaders = true
 
     }
-    
+
     func rewind() {
         startDate += 1
     }
-     
+
     func fforward() {
         startDate -= 1
     }
 }
 
 extension RenderDataModel: KeyboardViewDelegate {
-    func keyDownEvent(keyCode: UInt16) {
-        // Handle the key event, update the model
-        // For example, toggle vsync based on a specific key
+    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
+        //        if event.isARepeat { return }
+
+        let keyCode = event.keyCode
         switch keyCode {
         case 49:  // Space bar
             break
@@ -136,5 +143,16 @@ extension RenderDataModel: KeyboardViewDelegate {
         default:
             break // Do nothing for other key codes
         }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        var modifiers = ""
+        if flags.contains(.shift) { modifiers += "Shift " }
+        if flags.contains(.control) { modifiers += "Control " }
+        if flags.contains(.option) { modifiers += "Option " }
+        if flags.contains(.command) { modifiers += "Command " }
+        if flags.contains(.capsLock) { modifiers += "Capslock " }
+        if flags.contains(.function) { modifiers += "Function " }
+        print("Current modifiers: \(modifiers)")
+
     }
 }

@@ -9,19 +9,19 @@ import Foundation
 import Cocoa
 
 protocol KeyboardViewDelegate: AnyObject {
-    func keyDownEvent(keyCode: UInt16)
+    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
 }
 
 class KeyboardView: NSView {
 
+    var flags = NSEvent.ModifierFlags()
     weak var delegate: KeyboardViewDelegate?
 
     override var acceptsFirstResponder: Bool { return true }
 
     override func keyDown(with event: NSEvent) {
-//        if event.isARepeat { return }
         print("Key down code: \(event.keyCode)")
-        delegate?.keyDownEvent(keyCode: event.keyCode)
+        delegate?.keyDownEvent(event: event, flags: flags)
 //        interpretKeyEvents([event])  // This seems to turn the event back over to the framework
     }
 
@@ -31,19 +31,6 @@ class KeyboardView: NSView {
 
     override func flagsChanged(with event: NSEvent) {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        var modifiers = ""
-        if flags.contains(.shift) {
-            modifiers += "Shift "
-        }
-        if flags.contains(.control) {
-            modifiers += "Control "
-        }
-        if flags.contains(.option) {
-            modifiers += "Option "
-        }
-        if flags.contains(.command) {
-            modifiers += "Command "
-        }
-        print("Current modifiers: \(modifiers)")
+        self.flags = flags
     }
 }

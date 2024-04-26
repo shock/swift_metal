@@ -287,13 +287,13 @@ struct MetalView: NSViewRepresentable {
             memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
             model.size.width = size.width
             model.size.height = size.height
+            model.resetFrame()
             setupRenderBuffers(size)
             uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)])
         }
 
         func reloadShaders() {
             frameCounter = 0
-            model.startDate = Date()
             model.reloadShaders = false
             model.resetFrame()
             setupRenderBuffers(model.size)
@@ -442,8 +442,7 @@ struct MetalView: NSViewRepresentable {
 
             guard !model.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
-            if( model.vsyncOn ) { renderOffscreen() }
-//            guard finalPipelineState != nil else { return }
+            if( model.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
@@ -462,7 +461,7 @@ struct MetalView: NSViewRepresentable {
             commandBuffer.present(drawable)
             commandBuffer.commit()
             self.model.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
-            // frameCount is observed by ContentView
+            // model.frameCount is observed by ContentView forcing redraw
         }
 
         deinit { // Unfortunately, this doesn't get called even when the view disappears
