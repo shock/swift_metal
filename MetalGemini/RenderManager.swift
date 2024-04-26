@@ -79,7 +79,8 @@ class RenderManager: ObservableObject {
         }
     }
 
-    func monitorShaderFiles() {
+    func monitorShaderFiles(_ filesToMonitor: [URL]) {
+        shaderURLs = filesToMonitor
         for fileDescriptor in fileDescriptors {
             if fileDescriptor != -1 {
                 close(fileDescriptor)
@@ -131,13 +132,14 @@ class RenderManager: ObservableObject {
 
         if shaderManager.loadShader(fileURL: selectedFile) {
             coordinator.metallibURL = shaderManager.metallibURL
-            shaderURLs = shaderManager.filesToMonitor
-            monitorShaderFiles()
             coordinator.reloadShaders()
             shaderError = uniformManager.setupUniformsFromShader(metalDevice: coordinator.metalDevice!, srcURL: selectedFile, shaderSource: shaderManager.rawShaderSource!)
         } else {
             shaderError = shaderManager.errorMessage
         }
+
+        // monitor files even if there's an error, so if the file is corrected, we'll reload it
+        monitorShaderFiles(shaderManager.filesToMonitor)
     }
 
     func rewind() {

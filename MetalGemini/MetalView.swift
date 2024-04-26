@@ -135,38 +135,8 @@ struct MetalView: NSViewRepresentable {
             if( metallibURL != nil ) {
                 let metalLibURL = metallibURL!
                 do {
-//                    let compileResult = metalToAir(srcURL: fileURL)
-//                    let paths = compileResult.stdOut!.components(separatedBy: "\n")
-//                    var urls: [URL] = []
-//                    for path in paths {
-//                        if path != "" {
-//                            let url = URL(fileURLWithPath: path)
-//                            urls.append(url)
-//                        }
-//                    }
-
-//                    // Setup the model to monitor updates to the shader file and/or any of it's includes.
-//                    // We do this even if the compilation failed, so if the error is corrected, we'll
-//                    // automatically retry compilation.
-//                    renderMgr.shaderURLs = urls
-//                    renderMgr.monitorShaderFiles()
-
-//                    if( compileResult.exitCode != 0 ) { throw compileResult.stdErr ?? "Unknown error" }
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
-//                    DispatchQueue.main.async {
-//                        self.renderMgr.shaderError = nil
-//                    }
-
-                    // detect any uniform metadata in the shader source
-//                    let error = renderMgr.uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
-//                    if( error != nil ) { throw error! }
-//                    let appDelegate = NSApplication.shared.delegate as? AppDelegate
-//                    if let view_u = renderMgr.uniformManager.getUniformFloat4("u_resolution") {
-//                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
-//                    }
-//                    renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)],
-//                        suppressSave: true)
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     DispatchQueue.main.async {
@@ -315,24 +285,18 @@ struct MetalView: NSViewRepresentable {
             offset += memSize
 
             var elapsedTime = Float(-renderMgr.startDate.timeIntervalSinceNow)
-            // Ensure the offset is aligned
             memAlign = MemoryLayout<Float>.alignment
             memSize = MemoryLayout<Float>.size
             offset = (offset + memAlign - 1) / memAlign * memAlign
-            // Copy the data
             memcpy(bufferPointer.advanced(by: offset), &elapsedTime, memSize)
-            // Update the offset
             offset += memSize
 
 
             var pNum = numBuffers
-            // Ensure the offset is aligned
             memAlign = MemoryLayout<UInt32>.alignment
             memSize = MemoryLayout<UInt32>.size
             offset = (offset + memAlign - 1) / memAlign * memAlign
-            // Copy the data
             memcpy(bufferPointer.advanced(by: offset), &pNum, memSize)
-            // Update the offset
             offset += memSize
 
             try renderMgr.uniformManager.mapUniformsToBuffer()
@@ -408,12 +372,6 @@ struct MetalView: NSViewRepresentable {
         func draw(in view: MTKView) {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
-
-//            if( renderMgr.reloadShaders ) {
-//                renderMgr.reloadShaderFile()
-//                reloadShaders()
-//            }
-
             guard !renderMgr.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
             if( renderMgr.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
