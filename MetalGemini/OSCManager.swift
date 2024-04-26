@@ -11,12 +11,12 @@ import SwiftOSC
 
 class OSCServerManager: ObservableObject {
     var server: OSCServer
-    var metalView: MetalView.Coordinator!
+    var uniformManager: UniformManager!
 
-    init(metalView: MetalView.Coordinator) {
+    init(uniformManager: UniformManager) {
         server = OSCServer(address: "", port: 8000)
         server.delegate = self
-        self.metalView = metalView
+        self.uniformManager = uniformManager
     }
 
     func startServer() {
@@ -35,7 +35,7 @@ class OSCServerManager: ObservableObject {
 extension OSCServerManager: OSCServerDelegate {
     func didReceive(_ message: OSCMessage) {
         DispatchQueue.main.async {
-            self.metalView.recvOscMsg(message)
+            self.uniformManager.recvOscMsg(message)
         }
     }
 }

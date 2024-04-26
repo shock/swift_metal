@@ -25,8 +25,12 @@ class RenderManager: ObservableObject {
     var fileMonitorSources: [DispatchSourceFileSystemObject] = []
     var coordinator: MetalView.Coordinator?
     var startDate = Date()
+    var uniformManager = UniformManager()
     private var pauseTime = Date()
 
+    init() {
+    }
+    
     var vsyncOn: Bool = true {
         didSet {
             self.coordinator?.updateVSyncState(self.vsyncOn)

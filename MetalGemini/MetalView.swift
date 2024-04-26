@@ -7,7 +7,6 @@
 
 import SwiftUI
 import MetalKit
-import SwiftOSC
 
 struct ViewportSize {
     var width: Float
@@ -91,8 +90,6 @@ struct MetalView: NSViewRepresentable {
         var renderingActive = true
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
-        private var oscServer: OSCServerManager!
-        private var uniformManager = UniformManager()
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
@@ -102,8 +99,6 @@ struct MetalView: NSViewRepresentable {
             self.renderMgr = renderMgr
             super.init()
             renderMgr.coordinator = self
-            oscServer = OSCServerManager(metalView: self)
-            setupOSCServer()
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
@@ -117,31 +112,6 @@ struct MetalView: NSViewRepresentable {
 
             // must initialize render buffers
             updateViewportSize(CGSize(width:2,height:2))
-        }
-
-        func setupOSCServer() {
-            oscServer.startServer()
-        }
-
-        func recvOscMsg(_ message: OSCMessage) {
-            // Handle incoming OSC message here
-
-            let oscRegex = /[\/\d]*?(\w+).*/
-            if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
-                let name = firstMatch.1
-                var tuple:[Float] = []
-                for argument in message.arguments {
-                    if let float = argument as? Float {
-                        tuple.append(float)
-                    } else if let double = argument as? Double {
-                        print("WARNING: \(name) sent \(double) as double")
-                    }
-
-                }
-                uniformManager.setUniformTuple(String(name), values: tuple)
-
-            }
-//            print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
         }
 
         func setupShaders(_ shaderFileURL: URL?) {
@@ -187,14 +157,14 @@ struct MetalView: NSViewRepresentable {
                     }
 
                     // detect any uniform metadata in the shader source
-                    uniformManager.resetMapping()
-                    let error = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
+                    renderMgr.uniformManager.resetMapping()
+                    let error = renderMgr.uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: fileURL)
                     if( error != nil ) { throw error! }
 //                    let appDelegate = NSApplication.shared.delegate as? AppDelegate
-//                    if let view_u = uniformManager.getUniformFloat4("u_resolution") {
+//                    if let view_u = renderMgr.uniformManager.getUniformFloat4("u_resolution") {
 //                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
 //                    }
-                    uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)],
+                    renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)],
                         suppressSave: true)
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
@@ -289,7 +259,7 @@ struct MetalView: NSViewRepresentable {
             renderMgr.size.height = size.height
             renderMgr.resetFrame()
             setupRenderBuffers(size)
-            uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)])
+            renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)])
         }
 
         func reloadShaders() {
@@ -362,7 +332,7 @@ struct MetalView: NSViewRepresentable {
             // Update the offset
             offset += memSize
 
-            try uniformManager.mapUniformsToBuffer()
+            try renderMgr.uniformManager.mapUniformsToBuffer()
         }
 
 
@@ -381,7 +351,7 @@ struct MetalView: NSViewRepresentable {
             do {
                 try updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
-                encoder.setFragmentBuffer(uniformManager.buffer, offset: 0, index: 1)
+                encoder.setFragmentBuffer(renderMgr.uniformManager.buffer, offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             } catch {
                 print("Failed to setup render encoder: \(error)")
@@ -464,9 +434,5 @@ struct MetalView: NSViewRepresentable {
             // model.frameCount is observed by ContentView forcing redraw
         }
 
-        deinit { // Unfortunately, this doesn't get called even when the view disappears
-            print( "Coordinator deinit")
-            self.oscServer = nil
-        }
     }
 }
