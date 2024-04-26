@@ -104,7 +104,7 @@ class RenderManager: ObservableObject {
         for fileDescriptor in fileDescriptors {
             let fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
             fileMonitorSource.setEventHandler {
-                self.reloadShaders = true
+                self.reloadShaderFile()
             }
             fileMonitorSource.resume()
             fileMonitorSources.append(fileMonitorSource)
@@ -120,6 +120,7 @@ class RenderManager: ObservableObject {
         shaderError = nil
         selectedFile = selectedURL
         reloadShaders = true
+        reloadShaderFile()
     }
 
     func reloadShaderFile() {
@@ -132,6 +133,7 @@ class RenderManager: ObservableObject {
             coordinator.metallibURL = shaderManager.metallibURL
             shaderURLs = shaderManager.filesToMonitor
             monitorShaderFiles()
+            coordinator.reloadShaders()
             shaderError = uniformManager.setupUniformsFromShader(metalDevice: coordinator.metalDevice!, srcURL: selectedFile, shaderSource: shaderManager.rawShaderSource!)
         } else {
             shaderError = shaderManager.errorMessage

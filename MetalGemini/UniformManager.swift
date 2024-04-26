@@ -104,7 +104,7 @@ class UniformManager
     var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
     var float4dict = Float4Dictionary() // Dictionary to store uniform values
     var dirty = true // Flag to indicate if the buffer needs updating
-    var buffer: MTLBuffer? // Metal buffer for storing uniform data
+    private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
     var uniformProjectDirURL: URL? // Directory URL for the project

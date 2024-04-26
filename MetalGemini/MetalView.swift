@@ -260,10 +260,12 @@ struct MetalView: NSViewRepresentable {
             renderMgr.size.height = size.height
             renderMgr.resetFrame()
             setupRenderBuffers(size)
-            renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)])
+            renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)], suppressSave: true)
         }
 
         func reloadShaders() {
+            renderSemaphore.wait()  // wait until the resource is free to use
+            defer { renderSemaphore.signal() }  // signal that the resource is free now
             frameCounter = 0
             renderMgr.reloadShaders = false
             renderMgr.resetFrame()
@@ -407,10 +409,10 @@ struct MetalView: NSViewRepresentable {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
 
-            if( renderMgr.reloadShaders ) {
-                renderMgr.reloadShaderFile()
-                reloadShaders()
-            }
+//            if( renderMgr.reloadShaders ) {
+//                renderMgr.reloadShaderFile()
+//                reloadShaders()
+//            }
 
             guard !renderMgr.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
