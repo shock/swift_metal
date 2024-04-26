@@ -245,6 +245,13 @@ class UniformManager
     }
 
     // Update the uniforms buffer if necessary, handling data alignment and copying
+    func getBuffer() -> MTLBuffer? {
+        semaphore.wait()
+        defer { semaphore.signal() }
+        return buffer
+    }
+
+        // Update the uniforms buffer if necessary, handling data alignment and copying
     func mapUniformsToBuffer() throws {
         semaphore.wait()
         defer { semaphore.signal() }
@@ -383,17 +390,6 @@ class UniformManager
         } catch {
             print("Failed to read the \(uniformsTxtURL?.path(percentEncoded: false) ?? "") file: \(error)")
         }
-    }
-
-    // Get the shader source from a URL and parse it for uniform struct definitions
-    private func getShaderSource(srcURL: URL) -> String?
-    {
-        let command = "cpp \(srcURL.path) 2> /dev/null | cat" // hack to avoid error status on cpp
-        let execResult = shell_exec(command, cwd: nil)
-        if execResult.exitCode != 0 {
-            return nil
-        }
-        return execResult.stdOut
     }
 
     // parses the shader file to look for a struct tagged
