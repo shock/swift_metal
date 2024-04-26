@@ -31,23 +31,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var vsyncEnabled: Bool = false {
         didSet {
             DispatchQueue.main.async {
-                self.viewModel.coordinator?.updateVSyncState(self.vsyncEnabled)
                 UserDefaults.standard.set(self.vsyncEnabled, forKey: "VSyncEnabled")
                 self.updateMenuState()
             }
         }
     }
 
+    func findMenuItem(withTitle title: String, in menu: NSMenu) -> NSMenuItem? {
+        for item in menu.items {
+            if item.title == title {
+                return item
+            } else if let submenu = item.submenu {
+                if let foundItem = findMenuItem(withTitle: title, in: submenu) {
+                    return foundItem
+                }
+            }
+        }
+        return nil
+    }
+
+    func findMenuItem(byTag tag: Int, in menu: NSMenu) -> NSMenuItem? {
+        for item in menu.items {
+            if item.tag == tag {
+                return item
+            } else if let submenu = item.submenu {
+                if let foundItem = findMenuItem(byTag: tag, in: submenu) {
+                    return foundItem
+                }
+            }
+        }
+        return nil
+    }
+
     private func updateMenuState() {
-        if let menu = NSApplication.shared.mainMenu {
-            let vsyncItem = menu.item(withTitle: "Enable VSync")
-            vsyncItem?.state = vsyncEnabled ? .on : .off
+        if let vsyncMenuItem = findMenuItem(withTitle: "Enable VSync", in: NSApplication.shared.mainMenu!) {
+            DispatchQueue.main.async {
+                vsyncMenuItem.state = self.vsyncEnabled != true ? .off : .on
+            }
         }
     }
 
     @objc func toggleVSync(sender: NSMenuItem) {
         vsyncEnabled.toggle()
         sender.state = vsyncEnabled ? .on : .off
+        self.viewModel.vsyncOn = self.vsyncEnabled
     }
 
     @objc func createNewFile() {
@@ -86,6 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NotificationCenter.default.addObserver(self, selector: #selector(handleVsyncChange(notification:)), name: .vsyncStatusDidChange, object: nil)
         windowController = CustomWindowController(rootView: ContentView(model: viewModel))
         windowController.showWindow(self)
 
@@ -98,6 +126,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Load the saved VSync state if available
         if let savedVSyncEnabled = UserDefaults.standard.object(forKey: "VSyncEnabled") as? Bool {
             vsyncEnabled = savedVSyncEnabled
+            viewModel.vsyncOn = savedVSyncEnabled
         }
 
         viewModel.coordinator?.updateVSyncState(vsyncEnabled)
@@ -125,6 +154,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenuItem.submenu = viewMenu
         let vsyncItem = NSMenuItem(title: "Enable VSync", action: #selector(toggleVSync), keyEquivalent: "v")
         vsyncItem.state = vsyncEnabled ? .on : .off
+        vsyncItem.tag = 1001  // Example unique tag
         viewMenu.addItem(vsyncItem)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)
@@ -147,4 +177,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true // Let SwiftUI manage window closing
     }
+
+    @objc func handleVsyncChange(notification: Notification) {
+        if let userInfo = notification.userInfo, let enabled = userInfo["enabled"] as? Bool {
+            DispatchQueue.main.async {
+                self.vsyncEnabled = enabled
+                self.updateMenuState()
+            }
+        }
+    }
+
 }

@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import Cocoa
+
 class RenderDataModel: ObservableObject {
     @Published var frameCount: UInt32 = 0
     @Published var lastFrame: UInt32 = 0
@@ -17,21 +19,51 @@ class RenderDataModel: ObservableObject {
     @Published var shaderError: String? = nil
 
     var reloadShaders = false
-    var vsyncOn = true
     var size: CGSize = CGSize(width:0,height:0)
     var fileDescriptors: [Int32] = []
     var shaderURLs: [URL] = []
     var fileMonitorSources: [DispatchSourceFileSystemObject] = []
     var coordinator: MetalView.Coordinator?
+    var startDate = Date()
+    private var pauseTime = Date()
+
+    var vsyncOn: Bool = true {
+        didSet {
+            self.coordinator?.updateVSyncState(self.vsyncOn)
+            NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
+        }
+    }
+
+    var renderingPaused: Bool = false {
+        didSet {
+            if renderingPaused {
+                pauseTime = Date()
+                coordinator?.stopRendering()
+            } else {
+                startDate += Date().timeIntervalSince(pauseTime)
+                coordinator?.startRendering()
+            }
+            updateTitle()
+        }
+    }
 
     func updateTitle() {
         let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
         let size = String(format: "%.0fx%.0f", size.width, size.height)
-        title = "\(file) - \(size) - \(String(format: "%.1f FPS", fps))"
+        var fps = String(format: "FPS: %.0f", fps)
+        if renderingPaused {
+            fps = "<PAUSED>"
+        } else {
+            pauseTime = Date()
+        }
+        let elapsedTime = pauseTime.timeIntervalSince(startDate);
+
+        title = "\(file) - \(size) - \(fps) - \(elapsedTime.formattedMMSS())"
     }
 
     func resetFrame() {
         DispatchQueue.main.async {
+            self.startDate = Date()
             self.frameCount = 0
             self.lastFrame = 0
             self.fps = 0
@@ -82,6 +114,47 @@ class RenderDataModel: ObservableObject {
         shaderError = nil
         selectedFile = selectedURL
         reloadShaders = true
+
+    }
+
+    func rewind() {
+        startDate += 1
+    }
+
+    func fforward() {
+        startDate -= 1
+    }
+}
+
+extension RenderDataModel: KeyboardViewDelegate {
+    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
+        //        if event.isARepeat { return }
+
+        let keyCode = event.keyCode
+        switch keyCode {
+        case 49:  // Space bar
+            break
+        case 125: // Down arrow
+            resetFrame()
+        case 126: // Up arrow
+            renderingPaused.toggle()
+        case 123: // Left arrow
+            rewind()
+        case 124: // Right arrow
+            fforward()
+        default:
+            break // Do nothing for other key codes
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        var modifiers = ""
+        if flags.contains(.shift) { modifiers += "Shift " }
+        if flags.contains(.control) { modifiers += "Control " }
+        if flags.contains(.option) { modifiers += "Option " }
+        if flags.contains(.command) { modifiers += "Command " }
+        if flags.contains(.capsLock) { modifiers += "Capslock " }
+        if flags.contains(.function) { modifiers += "Function " }
+        print("Current modifiers: \(modifiers)")
 
     }
 }

@@ -85,7 +85,6 @@ struct MetalView: NSViewRepresentable {
         var pipelineStates: [MTLRenderPipelineState]
         var sysUniformBuffer: MTLBuffer?
         var frameCounter: UInt32
-        var startDate: Date!
         var renderBuffers: [MTLTexture?]
         var numBuffers = 0
         var renderTimer: Timer?
@@ -97,7 +96,6 @@ struct MetalView: NSViewRepresentable {
 
         init(_ parent: MetalView, model: RenderDataModel ) {
             self.parent = parent
-            self.startDate = Date()
             self.frameCounter = 0
             self.renderBuffers = []
             self.pipelineStates = []
@@ -211,7 +209,7 @@ struct MetalView: NSViewRepresentable {
 
             do {
                 for i in 0...MAX_RENDER_BUFFERS {
-                    
+
                     guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
                         print("Could not find fragmentShader\(i)")
                         print("Stopping search.")
@@ -246,7 +244,9 @@ struct MetalView: NSViewRepresentable {
 
                 print("shaders loaded")
                 DispatchQueue.main.async {
-                    self.updateVSyncState(self.model.vsyncOn) // renable offline rendering if vsync is false
+                    if !self.model.vsyncOn {
+                        self.startRendering() // renable offline rendering if vsync is false
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -287,13 +287,13 @@ struct MetalView: NSViewRepresentable {
             memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
             model.size.width = size.width
             model.size.height = size.height
+            model.resetFrame()
             setupRenderBuffers(size)
             uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)])
         }
 
         func reloadShaders() {
             frameCounter = 0
-            startDate = Date()
             model.reloadShaders = false
             model.resetFrame()
             setupRenderBuffers(model.size)
@@ -321,7 +321,6 @@ struct MetalView: NSViewRepresentable {
 
         func updateVSyncState(_ enabled: Bool) {
             // Update your rendering logic here based on the VSync state
-            model.vsyncOn = enabled
             if enabled {
                 stopRendering()
             } else {
@@ -342,7 +341,7 @@ struct MetalView: NSViewRepresentable {
             // Update the offset
             offset += memSize
 
-            var elapsedTime = Float(-startDate.timeIntervalSinceNow)
+            var elapsedTime = Float(-model.startDate.timeIntervalSinceNow)
             // Ensure the offset is aligned
             memAlign = MemoryLayout<Float>.alignment
             memSize = MemoryLayout<Float>.size
@@ -375,10 +374,10 @@ struct MetalView: NSViewRepresentable {
             if numBuffers > 0 {
                 encoder.setFragmentTexture(renderBuffers[numBuffers-1], index: MAX_RENDER_BUFFERS)
             }
-                
+
             // now the first MAX_RENDER_BUFFERS+1 buffers are passed
             // it's up to the shaders how to use them
-            
+
             do {
                 try updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
@@ -440,10 +439,10 @@ struct MetalView: NSViewRepresentable {
             if( model.reloadShaders ) {
                 reloadShaders()
             }
-            
+
+            guard !model.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
-            if( model.vsyncOn ) { renderOffscreen() }
-//            guard finalPipelineState != nil else { return }
+            if( model.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
@@ -462,7 +461,7 @@ struct MetalView: NSViewRepresentable {
             commandBuffer.present(drawable)
             commandBuffer.commit()
             self.model.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
-            // frameCount is observed by ContentView
+            // model.frameCount is observed by ContentView forcing redraw
         }
 
         deinit { // Unfortunately, this doesn't get called even when the view disappears
