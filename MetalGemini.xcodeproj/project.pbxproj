@@ -11,7 +11,7 @@
 		B54CEB572BDB5C9F00077D15 /* ShaderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB562BDB5C9F00077D15 /* ShaderManager.swift */; };
 		B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0462BD08B7E00CBCA26 /* OSCManager.swift */; };
 		B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0482BD0948900CBCA26 /* UniformManager.swift */; };
-		B5B3CE432BB6102F002F55B3 /* RenderDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */; };
+		B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderManager.swift */; };
 		B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE472BB718EC002F55B3 /* ShellExec.swift */; };
 		B5B3CE4A2BB71EA1002F55B3 /* MetalRuntimeCompile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */; };
 		B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE4B2BB72502002F55B3 /* Extensions.swift */; };
@@ -35,7 +35,7 @@
 		B54CEB562BDB5C9F00077D15 /* ShaderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderManager.swift; sourceTree = "<group>"; };
 		B597D0462BD08B7E00CBCA26 /* OSCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCManager.swift; sourceTree = "<group>"; };
 		B597D0482BD0948900CBCA26 /* UniformManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformManager.swift; sourceTree = "<group>"; };
-		B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderDataModel.swift; sourceTree = "<group>"; };
+		B5B3CE422BB6102F002F55B3 /* RenderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderManager.swift; sourceTree = "<group>"; };
 		B5B3CE472BB718EC002F55B3 /* ShellExec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellExec.swift; sourceTree = "<group>"; };
 		B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRuntimeCompile.swift; sourceTree = "<group>"; };
 		B5B3CE4B2BB72502002F55B3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -120,7 +120,7 @@
 				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
 				B5E711FA2BB4F3BB0092172A /* main.swift */,
 				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
-				B5B3CE422BB6102F002F55B3 /* RenderDataModel.swift */,
+				B5B3CE422BB6102F002F55B3 /* RenderManager.swift */,
 				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
 				B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */,
 				B5B3CE4B2BB72502002F55B3 /* Extensions.swift */,
@@ -259,7 +259,7 @@
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
 				B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */,
-				B5B3CE432BB6102F002F55B3 /* RenderDataModel.swift in Sources */,
+				B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */,
 				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
 				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
 				B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */,
