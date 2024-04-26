@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftOSC
 
 //@main
 struct MetalGeminiApp: App {
@@ -26,6 +27,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var mainMenu: NSMenu! // Store the main menu
     var renderMgr = RenderManager() // Create the ViewModel instance here
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
+    private var oscServer: OSCServerManager!
+
+    func setupOSCServer() {
+        oscServer.startServer()
+    }
 
     // Initialize a variable to track the VSync state
     var vsyncEnabled: Bool = false {
@@ -116,6 +122,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(handleVsyncChange(notification:)), name: .vsyncStatusDidChange, object: nil)
         windowController = CustomWindowController(rootView: ContentView(renderMgr: renderMgr))
         windowController.showWindow(self)
+        oscServer = OSCServerManager(delegate: self)
+        setupOSCServer()
 
         resizeWindow = { [weak self] width, height in
             DispatchQueue.main.async {
@@ -187,4 +195,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+}
+
+extension AppDelegate: OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage) {
+        self.renderMgr.handleOSCMessage(message: message)
+    }
 }

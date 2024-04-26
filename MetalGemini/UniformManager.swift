@@ -109,41 +109,12 @@ class UniformManager
     var uniformsTxtURL: URL? // URL for the uniforms file
     var uniformProjectDirURL: URL? // Directory URL for the project
     let bookmarkID = "net.wdoughty.metaltoy.projectdir" // Bookmark ID for sandboxed file access
-    private var oscServer: OSCServerManager!
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
 
     private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
     private var saveQueue = DispatchQueue(label: "net.wdoughty.metaltoy.saveUniformsQueue") // Queue for saving operations
 
-    init() {
-        oscServer = OSCServerManager(uniformManager: self)
-        setupOSCServer()
-    }
-
-    func setupOSCServer() {
-        oscServer.startServer()
-    }
-
-    func recvOscMsg(_ message: OSCMessage) {
-        // Handle incoming OSC message here
-
-        let oscRegex = /[\/\d]*?(\w+).*/
-        if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
-            let name = firstMatch.1
-            var tuple:[Float] = []
-            for argument in message.arguments {
-                if let float = argument as? Float {
-                    tuple.append(float)
-                } else if let double = argument as? Double {
-                    print("WARNING: \(name) sent \(double) as double")
-                }
-
-            }
-            self.setUniformTuple(String(name), values: tuple)
-
-        }
-//            print("Received OSC message: \(message.address.string), \(String(describing: message.arguments))")
-    }
+    init() {}
 
     // Open a panel to select a directory for storing project files
     func selectDirectory() {
@@ -482,5 +453,25 @@ class UniformManager
         }
         loadUniformsFromFile()
         return nil
+    }
+}
+
+extension UniformManager: OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage) {
+        let oscRegex = /[\/\d]*?(\w+).*/
+        if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
+            let name = firstMatch.1
+            var tuple:[Float] = []
+            for argument in message.arguments {
+                if let float = argument as? Float {
+                    tuple.append(float)
+                } else if let double = argument as? Double {
+                    print("WARNING: \(name) sent \(double) as double")
+                }
+
+            }
+            self.setUniformTuple(String(name), values: tuple)
+
+        }
     }
 }

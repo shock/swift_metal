@@ -9,14 +9,18 @@ import Foundation
 import SwiftUI
 import SwiftOSC
 
+protocol OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage)
+}
+
 class OSCServerManager: ObservableObject {
     var server: OSCServer
-    var uniformManager: UniformManager!
+    var delegate: OSCMessageDelegate?
 
-    init(uniformManager: UniformManager) {
+    init(delegate: OSCMessageDelegate) {
         server = OSCServer(address: "", port: 8000)
         server.delegate = self
-        self.uniformManager = uniformManager
+        self.delegate = delegate
     }
 
     func startServer() {
@@ -35,7 +39,7 @@ class OSCServerManager: ObservableObject {
 extension OSCServerManager: OSCServerDelegate {
     func didReceive(_ message: OSCMessage) {
         DispatchQueue.main.async {
-            self.uniformManager.recvOscMsg(message)
+            self.delegate?.handleOSCMessage(message: message)
         }
     }
 }

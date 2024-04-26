@@ -21,7 +21,7 @@ public let MAX_RENDER_BUFFERS = 4
 typealias MetalViewCoordinator = MetalView.Coordinator
 // we need this because makeCoordinator gets called every time MetalView
 // is hidden, and if we don't reuse an existing coordinator, a new and gets created
-// which creates a new OSC server and starts ravaging the CPU
+// which can allocate resources faster than they can be released during off-line rendering
 var existingCoordinator: MetalViewCoordinator?
 
 struct MetalView: NSViewRepresentable {

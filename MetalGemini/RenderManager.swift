@@ -7,6 +7,7 @@
 
 import Foundation
 import Cocoa
+import SwiftOSC
 
 class RenderManager: ObservableObject {
     @Published var frameCount: UInt32 = 0
@@ -160,5 +161,11 @@ extension RenderManager: KeyboardViewDelegate {
         if flags.contains(.function) { modifiers += "Function " }
         print("Current modifiers: \(modifiers)")
 
+    }
+}
+
+extension RenderManager: OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage) {
+        self.uniformManager.handleOSCMessage(message: message)
     }
 }
