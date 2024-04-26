@@ -8,7 +8,7 @@
 import Foundation
 import Cocoa
 
-class RenderDataModel: ObservableObject {
+class RenderManager: ObservableObject {
     @Published var frameCount: UInt32 = 0
     @Published var lastFrame: UInt32 = 0
     @Published var fps: Double = 0
@@ -126,7 +126,7 @@ class RenderDataModel: ObservableObject {
     }
 }
 
-extension RenderDataModel: KeyboardViewDelegate {
+extension RenderManager: KeyboardViewDelegate {
     func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
         //        if event.isARepeat { return }
 

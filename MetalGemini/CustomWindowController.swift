@@ -11,7 +11,7 @@ import SwiftUI
 import Combine
 
 class CustomWindowController: NSWindowController, NSWindowDelegate  {
-    private var viewModel: RenderDataModel?
+    private var renderMgr: RenderManager?
     private var cancellables: Set<AnyCancellable> = []
     private var keyboardView: KeyboardView!
 
@@ -23,7 +23,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         self.init(window: window)
         window.title = "Metal Shader: <default>"  // Set the default title
 
-        viewModel = (NSApp.delegate as? AppDelegate)?.viewModel
+        renderMgr = (NSApp.delegate as? AppDelegate)?.renderMgr
 
         // Call the setup method immediately after initialization
 
@@ -37,7 +37,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         if let contentViewBounds = window?.contentView?.bounds {
             keyboardView.frame = contentViewBounds
         }
-        keyboardView.delegate = viewModel!
+        keyboardView.delegate = renderMgr!
         window?.contentView?.addSubview(keyboardView)
         window?.makeFirstResponder(keyboardView)
     }
@@ -46,7 +46,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
         // add a listener to the model's selectedFile attribute
         // if it changes, run the closure
-        viewModel?.$title.sink { [weak self] (newTitle: String?) in
+        renderMgr?.$title.sink { [weak self] (newTitle: String?) in
 
             // DispatchQueue.main.async may not be necessary, but the window
             // title may only be updated by the main thread.
@@ -71,7 +71,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
     private func loadLastFileOpened() {
         if let fileURL = UserDefaults.standard.string(forKey: "LastFileOpened"),
-           let viewModel = viewModel {
+           let viewModel = renderMgr {
             viewModel.loadShaderFile(URL(string:fileURL))
         }
     }
@@ -84,12 +84,12 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
     }
 
     func windowWillClose(_ notification: Notification) {
-        viewModel?.coordinator?.stopRendering()
+        renderMgr?.coordinator?.stopRendering()
         if let window = window {
             let frameString = NSStringFromRect(window.frame)
             UserDefaults.standard.set(frameString, forKey: "LastWindowFrame")
         }
-        if let viewModel = viewModel {
+        if let viewModel = renderMgr {
             if( viewModel.selectedFile != nil )
             {
                 let path = viewModel.selectedFile!.path(percentEncoded: false)

@@ -26,14 +26,14 @@ typealias MetalViewCoordinator = MetalView.Coordinator
 var existingCoordinator: MetalViewCoordinator?
 
 struct MetalView: NSViewRepresentable {
-    @ObservedObject var model: RenderDataModel // Reference the ObservableObject
+    @ObservedObject var renderMgr: RenderManager // Reference the ObservableObject
     let retinaEnabled = false
 
     func makeCoordinator() -> Coordinator {
         if let coordinator = existingCoordinator {
             return coordinator
         }
-        existingCoordinator = Coordinator(self, model: model)
+        existingCoordinator = Coordinator(self, renderMgr: renderMgr)
         return existingCoordinator!
     }
 
@@ -78,7 +78,7 @@ struct MetalView: NSViewRepresentable {
     }
 
     class Coordinator: NSObject, MTKViewDelegate {
-        var model: RenderDataModel
+        var renderMgr: RenderManager
         var parent: MetalView
         var metalDevice: MTLDevice!
         var metalCommandQueue: MTLCommandQueue!
@@ -94,14 +94,14 @@ struct MetalView: NSViewRepresentable {
         private var oscServer: OSCServerManager!
         private var uniformManager = UniformManager()
 
-        init(_ parent: MetalView, model: RenderDataModel ) {
+        init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
             self.frameCounter = 0
             self.renderBuffers = []
             self.pipelineStates = []
-            self.model = model
+            self.renderMgr = renderMgr
             super.init()
-            model.coordinator = self
+            renderMgr.coordinator = self
             oscServer = OSCServerManager(metalView: self)
             setupOSCServer()
 
@@ -176,14 +176,14 @@ struct MetalView: NSViewRepresentable {
                     // Setup the model to monitor updates to the shader file and/or any of it's includes.
                     // We do this even if the compilation failed, so if the error is corrected, we'll
                     // automatically retry compilation.
-                    model.shaderURLs = urls
-                    model.monitorShaderFiles()
+                    renderMgr.shaderURLs = urls
+                    renderMgr.monitorShaderFiles()
 
                     if( compileResult.exitCode != 0 ) { throw compileResult.stdErr ?? "Unknown error" }
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
                     DispatchQueue.main.async {
-                        self.model.shaderError = nil
+                        self.renderMgr.shaderError = nil
                     }
 
                     // detect any uniform metadata in the shader source
@@ -194,12 +194,12 @@ struct MetalView: NSViewRepresentable {
 //                    if let view_u = uniformManager.getUniformFloat4("u_resolution") {
 //                        appDelegate?.resizeWindow?(CGFloat(view_u.x), CGFloat(view_u.y))
 //                    }
-                    uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)],
+                    uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)],
                         suppressSave: true)
                 } catch {
                     print("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     DispatchQueue.main.async {
-                        self.model.shaderError = "\(error)"
+                        self.renderMgr.shaderError = "\(error)"
                     }
                     return
                 }
@@ -219,7 +219,7 @@ struct MetalView: NSViewRepresentable {
                 }
                 if fragmentFunctions.count < 1 {
                     DispatchQueue.main.async {
-                        self.model.shaderError = "Must have at least one fragment shader named `fragmentShader0`"
+                        self.renderMgr.shaderError = "Must have at least one fragment shader named `fragmentShader0`"
                     }
                     return
                 }
@@ -244,13 +244,13 @@ struct MetalView: NSViewRepresentable {
 
                 print("shaders loaded")
                 DispatchQueue.main.async {
-                    if !self.model.vsyncOn {
+                    if !self.renderMgr.vsyncOn {
                         self.startRendering() // renable offline rendering if vsync is false
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.model.shaderError = "Failed to setup shaders: \(error)"
+                    self.renderMgr.shaderError = "Failed to setup shaders: \(error)"
                 }
                 return
             }
@@ -285,19 +285,19 @@ struct MetalView: NSViewRepresentable {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
             let bufferPointer = sysUniformBuffer!.contents()
             memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
-            model.size.width = size.width
-            model.size.height = size.height
-            model.resetFrame()
+            renderMgr.size.width = size.width
+            renderMgr.size.height = size.height
+            renderMgr.resetFrame()
             setupRenderBuffers(size)
-            uniformManager.setUniformTuple("u_resolution", values: [Float(model.size.width), Float(model.size.height)])
+            uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)])
         }
 
         func reloadShaders() {
             frameCounter = 0
-            model.reloadShaders = false
-            model.resetFrame()
-            setupRenderBuffers(model.size)
-            setupShaders(model.selectedFile)
+            renderMgr.reloadShaders = false
+            renderMgr.resetFrame()
+            setupRenderBuffers(renderMgr.size)
+            setupShaders(renderMgr.selectedFile)
             print("shaders loading finished")
         }
 
@@ -341,7 +341,7 @@ struct MetalView: NSViewRepresentable {
             // Update the offset
             offset += memSize
 
-            var elapsedTime = Float(-model.startDate.timeIntervalSinceNow)
+            var elapsedTime = Float(-renderMgr.startDate.timeIntervalSinceNow)
             // Ensure the offset is aligned
             memAlign = MemoryLayout<Float>.alignment
             memSize = MemoryLayout<Float>.size
@@ -392,7 +392,7 @@ struct MetalView: NSViewRepresentable {
             renderQueue.async { [weak self] in
                 guard let self = self else { return }
                 guard self.numBuffers > 0 else { return }
-                if( !renderingActive && !model.vsyncOn ) { return }
+                if( !renderingActive && !renderMgr.vsyncOn ) { return }
 
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
                 defer { self.renderSemaphore.signal() }  // Release the lock after updating
@@ -422,7 +422,7 @@ struct MetalView: NSViewRepresentable {
                 // as quickly as possible.  The drawback is that slower renderings
                 // like circle_and_lines don't display smoothly even though
                 // framerates are faster than 60Hz.
-                if( !model.vsyncOn ) {
+                if( !renderMgr.vsyncOn ) {
                     commandBuffer.addScheduledHandler { commandBuffer in
                         self.renderOffscreen()
                     }
@@ -436,13 +436,13 @@ struct MetalView: NSViewRepresentable {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
 
-            if( model.reloadShaders ) {
+            if( renderMgr.reloadShaders ) {
                 reloadShaders()
             }
 
-            guard !model.renderingPaused else { return }
+            guard !renderMgr.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
-            if( model.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
+            if( renderMgr.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
@@ -460,7 +460,7 @@ struct MetalView: NSViewRepresentable {
 
             commandBuffer.present(drawable)
             commandBuffer.commit()
-            self.model.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
+            self.renderMgr.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
             // model.frameCount is observed by ContentView forcing redraw
         }
 
