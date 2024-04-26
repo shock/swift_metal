@@ -38,8 +38,10 @@ class RenderDataModel: ObservableObject {
         didSet {
             if renderingPaused {
                 pauseTime = Date()
+                coordinator?.stopRendering()
             } else {
                 startDate += Date().timeIntervalSince(pauseTime)
+                coordinator?.startRendering()
             }
             updateTitle()
         }
