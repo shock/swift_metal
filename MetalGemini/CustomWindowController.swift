@@ -71,8 +71,8 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
     private func loadLastFileOpened() {
         if let fileURL = UserDefaults.standard.string(forKey: "LastFileOpened"),
-           let viewModel = renderMgr {
-            viewModel.loadShaderFile(URL(string:fileURL))
+           let renderMgr = renderMgr {
+            renderMgr.loadShaderFile(URL(string:fileURL))
         }
     }
 
@@ -90,9 +90,8 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         }
         if let renderMgr = renderMgr {
             renderMgr.shutDown()
-            if( renderMgr.selectedFile != nil )
-            {
-                let path = renderMgr.selectedFile!.path(percentEncoded: false)
+            if let selectedShaderURL = renderMgr.selectedShaderURL {
+                let path = selectedShaderURL.path(percentEncoded: false)
                 UserDefaults.standard.set(path, forKey: "LastFileOpened")
             }
         }

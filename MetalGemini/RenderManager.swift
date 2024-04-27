@@ -14,7 +14,7 @@ class RenderManager: ObservableObject {
     @Published var lastFrame: UInt32 = 0
     @Published var fps: Double = 0
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
-    @Published var selectedFile: URL? = nil
+    @Published var selectedShaderURL: URL? = nil
     @Published var openFileDialog = false
     @Published var title: String? = nil
     @Published var shaderError: String? = nil
@@ -31,6 +31,12 @@ class RenderManager: ObservableObject {
     private var pauseTime = Date()
 
     init() {
+    }
+
+    var metalDevice: MTLDevice? {
+        get {
+            return mtkVC?.metalDevice
+        }
     }
 
     func setViewSize(_ size: CGSize) {
@@ -64,7 +70,7 @@ class RenderManager: ObservableObject {
     }
 
     func updateTitle() {
-        let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
+        let file = "\(selectedShaderURL?.lastPathComponent ?? "<no file>")"
         let size = String(format: "%.0fx%.0f", size.width, size.height)
         var fps = String(format: "FPS: %.0f", fps)
         if renderingPaused {
@@ -129,20 +135,20 @@ class RenderManager: ObservableObject {
         }
 
         shaderError = nil
-        selectedFile = selectedURL
+        selectedShaderURL = selectedURL
         reloadShaderFile()
     }
 
     func reloadShaderFile() {
-        guard let coordinator = mtkVC else { return }
-        guard let selectedFile = selectedFile else { return }
+        guard let mtkVC = mtkVC else { return }
+        guard let selectedURL = selectedShaderURL else { return }
 
         self.shaderError = nil
         self.resetFrame()
 
-        if shaderManager.loadShader(fileURL: selectedFile) {
-            coordinator.loadShader(metallibURL: shaderManager.metallibURL)
-            shaderError = uniformManager.setupUniformsFromShader(metalDevice: coordinator.metalDevice!, srcURL: selectedFile, shaderSource: shaderManager.rawShaderSource!)
+        if shaderManager.loadShader(fileURL: selectedURL) {
+            mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+            shaderError = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
         } else {
             shaderError = shaderManager.errorMessage
         }

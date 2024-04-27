@@ -77,19 +77,19 @@ struct MetalView: NSViewRepresentable {
     }
 
     class Coordinator: NSObject, MTKViewDelegate {
-        var renderMgr: RenderManager
-        var parent: MetalView
-        var metalDevice: MTLDevice!
-        var metalCommandQueue: MTLCommandQueue!
-        var pipelineStates: [MTLRenderPipelineState]
-        var sysUniformBuffer: MTLBuffer?
-        var frameCounter: UInt32
-        var renderBuffers: [MTLTexture?]
-        var numBuffers = 0
-        var renderTimer: Timer?
-        var renderingActive = true
+        private var renderMgr: RenderManager
+        private var parent: MetalView
+        public private(set) var metalDevice: MTLDevice!
+        private var metalCommandQueue: MTLCommandQueue!
+        private var pipelineStates: [MTLRenderPipelineState]
+        private var sysUniformBuffer: MTLBuffer?
+        private var frameCounter: UInt32
+        private var renderBuffers: [MTLTexture?]
+        private var numBuffers = 0
+        private var renderTimer: Timer?
+        private var renderingActive = true
         private var metallibURL: URL?
-        var reloadShaders = false
+        private var reloadShaders = false
 
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
