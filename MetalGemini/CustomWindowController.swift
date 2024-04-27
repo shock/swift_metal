@@ -84,15 +84,15 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
     }
 
     func windowWillClose(_ notification: Notification) {
-        renderMgr?.coordinator?.stopRendering()
         if let window = window {
             let frameString = NSStringFromRect(window.frame)
             UserDefaults.standard.set(frameString, forKey: "LastWindowFrame")
         }
-        if let viewModel = renderMgr {
-            if( viewModel.selectedFile != nil )
+        if let renderMgr = renderMgr {
+            renderMgr.shutDown()
+            if( renderMgr.selectedFile != nil )
             {
-                let path = viewModel.selectedFile!.path(percentEncoded: false)
+                let path = renderMgr.selectedFile!.path(percentEncoded: false)
                 UserDefaults.standard.set(path, forKey: "LastFileOpened")
             }
         }

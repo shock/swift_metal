@@ -182,6 +182,12 @@ extension RenderManager: KeyboardViewDelegate {
         print("Current modifiers: \(modifiers)")
 
     }
+    
+    func shutDown() {
+        renderingPaused = true
+        coordinator?.stopRendering()
+        reloadShaders = false
+    }
 }
 
 extension RenderManager: OSCMessageDelegate {
