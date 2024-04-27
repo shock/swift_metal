@@ -32,7 +32,7 @@ class ShaderManager_
     init(shaderURL: URL) {
         self.shaderURL = shaderURL
         self.uniformManager = UniformManager()
-        loadShader()
+//        loadShader()
     }
 
     // Open a panel to select a directory for storing project files
@@ -100,37 +100,6 @@ class ShaderManager_
         } catch {
             print("Error resolving bookmark for \(identifier): \(error)")
         }
-    }
-    
-    func loadShader() {
-        do {
-            shaderError = nil
-            shaderSource = try getShaderSource()
-            // compile shader into metal
-            let metalLibURL = shaderURL.deletingPathExtension().appendingPathExtension("metallib")
-
-            // parse/load Uniforms
-            // parse/load Textures
-        } catch {
-            shaderError = error as? String
-        }
-    }
-
-    func compileToMetalLib() throws {
-        
-    }
-
-    // Print current uniforms values
-    // Get the shader source from a URL and parse it for uniform struct definitions
-    private func getShaderSource() throws -> String?
-    {
-        let command = "cpp \(shaderURL.path) 2> /dev/null | cat" // hack to avoid error status on cpp
-        let execResult = shell_exec(command, cwd: nil)
-        if execResult.exitCode != 0 {
-            let error = execResult.stdErr ?? "Unknown error pre-processing shader file \(shaderURL.path)"
-            throw error
-        }
-        return execResult.stdOut
     }
 
 }

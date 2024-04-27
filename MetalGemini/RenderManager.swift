@@ -22,7 +22,7 @@ class RenderManager: ObservableObject {
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
-    var uniformManager = UniformManager()
+    private var uniformManager = UniformManager()
     private var shaderManager = ShaderManager()
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
@@ -34,6 +34,10 @@ class RenderManager: ObservableObject {
         get {
             return mtkVC?.metalDevice
         }
+    }
+
+    func uniformBuffer() throws -> MTLBuffer? {
+        return try uniformManager.getBuffer()
     }
 
     func setViewSize(_ size: CGSize) {

@@ -117,7 +117,7 @@ class UniformManager
     init() {}
 
     // Open a panel to select a directory for storing project files
-    func selectDirectory() {
+    private func selectDirectory() {
         DispatchQueue.main.async {
 
             let openPanel = NSOpenPanel()
@@ -145,7 +145,7 @@ class UniformManager
     }
 
     // Store a security-scoped bookmark to persist access to the directory across app launches
-    func storeSecurityScopedBookmark(for directory: URL, withIdentifier identifier: String) {
+    private func storeSecurityScopedBookmark(for directory: URL, withIdentifier identifier: String) {
         do {
             let bookmarkData = try directory.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
             UserDefaults.standard.set(bookmarkData, forKey: "bookmark_\(identifier)")
@@ -156,7 +156,7 @@ class UniformManager
     }
 
     // Access a directory using a stored bookmark, performing a file operation within the bookmark's scope
-    func accessBookmarkedDirectory(withIdentifier identifier: String, using fileOperation: (URL) -> Void) {
+    private func accessBookmarkedDirectory(withIdentifier identifier: String, using fileOperation: (URL) -> Void) {
         guard let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(identifier)") else {
             print("No bookmark data found for \(identifier).")
             return
@@ -180,7 +180,7 @@ class UniformManager
     }
 
     // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
-    func requestSaveUniforms() {
+    private func requestSaveUniforms() {
         saveWorkItem?.cancel() // Cancel the previous task if it exists
         saveWorkItem = DispatchWorkItem { [weak self] in
             self?.saveUniformsToFile()
@@ -193,7 +193,7 @@ class UniformManager
     }
 
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
-    func resetMapping() {
+    private func resetMapping() {
         semaphore.wait()
         defer { semaphore.signal() }
         parameterMap.removeAll()
@@ -202,7 +202,7 @@ class UniformManager
     }
 
     // Clear all uniforms from the dictionary and mark as dirty
-    func clearUniforms() {
+    private func clearUniforms() {
         semaphore.wait()
         defer { semaphore.signal() }
         float4dict.clear()
@@ -244,15 +244,16 @@ class UniformManager
         requestSaveUniforms() // This debounces and schedules a save operation
     }
 
-    // Update the uniforms buffer if necessary, handling data alignment and copying
-    func getBuffer() -> MTLBuffer? {
+    // Update the uniforms buffer if necessary and return it
+    func getBuffer() throws -> MTLBuffer? {
         semaphore.wait()
         defer { semaphore.signal() }
+        try mapUniformsToBuffer()
         return buffer
     }
 
-        // Update the uniforms buffer if necessary, handling data alignment and copying
-    func mapUniformsToBuffer() throws {
+    // Update the uniforms buffer if necessary, handling data alignment and copying
+    private func mapUniformsToBuffer() throws {
         semaphore.wait()
         defer { semaphore.signal() }
         if !dirty { return }
@@ -354,7 +355,7 @@ class UniformManager
     }
 
     // Load uniforms from a file
-    func loadUniformsFromFile() {
+    private func loadUniformsFromFile() {
         let path = uniformsTxtURL
         guard let filePath = path else { return }
 
