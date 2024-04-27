@@ -88,8 +88,8 @@ struct MetalView: NSViewRepresentable {
         var numBuffers = 0
         var renderTimer: Timer?
         var renderingActive = true
-        var metallibURL: URL?
-//        var reloadShaders = false
+        private var metallibURL: URL?
+        var reloadShaders = false
 
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
@@ -108,13 +108,13 @@ struct MetalView: NSViewRepresentable {
             }
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
 
+            // must initialize render buffers
+            createUniformBuffers()
+            updateViewportSize(CGSize(width:2,height:2))
 
             // Load the default shaders and create the pipeline states
-            setupShaders()
-            createUniformBuffers()
+            reinitShaders()
 
-            // must initialize render buffers
-            updateViewportSize(CGSize(width:2,height:2))
         }
 
         func setupShaders() {
@@ -231,12 +231,14 @@ struct MetalView: NSViewRepresentable {
             setupRenderBuffers(size)
         }
 
-        func reloadShaders() {
-            renderSemaphore.wait()  // wait until the resource is free to use
-            defer { renderSemaphore.signal() }  // signal that the resource is free now
+        func loadShader(metallibURL: URL?) {
+            self.metallibURL = metallibURL
+            self.reloadShaders = true
+        }
+
+        func reinitShaders() {
             frameCounter = 0
-            renderMgr.resetFrame()
-            setupRenderBuffers(renderMgr.size)
+            self.reloadShaders = false
             setupShaders()
             print("shaders loading finished")
         }
@@ -371,6 +373,8 @@ struct MetalView: NSViewRepresentable {
             defer { renderSemaphore.signal() }  // signal that the resource is free now
             guard !renderMgr.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
+
+            if self.reloadShaders == true { reinitShaders() }
             if( renderMgr.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }

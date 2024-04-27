@@ -19,7 +19,6 @@ class RenderManager: ObservableObject {
     @Published var title: String? = nil
     @Published var shaderError: String? = nil
 
-    private var reloadShaders = false
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var fileDescriptors: [Int32] = []
     private var shaderURLs: [URL] = []
@@ -131,7 +130,6 @@ class RenderManager: ObservableObject {
 
         shaderError = nil
         selectedFile = selectedURL
-        reloadShaders = true
         reloadShaderFile()
     }
 
@@ -140,11 +138,10 @@ class RenderManager: ObservableObject {
         guard let selectedFile = selectedFile else { return }
 
         self.shaderError = nil
+        self.resetFrame()
 
         if shaderManager.loadShader(fileURL: selectedFile) {
-            coordinator.metallibURL = shaderManager.metallibURL
-            coordinator.reloadShaders()
-            self.reloadShaders = false
+            coordinator.loadShader(metallibURL: shaderManager.metallibURL)
             shaderError = uniformManager.setupUniformsFromShader(metalDevice: coordinator.metalDevice!, srcURL: selectedFile, shaderSource: shaderManager.rawShaderSource!)
         } else {
             shaderError = shaderManager.errorMessage
@@ -198,7 +195,6 @@ extension RenderManager: KeyboardViewDelegate {
     func shutDown() {
         renderingPaused = true
         mtkVC?.stopRendering()
-        reloadShaders = false
     }
 }
 
