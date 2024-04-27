@@ -14,7 +14,6 @@
 		B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0482BD0948900CBCA26 /* UniformManager.swift */; };
 		B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderManager.swift */; };
 		B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE472BB718EC002F55B3 /* ShellExec.swift */; };
-		B5B3CE4A2BB71EA1002F55B3 /* MetalRuntimeCompile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */; };
 		B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE4B2BB72502002F55B3 /* Extensions.swift */; };
 		B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */; };
 		B5E711AE2BB462F80092172A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AD2BB462F80092172A /* ContentView.swift */; };
@@ -39,7 +38,6 @@
 		B597D0482BD0948900CBCA26 /* UniformManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformManager.swift; sourceTree = "<group>"; };
 		B5B3CE422BB6102F002F55B3 /* RenderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderManager.swift; sourceTree = "<group>"; };
 		B5B3CE472BB718EC002F55B3 /* ShellExec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellExec.swift; sourceTree = "<group>"; };
-		B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRuntimeCompile.swift; sourceTree = "<group>"; };
 		B5B3CE4B2BB72502002F55B3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		B5B3CE4E2BB85EB9002F55B3 /* TestShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TestShaders.metal; sourceTree = "<group>"; };
 		B5E711A82BB462F80092172A /* MetalGemini.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalGemini.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -124,7 +122,6 @@
 				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
 				B5B3CE422BB6102F002F55B3 /* RenderManager.swift */,
 				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
-				B5B3CE492BB71EA1002F55B3 /* MetalRuntimeCompile.swift */,
 				B5B3CE4B2BB72502002F55B3 /* Extensions.swift */,
 				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
 				B597D0482BD0948900CBCA26 /* UniformManager.swift */,
@@ -270,7 +267,6 @@
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
 				B54CEB592BDC453200077D15 /* ShaderManager.swift in Sources */,
 				B5ED373C2BDA0F2A00A04963 /* Notification.swift in Sources */,
-				B5B3CE4A2BB71EA1002F55B3 /* MetalRuntimeCompile.swift in Sources */,
 				B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */,
 				B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */,
 			);
