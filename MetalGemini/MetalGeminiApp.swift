@@ -137,7 +137,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             renderMgr.vsyncOn = savedVSyncEnabled
         }
 
-        renderMgr.coordinator?.updateVSyncState(vsyncEnabled)
         // Create the main menu
         mainMenu = NSMenu(title: "MainMenu")
         let appMenu = NSMenu(title: "MetalGemini")

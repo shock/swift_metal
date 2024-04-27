@@ -101,7 +101,7 @@ struct MetalView: NSViewRepresentable {
             self.pipelineStates = []
             self.renderMgr = renderMgr
             super.init()
-            renderMgr.coordinator = self
+            renderMgr.setCoordinator(self)
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
@@ -226,18 +226,15 @@ struct MetalView: NSViewRepresentable {
             var viewportSize = ViewportSize(width: Float(size.width), height: Float(size.height))
             let bufferPointer = sysUniformBuffer!.contents()
             memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
-            renderMgr.size.width = size.width
-            renderMgr.size.height = size.height
+            renderMgr.setViewSize(size)
             renderMgr.resetFrame()
             setupRenderBuffers(size)
-            renderMgr.uniformManager.setUniformTuple("u_resolution", values: [Float(renderMgr.size.width), Float(renderMgr.size.height)], suppressSave: true)
         }
 
         func reloadShaders() {
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
             frameCounter = 0
-            renderMgr.reloadShaders = false
             renderMgr.resetFrame()
             setupRenderBuffers(renderMgr.size)
             setupShaders()

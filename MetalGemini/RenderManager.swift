@@ -19,24 +19,34 @@ class RenderManager: ObservableObject {
     @Published var title: String? = nil
     @Published var shaderError: String? = nil
 
-    var reloadShaders = false
-    var size: CGSize = CGSize(width:0,height:0)
-    var fileDescriptors: [Int32] = []
-    var shaderURLs: [URL] = []
-    var fileMonitorSources: [DispatchSourceFileSystemObject] = []
-    var coordinator: MetalView.Coordinator?
-    var startDate = Date()
+    private var reloadShaders = false
+    public private(set) var size: CGSize = CGSize(width:0,height:0)
+    private var fileDescriptors: [Int32] = []
+    private var shaderURLs: [URL] = []
+    private var fileMonitorSources: [DispatchSourceFileSystemObject] = []
+    private var mtkVC: MetalView.Coordinator?
+    public private(set) var startDate = Date()
     var uniformManager = UniformManager()
-    var shaderManager = ShaderManager()
+    private var shaderManager = ShaderManager()
 
     private var pauseTime = Date()
 
     init() {
     }
 
+    func setViewSize(_ size: CGSize) {
+        self.size.width = size.width
+        self.size.height = size.height
+        uniformManager.setUniformTuple("u_resolution", values: [Float(size.width), Float(size.height)], suppressSave: true)
+    }
+
+    func setCoordinator(_ mtkVC: MetalView.Coordinator ) {
+        self.mtkVC = mtkVC
+    }
+
     var vsyncOn: Bool = true {
         didSet {
-            self.coordinator?.updateVSyncState(self.vsyncOn)
+            self.mtkVC?.updateVSyncState(self.vsyncOn)
             NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
         }
     }
@@ -45,10 +55,10 @@ class RenderManager: ObservableObject {
         didSet {
             if renderingPaused {
                 pauseTime = Date()
-                coordinator?.stopRendering()
+                mtkVC?.stopRendering()
             } else {
                 startDate += Date().timeIntervalSince(pauseTime)
-                coordinator?.startRendering()
+                mtkVC?.startRendering()
             }
             updateTitle()
         }
@@ -126,7 +136,7 @@ class RenderManager: ObservableObject {
     }
 
     func reloadShaderFile() {
-        guard let coordinator = coordinator else { return }
+        guard let coordinator = mtkVC else { return }
         guard let selectedFile = selectedFile else { return }
 
         self.shaderError = nil
@@ -134,6 +144,7 @@ class RenderManager: ObservableObject {
         if shaderManager.loadShader(fileURL: selectedFile) {
             coordinator.metallibURL = shaderManager.metallibURL
             coordinator.reloadShaders()
+            self.reloadShaders = false
             shaderError = uniformManager.setupUniformsFromShader(metalDevice: coordinator.metalDevice!, srcURL: selectedFile, shaderSource: shaderManager.rawShaderSource!)
         } else {
             shaderError = shaderManager.errorMessage
@@ -186,7 +197,7 @@ extension RenderManager: KeyboardViewDelegate {
 
     func shutDown() {
         renderingPaused = true
-        coordinator?.stopRendering()
+        mtkVC?.stopRendering()
         reloadShaders = false
     }
 }
