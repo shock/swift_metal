@@ -20,15 +20,12 @@ class RenderManager: ObservableObject {
     @Published var shaderError: String? = nil
 
     public private(set) var size: CGSize = CGSize(width:0,height:0)
-    private var fileDescriptors: [Int32] = []
-    private var shaderURLs: [URL] = []
-    private var fileMonitorSources: [DispatchSourceFileSystemObject] = []
     private var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
     var uniformManager = UniformManager()
     private var shaderManager = ShaderManager()
-
     private var pauseTime = Date()
+    private var fileMonitor = FileMonitor()
 
     init() {
     }
@@ -96,35 +93,9 @@ class RenderManager: ObservableObject {
     }
 
     func monitorShaderFiles(_ filesToMonitor: [URL]) {
-        shaderURLs = filesToMonitor
-        for fileDescriptor in fileDescriptors {
-            if fileDescriptor != -1 {
-                close(fileDescriptor)
-            }
-        }
-        fileDescriptors.removeAll()
-
-        for shaderURL in shaderURLs {
-            let fileDescriptor = open(shaderURL.path, O_EVTONLY)
-            if fileDescriptor == -1 {
-                print("Unable to open file: \(shaderURL)")
-                return
-            }
-            fileDescriptors.append(fileDescriptor)
-        }
-
-        for fileMonitorSource in fileMonitorSources {
-            fileMonitorSource.cancel()
-        }
-        fileMonitorSources.removeAll()
-
-        for fileDescriptor in fileDescriptors {
-            let fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
-            fileMonitorSource.setEventHandler {
-                self.reloadShaderFile()
-            }
-            fileMonitorSource.resume()
-            fileMonitorSources.append(fileMonitorSource)
+        fileMonitor = FileMonitor()
+        fileMonitor.monitorShaderFiles(filesToMonitor) {
+            self.reloadShaderFile()
         }
     }
 
