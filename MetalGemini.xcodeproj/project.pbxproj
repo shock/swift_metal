@@ -25,6 +25,7 @@
 		B5E711FB2BB4F3BB0092172A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FA2BB4F3BB0092172A /* main.swift */; };
 		B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FC2BB5A8F70092172A /* FileDialog.swift */; };
 		B5ED373C2BDA0F2A00A04963 /* Notification.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5ED373B2BDA0F2A00A04963 /* Notification.swift */; };
+		B5ED373E2BDD283700A04963 /* ThreadSafeFlag.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */; };
 		F38C44B34255F25673DD50B7 /* Pods_MetalGemini.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */; };
 /* End PBXBuildFile section */
 
@@ -53,6 +54,7 @@
 		B5E711FC2BB5A8F70092172A /* FileDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDialog.swift; sourceTree = "<group>"; };
 		B5E711FE2BB5B4E50092172A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B5ED373B2BDA0F2A00A04963 /* Notification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notification.swift; sourceTree = "<group>"; };
+		B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadSafeFlag.swift; sourceTree = "<group>"; };
 		E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetalGemini.debug.xcconfig"; path = "Target Support Files/Pods-MetalGemini/Pods-MetalGemini.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -112,6 +114,7 @@
 				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
 				B5E711AD2BB462F80092172A /* ContentView.swift */,
 				B5E711BA2BB463510092172A /* MetalView.swift */,
+				B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */,
 				B5ED373B2BDA0F2A00A04963 /* Notification.swift */,
 				B5461CF32BD1D52400F085FD /* KeyboardView.swift */,
 				B5E711AF2BB462FA0092172A /* Assets.xcassets */,
@@ -260,6 +263,7 @@
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
 				B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */,
 				B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */,
+				B5ED373E2BDD283700A04963 /* ThreadSafeFlag.swift in Sources */,
 				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
 				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
 				B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */,
