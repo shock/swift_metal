@@ -64,8 +64,9 @@ class RenderManager: ObservableObject {
             pauseTime = Date()
         }
         let elapsedTime = pauseTime.timeIntervalSince(startDate);
-
-        title = "\(file) - \(size) - \(fps) - \(elapsedTime.formattedMMSS())"
+        let avgFPS = Double(frameCount) / Date().timeIntervalSince(startDate)
+        let avgStr = String(format: "FPS: %.0f", avgFPS)
+        title = "\(file) - \(size) - \(fps) - \(elapsedTime.formattedMMSS()) - AVG: \(avgStr)"
     }
 
     func resetFrame() {
@@ -182,7 +183,7 @@ extension RenderManager: KeyboardViewDelegate {
         print("Current modifiers: \(modifiers)")
 
     }
-    
+
     func shutDown() {
         renderingPaused = true
         coordinator?.stopRendering()
