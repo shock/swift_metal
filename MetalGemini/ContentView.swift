@@ -23,13 +23,13 @@ extension EnvironmentValues {
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
-    @ObservedObject var model: RenderDataModel
+    @ObservedObject var renderMgr: RenderManager
 
     var body: some View {
         VStack{
-            if model.shaderError == nil {
+            if renderMgr.shaderError == nil {
                 VStack{
-                    MetalView(model: model)
+                    MetalView(renderMgr: renderMgr)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
                     // Button to start rendering
@@ -37,7 +37,7 @@ struct ContentView: View {
             } else {
                 ScrollView {
                     VStack {
-                        Text(model.shaderError!)
+                        Text(renderMgr.shaderError!)
 //                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .font(.system(size: 13, weight: .medium, design: .monospaced)) // Using a monospaced medium font
                             .multilineTextAlignment(.leading) // Set text alignment to leading (left-justified)
@@ -49,15 +49,15 @@ struct ContentView: View {
                 .padding()
             }
         }
-        .onChange(of: model.frameCount) {
+        .onChange(of: renderMgr.frameCount) {
             doFrame()
         }
         .onChange(of: selectedURL) {
             handleFileChange()
         }
-        .onChange(of: model.openFileDialog) {
-            if model.openFileDialog { fileDialog() }
-            model.openFileDialog = false
+        .onChange(of: renderMgr.openFileDialog) {
+            if renderMgr.openFileDialog { fileDialog() }
+            renderMgr.openFileDialog = false
         }
     }
 
@@ -66,26 +66,26 @@ struct ContentView: View {
         fileDialog.openDialog()
     }
     func handleFileChange() {
-        model.loadShaderFile(selectedURL)
+        renderMgr.loadShaderFile(selectedURL)
     }
 
     func doFrame() {
         let now = Date().timeIntervalSince1970
-        let delta = now - model.lastTime
+        let delta = now - renderMgr.lastTime
         if( delta ) > 1 {
-            model.lastTime = now
-            if( model.frameCount < model.lastFrame ) {
-                model.lastFrame = model.frameCount
+            renderMgr.lastTime = now
+            if( renderMgr.frameCount < renderMgr.lastFrame ) {
+                renderMgr.lastFrame = renderMgr.frameCount
             }
-            let frames = model.frameCount - model.lastFrame
-            model.lastFrame = model.frameCount
-            model.fps = Double(frames) / delta
-            model.updateTitle()
+            let frames = renderMgr.frameCount - renderMgr.lastFrame
+            renderMgr.lastFrame = renderMgr.frameCount
+            renderMgr.fps = Double(frames) / delta
+            renderMgr.updateTitle()
         }
      }
 
 }
 
 #Preview {
-    ContentView(model: RenderDataModel())
+    ContentView(renderMgr: RenderManager())
 }

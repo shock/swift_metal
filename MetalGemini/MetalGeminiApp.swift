@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftOSC
 
 //@main
 struct MetalGeminiApp: App {
@@ -24,8 +25,13 @@ struct MetalGeminiApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: CustomWindowController! // Store window controller reference
     var mainMenu: NSMenu! // Store the main menu
-    var viewModel = RenderDataModel() // Create the ViewModel instance here
+    var renderMgr = RenderManager() // Create the ViewModel instance here
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
+    private var oscServer: OSCServerManager!
+
+    func setupOSCServer() {
+        oscServer.startServer()
+    }
 
     // Initialize a variable to track the VSync state
     var vsyncEnabled: Bool = false {
@@ -74,11 +80,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleVSync(sender: NSMenuItem) {
         vsyncEnabled.toggle()
         sender.state = vsyncEnabled ? .on : .off
-        self.viewModel.vsyncOn = self.vsyncEnabled
+        self.renderMgr.vsyncOn = self.vsyncEnabled
     }
 
     @objc func createNewFile() {
-        viewModel.openFileDialog = true
+        renderMgr.openFileDialog = true
     }
 
     @objc func promptForWindowSize() {
@@ -114,8 +120,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(self, selector: #selector(handleVsyncChange(notification:)), name: .vsyncStatusDidChange, object: nil)
-        windowController = CustomWindowController(rootView: ContentView(model: viewModel))
+        windowController = CustomWindowController(rootView: ContentView(renderMgr: renderMgr))
         windowController.showWindow(self)
+        oscServer = OSCServerManager(delegate: self)
+        setupOSCServer()
 
         resizeWindow = { [weak self] width, height in
             DispatchQueue.main.async {
@@ -126,10 +134,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Load the saved VSync state if available
         if let savedVSyncEnabled = UserDefaults.standard.object(forKey: "VSyncEnabled") as? Bool {
             vsyncEnabled = savedVSyncEnabled
-            viewModel.vsyncOn = savedVSyncEnabled
+            renderMgr.vsyncOn = savedVSyncEnabled
         }
 
-        viewModel.coordinator?.updateVSyncState(vsyncEnabled)
         // Create the main menu
         mainMenu = NSMenu(title: "MainMenu")
         let appMenu = NSMenu(title: "MetalGemini")
@@ -187,4 +194,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+}
+
+extension AppDelegate: OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage) {
+        self.renderMgr.handleOSCMessage(message: message)
+    }
 }

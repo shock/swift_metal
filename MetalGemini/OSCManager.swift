@@ -9,14 +9,18 @@ import Foundation
 import SwiftUI
 import SwiftOSC
 
+protocol OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage)
+}
+
 class OSCServerManager: ObservableObject {
     var server: OSCServer
-    var metalView: MetalView.Coordinator!
+    var delegate: OSCMessageDelegate?
 
-    init(metalView: MetalView.Coordinator) {
+    init(delegate: OSCMessageDelegate) {
         server = OSCServer(address: "", port: 8000)
         server.delegate = self
-        self.metalView = metalView
+        self.delegate = delegate
     }
 
     func startServer() {
@@ -35,7 +39,7 @@ class OSCServerManager: ObservableObject {
 extension OSCServerManager: OSCServerDelegate {
     func didReceive(_ message: OSCMessage) {
         DispatchQueue.main.async {
-            self.metalView.recvOscMsg(message)
+            self.delegate?.handleOSCMessage(message: message)
         }
     }
 }

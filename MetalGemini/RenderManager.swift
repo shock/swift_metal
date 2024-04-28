@@ -7,29 +7,52 @@
 
 import Foundation
 import Cocoa
+import SwiftOSC
 
-class RenderDataModel: ObservableObject {
+class RenderManager: ObservableObject {
     @Published var frameCount: UInt32 = 0
     @Published var lastFrame: UInt32 = 0
     @Published var fps: Double = 0
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
-    @Published var selectedFile: URL? = nil
+    @Published var selectedShaderURL: URL? = nil
     @Published var openFileDialog = false
     @Published var title: String? = nil
     @Published var shaderError: String? = nil
 
-    var reloadShaders = false
-    var size: CGSize = CGSize(width:0,height:0)
-    var fileDescriptors: [Int32] = []
-    var shaderURLs: [URL] = []
-    var fileMonitorSources: [DispatchSourceFileSystemObject] = []
-    var coordinator: MetalView.Coordinator?
-    var startDate = Date()
+    public private(set) var size: CGSize = CGSize(width:0,height:0)
+    private var mtkVC: MetalView.Coordinator?
+    public private(set) var startDate = Date()
+    private var uniformManager = UniformManager()
+    private var shaderManager = ShaderManager()
     private var pauseTime = Date()
+    private var fileMonitor = FileMonitor()
+
+    init() {
+    }
+
+    var metalDevice: MTLDevice? {
+        get {
+            return mtkVC?.metalDevice
+        }
+    }
+
+    func uniformBuffer() throws -> MTLBuffer? {
+        return try uniformManager.getBuffer()
+    }
+
+    func setViewSize(_ size: CGSize) {
+        self.size.width = size.width
+        self.size.height = size.height
+        uniformManager.setUniformTuple("u_resolution", values: [Float(size.width), Float(size.height)], suppressSave: true)
+    }
+
+    func setCoordinator(_ mtkVC: MetalView.Coordinator ) {
+        self.mtkVC = mtkVC
+    }
 
     var vsyncOn: Bool = true {
         didSet {
-            self.coordinator?.updateVSyncState(self.vsyncOn)
+            self.mtkVC?.updateVSyncState(self.vsyncOn)
             NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
         }
     }
@@ -38,17 +61,17 @@ class RenderDataModel: ObservableObject {
         didSet {
             if renderingPaused {
                 pauseTime = Date()
-                coordinator?.stopRendering()
+                mtkVC?.stopRendering()
             } else {
                 startDate += Date().timeIntervalSince(pauseTime)
-                coordinator?.startRendering()
+                mtkVC?.startRendering()
             }
             updateTitle()
         }
     }
 
     func updateTitle() {
-        let file = "\(selectedFile?.lastPathComponent ?? "<no file>")"
+        let file = "\(selectedShaderURL?.lastPathComponent ?? "<no file>")"
         let size = String(format: "%.0fx%.0f", size.width, size.height)
         var fps = String(format: "FPS: %.0f", fps)
         if renderingPaused {
@@ -57,8 +80,9 @@ class RenderDataModel: ObservableObject {
             pauseTime = Date()
         }
         let elapsedTime = pauseTime.timeIntervalSince(startDate);
-
-        title = "\(file) - \(size) - \(fps) - \(elapsedTime.formattedMMSS())"
+        let avgFPS = Double(frameCount) / Date().timeIntervalSince(startDate)
+        let avgStr = String(format: "FPS: %.0f", avgFPS)
+        title = "\(file) - \(size) - \(fps) - \(elapsedTime.formattedMMSS()) - AVG: \(avgStr)"
     }
 
     func resetFrame() {
@@ -72,36 +96,10 @@ class RenderDataModel: ObservableObject {
         }
     }
 
-    func monitorShaderFiles() {
-        for fileDescriptor in fileDescriptors {
-            if fileDescriptor != -1 {
-                close(fileDescriptor)
-            }
-        }
-        fileDescriptors.removeAll()
-
-        for shaderURL in shaderURLs {
-            let fileDescriptor = open(shaderURL.path, O_EVTONLY)
-            if fileDescriptor == -1 {
-                print("Unable to open file: \(shaderURL)")
-                return
-            }
-            fileDescriptors.append(fileDescriptor)
-        }
-
-        for fileMonitorSource in fileMonitorSources {
-            fileMonitorSource.cancel()
-        }
-        fileMonitorSources.removeAll()
-
-        for fileDescriptor in fileDescriptors {
-            let fileMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fileDescriptor, eventMask: .write, queue: DispatchQueue.main)
-            fileMonitorSource.setEventHandler {
-                self.shaderError = nil
-                self.reloadShaders = true
-            }
-            fileMonitorSource.resume()
-            fileMonitorSources.append(fileMonitorSource)
+    func monitorShaderFiles(_ filesToMonitor: [URL]) {
+        fileMonitor = FileMonitor()
+        fileMonitor.monitorShaderFiles(filesToMonitor) {
+            self.reloadShaderFile()
         }
     }
 
@@ -112,9 +110,26 @@ class RenderDataModel: ObservableObject {
         }
 
         shaderError = nil
-        selectedFile = selectedURL
-        reloadShaders = true
+        selectedShaderURL = selectedURL
+        reloadShaderFile()
+    }
 
+    func reloadShaderFile() {
+        guard let mtkVC = mtkVC else { return }
+        guard let selectedURL = selectedShaderURL else { return }
+
+        self.shaderError = nil
+        self.resetFrame()
+
+        if shaderManager.loadShader(fileURL: selectedURL) {
+            mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+            shaderError = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
+        } else {
+            shaderError = shaderManager.errorMessage
+        }
+
+        // monitor files even if there's an error, so if the file is corrected, we'll reload it
+        monitorShaderFiles(shaderManager.filesToMonitor)
     }
 
     func rewind() {
@@ -126,7 +141,7 @@ class RenderDataModel: ObservableObject {
     }
 }
 
-extension RenderDataModel: KeyboardViewDelegate {
+extension RenderManager: KeyboardViewDelegate {
     func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
         //        if event.isARepeat { return }
 
@@ -156,5 +171,16 @@ extension RenderDataModel: KeyboardViewDelegate {
         if flags.contains(.function) { modifiers += "Function " }
         print("Current modifiers: \(modifiers)")
 
+    }
+
+    func shutDown() {
+        renderingPaused = true
+        mtkVC?.stopRendering()
+    }
+}
+
+extension RenderManager: OSCMessageDelegate {
+    func handleOSCMessage(message: OSCMessage) {
+        self.uniformManager.handleOSCMessage(message: message)
     }
 }
