@@ -20,25 +20,25 @@ private class FileDialogOpen {
     private init() { }
 }
 
+@MainActor
 class FileDialog {
-    // Required initializer
     init() {}
 
-    @MainActor
-    func openDialog(completion: @escaping (URL?) async -> Void) async {
-        guard !FileDialogOpen.shared.isOpen else { return }
+    func openDialog() async -> URL? {
+        guard !FileDialogOpen.shared.isOpen else { return nil }
         FileDialogOpen.shared.isOpen = true
+
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.metal] // see UTType above and Info.plist Imported Type Identifiers
+        panel.allowedContentTypes = [.metal]
 
         let result = await panel.begin()
+        defer { FileDialogOpen.shared.isOpen = false }
+
         if result == .OK, let url = panel.url {
-            await completion(url)
-        } else {
-            await completion(nil)
+            return url
         }
-        FileDialogOpen.shared.isOpen = false
+        return nil
     }
 }

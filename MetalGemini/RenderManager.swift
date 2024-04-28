@@ -112,17 +112,19 @@ class RenderManager: ObservableObject {
         print("RenderManager: openFile() on thread \(Thread.current)")
         renderingWasPaused = renderingPaused
         renderingPaused = true
-        let fileDialog = FileDialog()
         Task {
-            await fileDialog.openDialog() { url in
-                guard let url = url else {
+            let fileDialog = await FileDialog()
+            do {
+                guard let url = await fileDialog.openDialog() else {
                     await MainActor.run {
                         self.renderingPaused = self.renderingWasPaused
                     }
                     return
                 }
                 await self.loadShaderFile(url)
-                self.renderingPaused = self.renderingWasPaused
+                await MainActor.run {
+                    self.renderingPaused = self.renderingWasPaused
+                }
             }
         }
     }
