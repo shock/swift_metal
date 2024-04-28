@@ -318,7 +318,7 @@ struct MetalView: NSViewRepresentable {
                 try encoder.setFragmentBuffer(renderMgr.uniformBuffer(), offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             } catch {
-                print("Failed to setup render encoder: \(error.localizedDescription)")
+                renderMgr.shaderError = "Failed to setup render encoder: \(error.localizedDescription)"
             }
         }
 
