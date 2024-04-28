@@ -66,7 +66,7 @@ class RenderManager: ObservableObject {
                 mtkVC?.stopRendering()
             } else {
                 startDate += Date().timeIntervalSince(pauseTime)
-                mtkVC?.startRendering()
+//                mtkVC?.startRendering()
             }
             updateTitle()
         }
@@ -122,9 +122,9 @@ class RenderManager: ObservableObject {
                     return
                 }
                 await self.loadShaderFile(url)
-                await MainActor.run {
-                    self.renderingPaused = self.renderingWasPaused
-                }
+//                await MainActor.run {
+//                    self.renderingPaused = self.renderingWasPaused
+//                }
             }
         }
     }
