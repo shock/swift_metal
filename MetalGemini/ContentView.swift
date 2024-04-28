@@ -52,22 +52,24 @@ struct ContentView: View {
         .onChange(of: renderMgr.frameCount) {
             doFrame()
         }
-        .onChange(of: selectedURL) {
-            handleFileChange()
-        }
-        .onChange(of: renderMgr.openFileDialog) {
-            if renderMgr.openFileDialog { fileDialog() }
-            renderMgr.openFileDialog = false
-        }
+//        .onChange(of: selectedURL) {
+//            handleFileChange()
+//        }
+//        .onChange(of: renderMgr.openFileDialog) {
+//            if renderMgr.openFileDialog { fileDialog() }
+//            renderMgr.openFileDialog = false
+//        }
     }
 
-    func fileDialog() {
-        let fileDialog = FileDialog(selectedURL: $selectedURL)
-        fileDialog.openDialog()
-    }
-    func handleFileChange() {
-        renderMgr.loadShaderFile(selectedURL)
-    }
+//    func fileDialog() {
+//        let fileDialog = FileDialog(selectedURL: $selectedURL)
+//        fileDialog.openDialog()
+//    }
+//    func handleFileChange() {
+//        Task {
+//            await renderMgr.loadShaderFile(selectedURL)
+//        }
+//    }
 
     func doFrame() {
         let now = Date().timeIntervalSince1970

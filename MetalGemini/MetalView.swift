@@ -118,6 +118,7 @@ struct MetalView: NSViewRepresentable {
         }
 
         func setupShaders() {
+            print("MetalView: setupShaders() on thread \(Thread.current)")
             stopRendering() // ensure offline rendering is disabled
 
             numBuffers = 0
@@ -183,7 +184,7 @@ struct MetalView: NSViewRepresentable {
 
                 pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
 
-                print("shaders loaded")
+                print("MetalView: setupShaders() - shaders loaded")
                 DispatchQueue.main.async {
                     if !self.renderMgr.vsyncOn {
                         self.startRendering() // renable offline rendering if vsync is false
@@ -209,6 +210,7 @@ struct MetalView: NSViewRepresentable {
         }
 
         func setupRenderBuffers(_ size: CGSize) {
+            print("MetalView: setupRenderBuffers(\(size)")
             // dealloc old buffers
             renderBuffers.removeAll()
             // Create the offscreen texture for pass 1
@@ -232,11 +234,13 @@ struct MetalView: NSViewRepresentable {
         }
 
         func loadShader(metallibURL: URL?) {
+            print("MetalView: loadShader() on thread \(Thread.current)")
             self.metallibURL = metallibURL
             self.reloadShaders = true
         }
 
         func reinitShaders() {
+            print("MetalView: reinitShaders() on thread \(Thread.current)")
             frameCounter = 0
             self.reloadShaders = false
             setupShaders()
@@ -252,12 +256,14 @@ struct MetalView: NSViewRepresentable {
 
         // Enable offscreen rendering
         func startRendering() {
+            print("MetalView: startRendering()")
             renderingActive = true
             renderOffscreen()
         }
 
         // Disable offscreen rendering
         func stopRendering() {
+            print("MetalView: stopRendering()")
             renderingActive = false
         }
 
@@ -315,7 +321,8 @@ struct MetalView: NSViewRepresentable {
             do {
                 try updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
-                try encoder.setFragmentBuffer(renderMgr.uniformBuffer(), offset: 0, index: 1)
+                let uniformBuffer = try renderMgr.uniformBuffer()
+                encoder.setFragmentBuffer(uniformBuffer, offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             } catch {
                 renderMgr.shaderError = "Failed to setup render encoder: \(error.localizedDescription)"

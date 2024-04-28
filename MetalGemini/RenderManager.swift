@@ -15,7 +15,6 @@ class RenderManager: ObservableObject {
     @Published var fps: Double = 0
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
     @Published var selectedShaderURL: URL? = nil
-    @Published var openFileDialog = false
     @Published var title: String? = nil
     @Published var shaderError: String? = nil
 
@@ -52,13 +51,16 @@ class RenderManager: ObservableObject {
 
     var vsyncOn: Bool = true {
         didSet {
+            print("RenderManager: vsyncOn: didSet( \(self.vsyncOn) )")
             self.mtkVC?.updateVSyncState(self.vsyncOn)
             NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
         }
     }
 
+    private var renderingWasPaused = false
     var renderingPaused: Bool = false {
         didSet {
+            print("RenderManager: renderingPaused: didSet( \(self.renderingPaused) )")
             if renderingPaused {
                 pauseTime = Date()
                 mtkVC?.stopRendering()
@@ -86,6 +88,7 @@ class RenderManager: ObservableObject {
     }
 
     func resetFrame() {
+        print("RenderManager: resetFrame()")
         DispatchQueue.main.async {
             self.startDate = Date()
             self.frameCount = 0
@@ -99,22 +102,46 @@ class RenderManager: ObservableObject {
     func monitorShaderFiles(_ filesToMonitor: [URL]) {
         fileMonitor = FileMonitor()
         fileMonitor.monitorShaderFiles(filesToMonitor) {
-            self.reloadShaderFile()
+            Task {
+                await self.reloadShaderFile()
+            }
         }
     }
 
-    func loadShaderFile(_ fileURL: URL?) {
+    func openFile() {
+        print("RenderManager: openFile() on thread \(Thread.current)")
+        renderingWasPaused = renderingPaused
+        renderingPaused = true
+        let fileDialog = FileDialog()
+        Task {
+            await fileDialog.openDialog() { url in
+                guard let url = url else {
+                    await MainActor.run {
+                        self.renderingPaused = self.renderingWasPaused
+                    }
+                    return
+                }
+                await self.loadShaderFile(url)
+                self.renderingPaused = self.renderingWasPaused
+            }
+        }
+    }
+
+    @MainActor
+    func loadShaderFile(_ fileURL: URL?) async {
+        print("RenderManager: loadShaderFile()")
         guard let selectedURL = fileURL else {
             print("Unable to set file: \(String(describing: fileURL))")
             return
         }
-
         shaderError = nil
         selectedShaderURL = selectedURL
         reloadShaderFile()
     }
 
+    @MainActor
     func reloadShaderFile() {
+        print("RenderManager: reloadShaderFile()")
         guard let mtkVC = mtkVC else { return }
         guard let selectedURL = selectedShaderURL else { return }
 
@@ -122,12 +149,12 @@ class RenderManager: ObservableObject {
         self.resetFrame()
 
         if shaderManager.loadShader(fileURL: selectedURL) {
-            mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
             shaderError = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
+            mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
         } else {
             shaderError = shaderManager.errorMessage
         }
-
+//        renderingPaused = false
         // monitor files even if there's an error, so if the file is corrected, we'll reload it
         monitorShaderFiles(shaderManager.filesToMonitor)
     }
