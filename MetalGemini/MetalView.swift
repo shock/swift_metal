@@ -238,13 +238,14 @@ struct MetalView: NSViewRepresentable {
             print("MetalView: loadShader() on thread \(Thread.current)")
             renderWorkItem?.cancel()
             self.metallibURL = metallibURL
-            self.reloadShaders = true
+//            self.reloadShaders = true
+            reinitShaders()
         }
 
         func reinitShaders() {
             print("MetalView: reinitShaders() on thread \(Thread.current)")
             frameCounter = 0
-            self.reloadShaders = false
+//            self.reloadShaders = false
             setupShaders()
             print("shaders loading finished")
         }
@@ -344,7 +345,7 @@ struct MetalView: NSViewRepresentable {
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
                 defer { self.renderSemaphore.signal() }  // Release the lock after updating
 
-                if self.reloadShaders == true { reinitShaders() }
+//                if self.reloadShaders == true { reinitShaders() }
                 guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
                 var i=0
@@ -393,7 +394,7 @@ struct MetalView: NSViewRepresentable {
             guard !renderMgr.renderingPaused else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
 
-            if self.reloadShaders == true { reinitShaders() }
+//            if self.reloadShaders == true { reinitShaders() }
             if( renderMgr.vsyncOn && numBuffers > 0 ) { renderOffscreen() } else { self.frameCounter += 1 }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
