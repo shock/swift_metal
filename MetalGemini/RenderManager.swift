@@ -92,6 +92,7 @@ class RenderManager: ObservableObject {
         print("RenderManager: resetFrame()")
         DispatchQueue.main.async {
             self.startDate = Date()
+            self.pauseTime = Date()
             self.frameCount = 0
             self.lastFrame = 0
             self.fps = 0
@@ -151,7 +152,6 @@ class RenderManager: ObservableObject {
         guard let selectedURL = selectedShaderURL else { return }
 
         self.shaderError = nil
-        self.resetFrame()
 
         if shaderManager.loadShader(fileURL: selectedURL) {
             shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
@@ -159,6 +159,8 @@ class RenderManager: ObservableObject {
         } else {
             shaderError = shaderManager.errorMessage
         }
+
+        self.resetFrame()
 //        renderingPaused = false
         // monitor files even if there's an error, so if the file is corrected, we'll reload it
         monitorShaderFiles(shaderManager.filesToMonitor)
