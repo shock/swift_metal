@@ -31,7 +31,6 @@ class RenderManager: ObservableObject {
     private var shaderManager = ShaderManager()
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-//    var loadingSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
     public private(set) var renderSync = RenderSynchronizer()
 
     init() {

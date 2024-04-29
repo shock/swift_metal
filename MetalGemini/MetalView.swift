@@ -20,8 +20,8 @@ public let MAX_RENDER_BUFFERS = 4
 // we need this to get access to the inner class of MetalView
 typealias MetalViewCoordinator = MetalView.Coordinator
 // we need this because makeCoordinator gets called every time MetalView
-// is hidden, and if we don't reuse an existing coordinator, a new and gets created
-// which can allocate resources faster than they can be released during off-line rendering
+// is hidden (eg. shader error), and if we don't reuse an existing coordinator, a new one gets created
+// which can allocate resources faster than they can be released during off-line rendering.  yuck.
 var existingCoordinator: MetalViewCoordinator?
 
 struct MetalView: NSViewRepresentable {
@@ -94,7 +94,6 @@ struct MetalView: NSViewRepresentable {
         private var renderWorkItem: DispatchWorkItem? // Work item for saving uniforms
         public private(set) var renderSync = RenderSynchronizer()
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
-//        private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
@@ -225,21 +224,16 @@ struct MetalView: NSViewRepresentable {
             print("MetalView: loadShader() on thread \(Thread.current)")
             renderWorkItem?.cancel()
             self.metallibURL = metallibURL
-//            self.reloadShaders = true
             return reinitShaders()
         }
 
         func reinitShaders() -> String? {
             print("MetalView: reinitShaders() on thread \(Thread.current)")
             frameCounter = 0
-//            self.reloadShaders = false
             return setupShaders()
-//            print("shaders loading finished")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-            //            renderSemaphore.wait()  // wait until the resource is free to use
-            //            defer { renderSemaphore.signal() }  // signal that the resource is free now
             Task {
                 await renderSync.run {
                     self.updateViewportSize(size)
@@ -335,13 +329,6 @@ struct MetalView: NSViewRepresentable {
                         guard self.numBuffers > 0 else { return }
                         if( !self.renderingActive && !renderMgr.vsyncOn ) { return }
 
-//                        renderMgr.loadingSemaphore.wait()
-//                        defer { renderMgr.loadingSemaphore.signal() }
-
-//                        self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
-//                        defer { self.renderSemaphore.signal() }  // Release the lock after updating
-
-                        //                if self.reloadShaders == true { reinitShaders() }
                         guard let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
 
                         var i=0
@@ -377,18 +364,13 @@ struct MetalView: NSViewRepresentable {
                     }
                 }
             }
-            // Sched    ule the save after a delay (e.g., 500 milliseconds)
+
             if let renderWorkItem = renderWorkItem {
                 renderQueue.async(execute: renderWorkItem)
             }
-
         }
 
         func draw(in view: MTKView) {
-//            renderMgr.loadingSemaphore.wait()
-//            defer { renderMgr.loadingSemaphore.signal() }
-//            renderSemaphore.wait()  // wait until the resource is free to use
-//            defer { renderSemaphore.signal() }  // signal that the resource is free now
             Task {
                 await renderSync.run {
                     let renderMgr = self.renderMgr
@@ -398,7 +380,6 @@ struct MetalView: NSViewRepresentable {
                     guard !self.renderMgr.renderingPaused else { return }
                     guard pipelineStates.count - 1 == numBuffers else { return }
 
-                    //            if self.reloadShaders == true { reinitShaders() }
                     if( renderMgr.vsyncOn && numBuffers > 0 ) { self.renderOffscreen() } else { self.frameCounter += 1 }
                     guard let drawable = await view.currentDrawable,
                           let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
@@ -419,8 +400,8 @@ struct MetalView: NSViewRepresentable {
                     commandBuffer.commit()
                 }
             }
+            // renderMgr.frameCount is observed by ContentView forcing redraw
             self.renderMgr.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
-            // model.frameCount is observed by ContentView forcing redraw
         }
 
     }
