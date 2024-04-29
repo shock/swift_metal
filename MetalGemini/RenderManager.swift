@@ -9,12 +9,6 @@ import Foundation
 import Cocoa
 import SwiftOSC
 
-actor RenderSynchronizer {
-    func run(using block: @escaping () async -> Void) async {
-        await block()
-    }
-}
-
 class RenderManager: ObservableObject {
     @Published var frameCount: UInt32 = 0
     @Published var lastFrame: UInt32 = 0
@@ -31,7 +25,7 @@ class RenderManager: ObservableObject {
     private var shaderManager = ShaderManager()
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-    public private(set) var renderSync = RenderSynchronizer()
+    public private(set) var renderSync = MutexRunner()
 
     init() {
     }
