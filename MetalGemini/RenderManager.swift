@@ -170,6 +170,7 @@ class RenderManager: ObservableObject {
                 return
             }
 
+            mtkVC.stopRendering() // this must be here for reloading with vsync off!
             var shaderError: String? = nil
 
             if shaderManager.loadShader(fileURL: selectedURL) {
