@@ -67,6 +67,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         window?.delegate = self
         loadWindowFrame()
         loadLastFileOpened()
+        renderMgr?.renderingPaused = false
     }
 
     private func loadLastFileOpened() {

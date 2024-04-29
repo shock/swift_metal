@@ -87,7 +87,7 @@ struct MetalView: NSViewRepresentable {
         private var renderBuffers: [MTLTexture?]
         private var numBuffers = 0
         private var renderTimer: Timer?
-        private var renderingActive = true
+        private var renderingActive = false
         private var metallibURL: URL?
         private var reloadShaders = false
 
@@ -114,11 +114,11 @@ struct MetalView: NSViewRepresentable {
             updateViewportSize(CGSize(width:2,height:2))
 
             // Load the default shaders and create the pipeline states
-            reinitShaders()
+//            reinitShaders()
 
         }
 
-        func setupShaders() {
+        func setupShaders() -> String? {
             print("MetalView: setupShaders() on thread \(Thread.current)")
             stopRendering() // ensure offline rendering is disabled
 
@@ -127,11 +127,11 @@ struct MetalView: NSViewRepresentable {
 
             // Load the default Metal library
             guard var library = metalDevice.makeDefaultLibrary() else {
-                fatalError("Could not load default Metal library")
+                return "Could not load default Metal library"
             }
             // Load the default vertex shader
             guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                fatalError("Could not find vertexShader function")
+                return "Could not find 'vertexShader' function"
             }
 
             if( metallibURL != nil ) {
@@ -140,11 +140,7 @@ struct MetalView: NSViewRepresentable {
                     let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                     library = tryLibrary
                 } catch {
-                    print("Couldn't load shader library at \(metalLibURL)\n\(error)")
-                    DispatchQueue.main.async {
-                        self.renderMgr.shaderError = "\(error)"
-                    }
-                    return
+                    return "Couldn't load shader library at \(metalLibURL)\n\(error)"
                 }
             }
 
@@ -161,10 +157,7 @@ struct MetalView: NSViewRepresentable {
                     fragmentFunctions.append(fragmentFunction)
                 }
                 if fragmentFunctions.count < 1 {
-                    DispatchQueue.main.async {
-                        self.renderMgr.shaderError = "Must have at least one fragment shader named `fragmentShader0`"
-                    }
-                    return
+                    return "Shader must define at least one fragment shader named `fragmentShader0`"
                 }
                 numBuffers = fragmentFunctions.count-1
                 print("numBuffers: \(numBuffers)")
@@ -192,12 +185,10 @@ struct MetalView: NSViewRepresentable {
                     }
                 }
             } catch {
-                DispatchQueue.main.async {
-                    self.renderMgr.shaderError = "Failed to setup shaders: \(error)"
-                }
-                return
+                return "Failed to setup shaders: \(error)"
             }
 
+            return nil
         }
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
@@ -234,20 +225,20 @@ struct MetalView: NSViewRepresentable {
             setupRenderBuffers(size)
         }
 
-        func loadShader(metallibURL: URL?) {
+        func loadShader(metallibURL: URL?) -> String? {
             print("MetalView: loadShader() on thread \(Thread.current)")
             renderWorkItem?.cancel()
             self.metallibURL = metallibURL
 //            self.reloadShaders = true
-            reinitShaders()
+            return reinitShaders()
         }
 
-        func reinitShaders() {
+        func reinitShaders() -> String? {
             print("MetalView: reinitShaders() on thread \(Thread.current)")
             frameCounter = 0
 //            self.reloadShaders = false
-            setupShaders()
-            print("shaders loading finished")
+            return setupShaders()
+//            print("shaders loading finished")
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -336,7 +327,7 @@ struct MetalView: NSViewRepresentable {
             renderWorkItem?.cancel() // Cancel the previous task if it exists
             renderWorkItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
-                guard self.numBuffers > 0 else { return }                                   
+                guard self.numBuffers > 0 else { return }
                 if( !renderingActive && !renderMgr.vsyncOn ) { return }
 
                 renderMgr.loadingSemaphore.wait()
@@ -379,7 +370,7 @@ struct MetalView: NSViewRepresentable {
                 self.frameCounter += 1
                 commandBuffer.commit()
             }
-            // Schedule the save after a delay (e.g., 500 milliseconds)
+            // Sched    ule the save after a delay (e.g., 500 milliseconds)
             if let renderWorkItem = renderWorkItem {
                 renderQueue.async(execute: renderWorkItem)
             }

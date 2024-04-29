@@ -58,7 +58,7 @@ class RenderManager: ObservableObject {
         }
     }
 
-    private var renderingWasPaused = false
+    private var renderingWasPaused = true
     var renderingPaused: Bool = false {
         didSet {
             print("RenderManager: renderingPaused: didSet( \(self.renderingPaused) )")
@@ -154,8 +154,8 @@ class RenderManager: ObservableObject {
         self.resetFrame()
 
         if shaderManager.loadShader(fileURL: selectedURL) {
-            shaderError = uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-            mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+            shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
+            shaderError = shaderError ?? mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
         } else {
             shaderError = shaderManager.errorMessage
         }
