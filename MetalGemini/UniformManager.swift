@@ -107,8 +107,6 @@ class UniformManager
 
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
     private func resetMapping() {
-        semaphore.wait()
-        defer { semaphore.signal() }
         parameterMap.removeAll()
         indexMap.removeAll()
         dirty = true
@@ -322,10 +320,11 @@ class UniformManager
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
     func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
     {
+        semaphore.wait()
         resetMapping()
+
         print("UniformManager: setupUniformsFromShader() - starting on thread \(Thread.current)")
         insideSetUniform = true
-        semaphore.wait()
 
         let lines = shaderSource.components(separatedBy: "\n")
 

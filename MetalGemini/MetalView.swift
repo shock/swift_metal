@@ -91,6 +91,7 @@ struct MetalView: NSViewRepresentable {
         private var metallibURL: URL?
         private var reloadShaders = false
 
+        private var renderWorkItem: DispatchWorkItem? // Work item for saving uniforms
         private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
         private var renderSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
 
@@ -235,6 +236,7 @@ struct MetalView: NSViewRepresentable {
 
         func loadShader(metallibURL: URL?) {
             print("MetalView: loadShader() on thread \(Thread.current)")
+            renderWorkItem?.cancel()
             self.metallibURL = metallibURL
             self.reloadShaders = true
         }
@@ -330,14 +332,19 @@ struct MetalView: NSViewRepresentable {
         }
 
         @objc private func renderOffscreen() {
-            renderQueue.async { [weak self] in
+            renderWorkItem?.cancel() // Cancel the previous task if it exists
+            renderWorkItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
-                guard self.numBuffers > 0 else { return }
+                guard self.numBuffers > 0 else { return }                                   
                 if( !renderingActive && !renderMgr.vsyncOn ) { return }
+
+                renderMgr.loadingSemaphore.wait()
+                defer { renderMgr.loadingSemaphore.signal() }
 
                 self.renderSemaphore.wait()  // Ensure exclusive access to render buffers
                 defer { self.renderSemaphore.signal() }  // Release the lock after updating
 
+                if self.reloadShaders == true { reinitShaders() }
                 guard let commandBuffer = metalCommandQueue.makeCommandBuffer() else { return }
 
                 var i=0
@@ -371,9 +378,16 @@ struct MetalView: NSViewRepresentable {
                 self.frameCounter += 1
                 commandBuffer.commit()
             }
+            // Schedule the save after a delay (e.g., 500 milliseconds)
+            if let renderWorkItem = renderWorkItem {
+                renderQueue.async(execute: renderWorkItem)
+            }
+
         }
 
         func draw(in view: MTKView) {
+            renderMgr.loadingSemaphore.wait()
+            defer { renderMgr.loadingSemaphore.signal() }
             renderSemaphore.wait()  // wait until the resource is free to use
             defer { renderSemaphore.signal() }  // signal that the resource is free now
             guard !renderMgr.renderingPaused else { return }

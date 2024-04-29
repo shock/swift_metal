@@ -25,6 +25,7 @@ class RenderManager: ObservableObject {
     private var shaderManager = ShaderManager()
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
+    var loadingSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
 
     init() {
     }
@@ -110,15 +111,15 @@ class RenderManager: ObservableObject {
 
     func openFile() {
         print("RenderManager: openFile() on thread \(Thread.current)")
-        renderingWasPaused = renderingPaused
-        renderingPaused = true
+//        renderingWasPaused = renderingPaused
+//        renderingPaused = true
         Task {
             let fileDialog = await FileDialog()
             do {
                 guard let url = await fileDialog.openDialog() else {
-                    await MainActor.run {
-                        self.renderingPaused = self.renderingWasPaused
-                    }
+//                    await MainActor.run {
+//                        self.renderingPaused = self.renderingWasPaused
+//                    }
                     return
                 }
                 await self.loadShaderFile(url)
@@ -143,6 +144,8 @@ class RenderManager: ObservableObject {
 
     @MainActor
     func reloadShaderFile() {
+        loadingSemaphore.wait()
+        defer { loadingSemaphore.signal() }
         print("RenderManager: reloadShaderFile()")
         guard let mtkVC = mtkVC else { return }
         guard let selectedURL = selectedShaderURL else { return }
