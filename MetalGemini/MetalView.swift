@@ -76,6 +76,34 @@ struct MetalView: NSViewRepresentable {
         var passNum: UInt32
     }
 
+    actor BufferManager {
+        var renderBuffers: [MTLTexture] = []
+        var sysUniformBuffer: MTLBuffer?
+        var version = 0
+        var mtkVC: MetalView.Coordinator
+
+        init(mtkVC: MetalView.Coordinator) {
+            self.mtkVC = mtkVC
+        }
+
+        func createBuffers(size: CGSize) {
+            // Deallocate old buffers
+            renderBuffers.removeAll()
+
+            // Create new buffers
+            for _ in 0..<MAX_RENDER_BUFFERS {
+                renderBuffers.append(mtkVC.createRenderBuffer(size))
+            }
+
+            // Update version to indicate a new state of buffers
+            version += 1
+        }
+
+        func getBuffers() -> ([MTLTexture], Int) {
+            return (renderBuffers, version)
+        }
+    }
+
     class Coordinator: NSObject, MTKViewDelegate {
         private var renderMgr: RenderManager
         private var parent: MetalView
@@ -84,22 +112,24 @@ struct MetalView: NSViewRepresentable {
         private var pipelineStates: [MTLRenderPipelineState]
         private var sysUniformBuffer: MTLBuffer?
         private var frameCounter: UInt32
-        private var renderBuffers: [MTLTexture?]
+//        private var renderBuffers: [MTLTexture?]
         private var numBuffers = 0
         private var renderTimer: Timer?
         private var renderingActive = false
         private var metallibURL: URL?
         private var reloadShaders = false
         public private(set) var renderSync = MutexRunner()
+        private var bufferManager: BufferManager!
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
             self.frameCounter = 0
-            self.renderBuffers = []
+//            self.renderBuffers = []
             self.pipelineStates = []
             self.renderMgr = renderMgr
             self.renderSync = renderMgr.renderSync
             super.init()
+            self.bufferManager = BufferManager(mtkVC: self)
             renderMgr.setCoordinator(self)
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
@@ -194,13 +224,16 @@ struct MetalView: NSViewRepresentable {
         }
 
         func setupRenderBuffers(_ size: CGSize) {
-            print("MetalView: setupRenderBuffers(\(size)")
+            print("MetalView: setupRenderBuffers(\(size) on thread \(Thread.current)")
             // dealloc old buffers
-            renderBuffers.removeAll()
-            // Create the offscreen texture for pass 1
-            for _ in 0..<MAX_RENDER_BUFFERS {
-                renderBuffers.append(createRenderBuffer(size))
+            Task {
+                await bufferManager.createBuffers(size: size)
             }
+//            renderBuffers.removeAll()
+//            // Create the offscreen texture for pass 1
+//            for _ in 0..<MAX_RENDER_BUFFERS {
+//                renderBuffers.append(createRenderBuffer(size))
+//            }
         }
 
         func createUniformBuffers() {
@@ -232,6 +265,7 @@ struct MetalView: NSViewRepresentable {
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
             Task {
                 await renderSync.run {
+                    print("MetalView: mtkView(\(size))")
                     self.updateViewportSize(size)
                     self.frameCounter = 0
                 }
@@ -290,13 +324,18 @@ struct MetalView: NSViewRepresentable {
         }
 
 
-        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) {
+        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) async {
+            let (currentBuffers, version) = await bufferManager.getBuffers()
+
             for i in 0..<MAX_RENDER_BUFFERS {
-                encoder.setFragmentTexture(renderBuffers[i], index: i)
+                if( i > currentBuffers.count - 1 ) {
+                    print("i: \(i) - renderBuffers.count:\(currentBuffers.count)")
+                }
+                encoder.setFragmentTexture(currentBuffers[i], index: i)
             }
             // pass a dynamic reference to the last buffer rendered, if there is one
             if numBuffers > 0 {
-                encoder.setFragmentTexture(renderBuffers[numBuffers-1], index: MAX_RENDER_BUFFERS)
+                encoder.setFragmentTexture(currentBuffers[numBuffers-1], index: MAX_RENDER_BUFFERS)
             }
 
             // now the first MAX_RENDER_BUFFERS+1 buffers are passed
@@ -315,6 +354,8 @@ struct MetalView: NSViewRepresentable {
 
         private func renderOffscreen() {
             Task {
+                let (currentBuffers, version) = await bufferManager.getBuffers()
+
                 await renderSync.run {
                     let renderMgr = self.renderMgr
                     let numBuffers = self.numBuffers
@@ -330,14 +371,14 @@ struct MetalView: NSViewRepresentable {
                     // (see the pipeline setup)
                     while i < (numBuffers) {
                         let renderPassDescriptor = MTLRenderPassDescriptor()
-                        renderPassDescriptor.colorAttachments[0].texture = self.renderBuffers[i]
+                        renderPassDescriptor.colorAttachments[0].texture = currentBuffers[i]
                         renderPassDescriptor.colorAttachments[0].loadAction = .load
                         renderPassDescriptor.colorAttachments[0].storeAction = .store
 
                         guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
                         commandEncoder.setRenderPipelineState(pipelineStates[i])
-                        self.setupRenderEncoder(commandEncoder)
+                        await self.setupRenderEncoder(commandEncoder)
                         commandEncoder.endEncoding()
 
                         i += 1
@@ -381,7 +422,7 @@ struct MetalView: NSViewRepresentable {
                     guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
                     commandEncoder.setRenderPipelineState(pipelineStates[numBuffers])
-                    self.setupRenderEncoder(commandEncoder)
+                    await self.setupRenderEncoder(commandEncoder)
                     commandEncoder.endEncoding()
 
                     commandBuffer.present(drawable)
@@ -394,3 +435,4 @@ struct MetalView: NSViewRepresentable {
 
     }
 }
+
