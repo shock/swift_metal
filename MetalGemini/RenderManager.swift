@@ -9,6 +9,12 @@ import Foundation
 import Cocoa
 import SwiftOSC
 
+actor RenderSynchronizer {
+    func run(using block: @escaping () async -> Void) async {
+        await block()
+    }
+}
+
 class RenderManager: ObservableObject {
     @Published var frameCount: UInt32 = 0
     @Published var lastFrame: UInt32 = 0
@@ -25,7 +31,8 @@ class RenderManager: ObservableObject {
     private var shaderManager = ShaderManager()
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-    var loadingSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
+//    var loadingSemaphore = DispatchSemaphore(value: 1) // Allows 1 concurrent access
+    public private(set) var renderSync = RenderSynchronizer()
 
     init() {
     }
@@ -146,34 +153,44 @@ class RenderManager: ObservableObject {
         }
         shaderError = nil
         selectedShaderURL = selectedURL
-        reloadShaderFile()
+        await reloadShaderFile()
     }
 
     @MainActor
-    func reloadShaderFile() {
-        loadingSemaphore.wait()
-        defer { loadingSemaphore.signal() }
-        print("RenderManager: reloadShaderFile()")
-        guard let mtkVC = mtkVC else { return }
-        guard let selectedURL = selectedShaderURL else { return }
+    func reloadShaderFile() async {
+        await renderSync.run {
+//            loadingSemaphore.wait()
+//            defer { loadingSemaphore.signal() }
+            print("RenderManager: reloadShaderFile()")
+            guard let mtkVC = self.mtkVC else { return }
+            guard let selectedURL = self.selectedShaderURL else { return }
+            let shaderManager = self.shaderManager
+            let uniformManager = self.uniformManager
+            guard let metalDevice = self.metalDevice else {
+                self.shaderError = "CRITICAL ERROR: metalDevice is nil"
+                return
+            }
 
-        self.shaderError = nil
+            var shaderError: String? = nil
 
-        if shaderManager.loadShader(fileURL: selectedURL) {
-            shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice!, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-            shaderError = shaderError ?? mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
-        } else {
-            shaderError = shaderManager.errorMessage
+            if shaderManager.loadShader(fileURL: selectedURL) {
+                shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
+                shaderError = shaderError ?? mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+            } else {
+                shaderError = shaderManager.errorMessage
+            }
+
+            if !self.vsyncOn {
+                mtkVC.startRendering() // renable offline rendering if vsync is false
+            }
+
+            self.resetFrame()
+            //        renderingPaused = false
+            // monitor files even if there's an error, so if the file is corrected, we'll reload it
+            self.monitorShaderFiles(shaderManager.filesToMonitor)
+            self.shaderError = shaderError
+
         }
-
-        if !vsyncOn {
-            mtkVC.startRendering() // renable offline rendering if vsync is false
-        }
-
-        self.resetFrame()
-//        renderingPaused = false
-        // monitor files even if there's an error, so if the file is corrected, we'll reload it
-        monitorShaderFiles(shaderManager.filesToMonitor)
     }
 
     func rewind() {
