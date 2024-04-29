@@ -67,7 +67,7 @@ class RenderManager: ObservableObject {
                 mtkVC?.stopRendering()
             } else {
                 startDate += Date().timeIntervalSince(pauseTime)
-//                mtkVC?.startRendering()
+                mtkVC?.startRendering()
             }
             updateTitle()
         }
@@ -111,21 +111,21 @@ class RenderManager: ObservableObject {
 
     func openFile() {
         print("RenderManager: openFile() on thread \(Thread.current)")
-//        renderingWasPaused = renderingPaused
-//        renderingPaused = true
+        renderingWasPaused = renderingPaused
+        renderingPaused = true
         Task {
             let fileDialog = await FileDialog()
             do {
                 guard let url = await fileDialog.openDialog() else {
-//                    await MainActor.run {
-//                        self.renderingPaused = self.renderingWasPaused
-//                    }
+                    await MainActor.run {
+                        self.renderingPaused = self.renderingWasPaused
+                    }
                     return
                 }
                 await self.loadShaderFile(url)
-//                await MainActor.run {
-//                    self.renderingPaused = self.renderingWasPaused
-//                }
+                await MainActor.run {
+                    self.renderingPaused = self.renderingWasPaused
+                }
             }
         }
     }
