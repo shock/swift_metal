@@ -90,10 +90,7 @@ struct MetalView: NSViewRepresentable {
         private var renderingActive = false
         private var metallibURL: URL?
         private var reloadShaders = false
-
-        private var renderWorkItem: DispatchWorkItem? // Work item for saving uniforms
         public private(set) var renderSync = RenderSynchronizer()
-        private let renderQueue = DispatchQueue(label: "com.yourapp.renderQueue")
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
@@ -222,7 +219,6 @@ struct MetalView: NSViewRepresentable {
 
         func loadShader(metallibURL: URL?) -> String? {
             print("MetalView: loadShader() on thread \(Thread.current)")
-            renderWorkItem?.cancel()
             self.metallibURL = metallibURL
             return reinitShaders()
         }
@@ -318,55 +314,47 @@ struct MetalView: NSViewRepresentable {
         }
 
         private func renderOffscreen() {
-            renderWorkItem?.cancel() // Cancel the previous task if it exists
-            renderWorkItem = DispatchWorkItem { [weak self] in
-                guard let self = self else { return }
-                Task {
-                    await self.renderSync.run {
-                        let renderMgr = self.renderMgr
-                        let numBuffers = self.numBuffers
-                        let pipelineStates = self.pipelineStates
-                        guard self.numBuffers > 0 else { return }
-                        if( !self.renderingActive && !renderMgr.vsyncOn ) { return }
+            Task {
+                await renderSync.run {
+                    let renderMgr = self.renderMgr
+                    let numBuffers = self.numBuffers
+                    let pipelineStates = self.pipelineStates
+                    guard self.numBuffers > 0 else { return }
+                    if( !self.renderingActive && !renderMgr.vsyncOn ) { return }
 
-                        guard let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
+                    guard let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
 
-                        var i=0
+                    var i=0
 
-                        // iterate through the shaders, giving them each access to all of the buffers
-                        // (see the pipeline setup)
-                        while i < (numBuffers) {
-                            let renderPassDescriptor = MTLRenderPassDescriptor()
-                            renderPassDescriptor.colorAttachments[0].texture = self.renderBuffers[i]
-                            renderPassDescriptor.colorAttachments[0].loadAction = .load
-                            renderPassDescriptor.colorAttachments[0].storeAction = .store
+                    // iterate through the shaders, giving them each access to all of the buffers
+                    // (see the pipeline setup)
+                    while i < (numBuffers) {
+                        let renderPassDescriptor = MTLRenderPassDescriptor()
+                        renderPassDescriptor.colorAttachments[0].texture = self.renderBuffers[i]
+                        renderPassDescriptor.colorAttachments[0].loadAction = .load
+                        renderPassDescriptor.colorAttachments[0].storeAction = .store
 
-                            guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
+                        guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
-                            commandEncoder.setRenderPipelineState(pipelineStates[i])
-                            self.setupRenderEncoder(commandEncoder)
-                            commandEncoder.endEncoding()
+                        commandEncoder.setRenderPipelineState(pipelineStates[i])
+                        self.setupRenderEncoder(commandEncoder)
+                        commandEncoder.endEncoding()
 
-                            i += 1
-                        }
-
-                        // This is the most optimal way I found to do offline rendering
-                        // as quickly as possible.  The drawback is that slower renderings
-                        // like circle_and_lines don't display smoothly even though
-                        // framerates are faster than 60Hz.
-                        if( !renderMgr.vsyncOn ) {
-                            commandBuffer.addScheduledHandler { commandBuffer in
-                                self.renderOffscreen()
-                            }
-                        }
-                        self.frameCounter += 1
-                        commandBuffer.commit()
+                        i += 1
                     }
-                }
-            }
 
-            if let renderWorkItem = renderWorkItem {
-                renderQueue.async(execute: renderWorkItem)
+                    // This is the most optimal way I found to do offline rendering
+                    // as quickly as possible.  The drawback is that slower renderings
+                    // like circle_and_lines don't display smoothly even though
+                    // framerates are faster than 60Hz.
+                    if( !renderMgr.vsyncOn ) {
+                        commandBuffer.addScheduledHandler { commandBuffer in
+                            self.renderOffscreen()
+                        }
+                    }
+                    self.frameCounter += 1
+                    commandBuffer.commit()
+                }
             }
         }
 
