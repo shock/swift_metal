@@ -179,15 +179,9 @@ struct MetalView: NSViewRepresentable {
                 pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
 
                 print("MetalView: setupShaders() - shaders loaded")
-                DispatchQueue.main.async {
-                    if !self.renderMgr.vsyncOn {
-                        self.startRendering() // renable offline rendering if vsync is false
-                    }
-                }
             } catch {
                 return "Failed to setup shaders: \(error)"
             }
-
             return nil
         }
 
@@ -270,7 +264,7 @@ struct MetalView: NSViewRepresentable {
             }
         }
 
-        func updateUniforms() throws {
+        func updateUniforms() {
             var offset = MemoryLayout<ViewportSize>.size // for viewport
             let bufferPointer = sysUniformBuffer!.contents()
 
@@ -313,13 +307,13 @@ struct MetalView: NSViewRepresentable {
             // it's up to the shaders how to use them
 
             do {
-                try updateUniforms()
+                updateUniforms()
                 encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
                 let uniformBuffer = try renderMgr.uniformBuffer()
                 encoder.setFragmentBuffer(uniformBuffer, offset: 0, index: 1)
                 encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             } catch {
-                renderMgr.shaderError = "Failed to setup render encoder: \(error.localizedDescription)"
+                print("Failed to setup render encoder: \(error.localizedDescription)")
             }
         }
 

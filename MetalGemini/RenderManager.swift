@@ -16,7 +16,7 @@ class RenderManager: ObservableObject {
     @Published var lastTime: TimeInterval = Date().timeIntervalSince1970
     @Published var selectedShaderURL: URL? = nil
     @Published var title: String? = nil
-    @Published var shaderError: String? = nil
+    @Published private(set) var shaderError: String? = nil
 
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var mtkVC: MetalView.Coordinator?
@@ -37,7 +37,13 @@ class RenderManager: ObservableObject {
     }
 
     func uniformBuffer() throws -> MTLBuffer? {
-        return try uniformManager.getBuffer()
+        do {
+            let buffer = try uniformManager.getBuffer()
+            return buffer
+        } catch {
+            shaderError = "failed to get uniform buffer: \(error.localizedDescription)"
+            throw error
+        }
     }
 
     func setViewSize(_ size: CGSize) {
@@ -158,6 +164,10 @@ class RenderManager: ObservableObject {
             shaderError = shaderError ?? mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
         } else {
             shaderError = shaderManager.errorMessage
+        }
+
+        if !vsyncOn {
+            mtkVC.startRendering() // renable offline rendering if vsync is false
         }
 
         self.resetFrame()
