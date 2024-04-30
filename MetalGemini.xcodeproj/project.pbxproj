@@ -99,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */,
+				B5495DFD2BE052990036A337 /* MutexRunner.swift */,
 			);
 			path = Actors;
 			sourceTree = "<group>";
@@ -111,7 +112,6 @@
 				B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */,
 				B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */,
 				B5461CF32BD1D52400F085FD /* KeyboardView.swift */,
-				B5495DFD2BE052990036A337 /* MutexRunner.swift */,
 				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
 				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
 				B57F5CD22BDFD33300326A51 /* TaskManager.swift */,
