@@ -85,8 +85,6 @@ struct MetalView: NSViewRepresentable {
         private var metalCommandQueue: MTLCommandQueue!
         private var sysUniformBuffer: MTLBuffer?
         private var frameCounter: UInt32
-//        private var renderBuffers: [MTLTexture?]
-//        private var numBuffers = 0
         private var renderTimer: Timer?
         private var renderingActive = false
         public private(set) var metallibURL: URL?

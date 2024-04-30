@@ -112,14 +112,6 @@ class UniformManager
         dirty = true
     }
 
-//    // Clear all uniforms from the dictionary and mark as dirty
-//    private func clearUniforms() {
-//        semaphore.wait()
-//        defer { semaphore.signal() }
-//        float4dict.clear()
-//        dirty = true
-//    }
-
     // Add a new uniform with the given name and type, returning its new index
     private func setIndex(name: String, type: String ) -> Int
     {
@@ -145,16 +137,6 @@ class UniformManager
         if !suppressSave { semaphore.signal() }
     }
 
-//    // Set a SIMD4<Float> uniform value and schedule a file save
-//    func setUniform( _ name: String, _ simd4: SIMD4<Float> )
-//    {
-//        semaphore.wait()
-//        defer { semaphore.signal() }
-//        float4dict.set(name, simd4)
-//        dirty = true
-//        requestSaveUniforms() // This debounces and schedules a save operation
-//    }
-
     // Update the uniforms buffer if necessary and return it
     func getBuffer() throws -> MTLBuffer? {
         semaphore.wait()
@@ -166,8 +148,6 @@ class UniformManager
     var insideSetUniform = false
     // Update the uniforms buffer if necessary, handling data alignment and copying
     private func mapUniformsToBuffer() throws {
-//        semaphore.wait()
-//        defer { semaphore.signal() }
         if !dirty { return }
         print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
         dirty = false
