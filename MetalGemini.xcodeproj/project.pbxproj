@@ -10,10 +10,10 @@
 		B5461CF42BD1D52400F085FD /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5461CF32BD1D52400F085FD /* KeyboardView.swift */; };
 		B5495DFC2BDEF2320036A337 /* Float4Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */; };
 		B5495DFE2BE052990036A337 /* MutexRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5495DFD2BE052990036A337 /* MutexRunner.swift */; };
-		B54CEB572BDB5C9F00077D15 /* ShaderManager_.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB562BDB5C9F00077D15 /* ShaderManager_.swift */; };
 		B54CEB592BDC453200077D15 /* ShaderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB582BDC453200077D15 /* ShaderManager.swift */; };
 		B54CEB5B2BDD59BF00077D15 /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */; };
 		B57F5CD32BDFD33300326A51 /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57F5CD22BDFD33300326A51 /* TaskManager.swift */; };
+		B57F5CD82BE0F86900326A51 /* MetalResourceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */; };
 		B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0462BD08B7E00CBCA26 /* OSCManager.swift */; };
 		B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0482BD0948900CBCA26 /* UniformManager.swift */; };
 		B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderManager.swift */; };
@@ -39,10 +39,10 @@
 		B5461CF32BD1D52400F085FD /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
 		B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Float4Dictionary.swift; sourceTree = "<group>"; };
 		B5495DFD2BE052990036A337 /* MutexRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MutexRunner.swift; sourceTree = "<group>"; };
-		B54CEB562BDB5C9F00077D15 /* ShaderManager_.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderManager_.swift; sourceTree = "<group>"; };
 		B54CEB582BDC453200077D15 /* ShaderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderManager.swift; sourceTree = "<group>"; };
 		B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
 		B57F5CD22BDFD33300326A51 /* TaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskManager.swift; sourceTree = "<group>"; };
+		B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalResourceManager.swift; sourceTree = "<group>"; };
 		B597D0462BD08B7E00CBCA26 /* OSCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCManager.swift; sourceTree = "<group>"; };
 		B597D0482BD0948900CBCA26 /* UniformManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformManager.swift; sourceTree = "<group>"; };
 		B5B3CE422BB6102F002F55B3 /* RenderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderManager.swift; sourceTree = "<group>"; };
@@ -95,10 +95,34 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
+		B57F5CD62BE0F7E500326A51 /* Actors */ = {
+			isa = PBXGroup;
+			children = (
+				B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */,
+			);
+			path = Actors;
+			sourceTree = "<group>";
+		};
+		B57F5CD92BE0F90800326A51 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				B5B3CE4B2BB72502002F55B3 /* Extensions.swift */,
+				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
+				B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */,
+				B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */,
+				B5461CF32BD1D52400F085FD /* KeyboardView.swift */,
+				B5495DFD2BE052990036A337 /* MutexRunner.swift */,
+				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
+				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
+				B57F5CD22BDFD33300326A51 /* TaskManager.swift */,
+				B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
 		B5E7119F2BB462F80092172A = {
 			isa = PBXGroup;
 			children = (
-				B5495DFD2BE052990036A337 /* MutexRunner.swift */,
 				B5B3CE4E2BB85EB9002F55B3 /* TestShaders.metal */,
 				B5E711BC2BB463B20092172A /* PixelShaders.metal */,
 				B5E711AA2BB462F80092172A /* MetalGemini */,
@@ -119,29 +143,21 @@
 		B5E711AA2BB462F80092172A /* MetalGemini */ = {
 			isa = PBXGroup;
 			children = (
-				B5E711FE2BB5B4E50092172A /* Info.plist */,
-				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
-				B5E711AD2BB462F80092172A /* ContentView.swift */,
-				B5E711BA2BB463510092172A /* MetalView.swift */,
-				B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */,
-				B5ED373B2BDA0F2A00A04963 /* Notification.swift */,
-				B5461CF32BD1D52400F085FD /* KeyboardView.swift */,
 				B5E711AF2BB462FA0092172A /* Assets.xcassets */,
-				B5E711B42BB462FA0092172A /* MetalGemini.entitlements */,
-				B5E711B12BB462FA0092172A /* Preview Content */,
-				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
-				B5E711FA2BB4F3BB0092172A /* main.swift */,
-				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
+				B57F5CD62BE0F7E500326A51 /* Actors */,
+				B57F5CD92BE0F90800326A51 /* Common */,
+				B5E711FE2BB5B4E50092172A /* Info.plist */,
+				B5E711AD2BB462F80092172A /* ContentView.swift */,
 				B5B3CE422BB6102F002F55B3 /* RenderManager.swift */,
-				B57F5CD22BDFD33300326A51 /* TaskManager.swift */,
-				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
-				B5B3CE4B2BB72502002F55B3 /* Extensions.swift */,
-				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
-				B597D0482BD0948900CBCA26 /* UniformManager.swift */,
-				B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */,
-				B54CEB562BDB5C9F00077D15 /* ShaderManager_.swift */,
+				B5E711BA2BB463510092172A /* MetalView.swift */,
 				B54CEB582BDC453200077D15 /* ShaderManager.swift */,
-				B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */,
+				B597D0482BD0948900CBCA26 /* UniformManager.swift */,
+				B5ED373B2BDA0F2A00A04963 /* Notification.swift */,
+				B5E711B42BB462FA0092172A /* MetalGemini.entitlements */,
+				B5E711FA2BB4F3BB0092172A /* main.swift */,
+				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
+				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
+				B5E711B12BB462FA0092172A /* Preview Content */,
 			);
 			path = MetalGemini;
 			sourceTree = "<group>";
@@ -268,11 +284,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B54CEB572BDB5C9F00077D15 /* ShaderManager_.swift in Sources */,
 				B5E711BB2BB463510092172A /* MetalView.swift in Sources */,
 				B57F5CD32BDFD33300326A51 /* TaskManager.swift in Sources */,
 				B5495DFC2BDEF2320036A337 /* Float4Dictionary.swift in Sources */,
 				B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */,
+				B57F5CD82BE0F86900326A51 /* MetalResourceManager.swift in Sources */,
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
 				B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */,

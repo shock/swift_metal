@@ -24,6 +24,7 @@ typealias MetalViewCoordinator = MetalView.Coordinator
 // which can allocate resources faster than they can be released during off-line rendering.  yuck.
 var existingCoordinator: MetalViewCoordinator?
 
+
 struct MetalView: NSViewRepresentable {
     @ObservedObject var renderMgr: RenderManager // Reference the ObservableObject
     let retinaEnabled = false
@@ -78,122 +79,6 @@ struct MetalView: NSViewRepresentable {
 
     class Coordinator: NSObject, MTKViewDelegate {
 
-        actor BufferManager {
-            var renderBuffers: [MTLTexture] = []
-            var sysUniformBuffer: MTLBuffer?
-            var version = 0
-            var mtkVC: MetalView.Coordinator
-            var numBuffers = 0
-            var metalDevice: MTLDevice!
-            private var pipelineStates: [MTLRenderPipelineState] = []
-
-            init(mtkVC: MetalView.Coordinator) {
-                self.mtkVC = mtkVC
-                self.metalDevice = mtkVC.metalDevice
-            }
-
-            func setError(_ err: String ) -> String {
-                numBuffers = -1
-                print("BufferManager error: \(err)")
-                return err
-            }
-
-            func createBuffers(size: CGSize) {
-                // Deallocate old buffers
-                renderBuffers.removeAll()
-
-                // Create new buffers
-                for _ in 0..<MAX_RENDER_BUFFERS {
-                    renderBuffers.append(mtkVC.createRenderBuffer(size))
-                }
-
-                // Update version to indicate a new state of buffers
-                version += 1
-            }
-
-            func getBuffers() -> ([MTLTexture], Int) {
-                return (renderBuffers, numBuffers)
-            }
-
-            func setupPipelines() async -> String? {
-                guard let metalDevice = metalDevice else { return "Metal Device not available." }
-                print("BufferManager: setupPipelines() on thread")
-    //            stopRendering() // ensure offline rendering is disabled
-
-                numBuffers = 0
-                pipelineStates.removeAll()
-
-                // Load the default Metal library
-                guard var library = metalDevice.makeDefaultLibrary() else {
-                    return setError("Could not load default Metal library")
-                }
-                // Load the default vertex shader
-                guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                    return setError("Could not find 'vertexShader' function")
-                }
-
-                if let metalLibURL = mtkVC.metallibURL {
-                    do {
-                        let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
-                        library = tryLibrary
-
-                        // asynchronously delete the metallib file now that we're done with it
-                        let command = "rm \(metalLibURL.path)"
-                        Task { let _ = shell_exec(command, cwd: nil) }
-                    } catch {
-                        return setError("Couldn't load shader library at \(metalLibURL)\n\(error)")
-                    }
-                }
-
-                var fragmentFunctions: [MTLFunction] = []
-
-                do {
-                    for i in 0...MAX_RENDER_BUFFERS {
-
-                        guard let fragmentFunction = library.makeFunction(name: "fragmentShader\(i)") else {
-                            print("Could not find fragmentShader\(i)")
-                            print("Stopping search.")
-                            continue
-                        }
-                        fragmentFunctions.append(fragmentFunction)
-                        print("fragmentShader\(i) found")
-                    }
-                    if fragmentFunctions.count < 1 {
-                        return setError("Shader must define at least one fragment shader named `fragmentShader0`")
-                    }
-                    numBuffers = fragmentFunctions.count-1
-                    print("numBuffers: \(numBuffers)")
-                    assert(numBuffers >= 0)
-                    for i in 0..<numBuffers {
-                        // Create a render pipeline state
-                        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-                        pipelineDescriptor.vertexFunction = vertexFunction
-                        pipelineDescriptor.fragmentFunction = fragmentFunctions[i]
-                        pipelineDescriptor.colorAttachments[0].pixelFormat = .rgba16Unorm
-
-                        pipelineStates.append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
-                    }
-                    let pipelineDescriptor = MTLRenderPipelineDescriptor()
-                    pipelineDescriptor.vertexFunction = vertexFunction
-                    pipelineDescriptor.fragmentFunction = fragmentFunctions[numBuffers]
-                    pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-
-                    pipelineStates.append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
-
-                    print("MetalView: setupShaders() - shaders loaded")
-                } catch {
-                    numBuffers = -1
-                    return setError("Failed to setup shaders: \(error)")
-                }
-                return nil
-            }
-
-            func getBuffersAndPipelines() -> ([MTLTexture], [MTLRenderPipelineState], Int) {
-                return (renderBuffers, pipelineStates, numBuffers)
-            }
-
-        }
-
         private var renderMgr: RenderManager
         private var parent: MetalView
         public private(set) var metalDevice: MTLDevice!
@@ -204,10 +89,10 @@ struct MetalView: NSViewRepresentable {
 //        private var numBuffers = 0
         private var renderTimer: Timer?
         private var renderingActive = false
-        private var metallibURL: URL?
+        public private(set) var metallibURL: URL?
         private var reloadShaders = false
         public private(set) var renderSync = MutexRunner()
-        private var bufferManager: BufferManager!
+        private var resourceMgr: MetalResourceManager!
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
@@ -222,7 +107,7 @@ struct MetalView: NSViewRepresentable {
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
             }
-            self.bufferManager = BufferManager(mtkVC: self)
+            self.resourceMgr = MetalResourceManager(mtkVC: self)
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
 
             // must initialize render buffers
@@ -236,7 +121,7 @@ struct MetalView: NSViewRepresentable {
 
         func setupShaders() async -> String? {
             print("MetalView: setupShaders()")
-            return await bufferManager.setupPipelines()
+            return await resourceMgr.setupPipelines()
         }
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
@@ -253,13 +138,8 @@ struct MetalView: NSViewRepresentable {
             print("MetalView: setupRenderBuffers(\(size) on thread \(Thread.current)")
             // dealloc old buffers
             Task {
-                await bufferManager.createBuffers(size: size)
+                await resourceMgr.createBuffers(size: size)
             }
-//            renderBuffers.removeAll()
-//            // Create the offscreen texture for pass 1
-//            for _ in 0..<MAX_RENDER_BUFFERS {
-//                renderBuffers.append(createRenderBuffer(size))
-//            }
         }
 
         func createUniformBuffers() {
@@ -352,7 +232,7 @@ struct MetalView: NSViewRepresentable {
 
 
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) async {
-            let (currentBuffers, numBuffers) = await bufferManager.getBuffers()
+            let (currentBuffers, numBuffers) = await resourceMgr.getBuffers()
 
             for i in 0..<MAX_RENDER_BUFFERS {
                 if( i > currentBuffers.count - 1 ) {
@@ -382,7 +262,7 @@ struct MetalView: NSViewRepresentable {
         private func renderOffscreen() {
             Task {
                 await renderSync.run {
-                    let (currentBuffers, pipelineStates, numBuffers) = await self.bufferManager.getBuffersAndPipelines()
+                    let (currentBuffers, pipelineStates, numBuffers) = await self.resourceMgr.getBuffersAndPipelines()
 
                     let renderMgr = self.renderMgr
                     guard numBuffers > 0 else { return }
@@ -428,7 +308,7 @@ struct MetalView: NSViewRepresentable {
             Task {
                 await renderSync.run {
                     let renderMgr = self.renderMgr
-                    let (_aa, pipelineStates, numBuffers) = await self.bufferManager.getBuffersAndPipelines()
+                    let (_, pipelineStates, numBuffers) = await self.resourceMgr.getBuffersAndPipelines()
 
                     guard !self.renderMgr.renderingPaused else { return }
                     guard numBuffers >= 0 else { return }
@@ -454,8 +334,8 @@ struct MetalView: NSViewRepresentable {
                     commandBuffer.commit()
                 }
             }
-            // renderMgr.frameCount is observed by ContentView forcing redraw
-            self.renderMgr.frameCount = self.frameCounter // right now, this will trigger a view update since the RenderModel's
+            // renderMgr.frameCount is observed by ContentView forcing redraw at the next display sync
+            self.renderMgr.frameCount = self.frameCounter
         }
 
     }

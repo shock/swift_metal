@@ -152,8 +152,6 @@ class RenderManager: ObservableObject {
     @MainActor
     func reloadShaderFile() async {
         await renderSync.run {
-//            loadingSemaphore.wait()
-//            defer { loadingSemaphore.signal() }
             print("RenderManager: reloadShaderFile()")
             guard let mtkVC = self.mtkVC else { return }
             guard let selectedURL = self.selectedShaderURL else { return }
@@ -166,6 +164,8 @@ class RenderManager: ObservableObject {
 
             mtkVC.stopRendering() // this must be here for reloading with vsync off!
             var shaderError: String? = nil
+
+            self.shaderError = "Loading '\(selectedURL.absoluteString)'"
 
             if shaderManager.loadShader(fileURL: selectedURL) {
                 shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
