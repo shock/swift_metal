@@ -77,6 +77,7 @@ struct MetalView: NSViewRepresentable {
     }
 
     class Coordinator: NSObject, MTKViewDelegate {
+
         actor BufferManager {
             var renderBuffers: [MTLTexture] = []
             var sysUniformBuffer: MTLBuffer?
@@ -108,9 +109,9 @@ struct MetalView: NSViewRepresentable {
                 return (renderBuffers, numBuffers)
             }
             
-            func setupPipelines() -> String? {
-                guard let metalDevice = metalDevice else { return "Metal Devicee not available." }
-                print("BufferManager: setupPipelines() on thread \(Thread.current)")
+            func setupPipelines() async -> String? {
+                guard let metalDevice = metalDevice else { return "Metal Device not available." }
+                print("BufferManager: setupPipelines() on thread")
     //            stopRendering() // ensure offline rendering is disabled
 
                 numBuffers = 0
@@ -126,7 +127,6 @@ struct MetalView: NSViewRepresentable {
                 }
 
                 if let metalLibURL = mtkVC.metallibURL {
-//                    let metalLibURL = mtkVC.metallibURL!
                     do {
                         let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                         library = tryLibrary
@@ -146,6 +146,7 @@ struct MetalView: NSViewRepresentable {
                             continue
                         }
                         fragmentFunctions.append(fragmentFunction)
+                        print("fragmentShader\(i) found")
                     }
                     if fragmentFunctions.count < 1 {
                         return "Shader must define at least one fragment shader named `fragmentShader0`"
@@ -160,14 +161,14 @@ struct MetalView: NSViewRepresentable {
                         pipelineDescriptor.fragmentFunction = fragmentFunctions[i]
                         pipelineDescriptor.colorAttachments[0].pixelFormat = .rgba16Unorm
 
-                        pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+                        pipelineStates.append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
                     }
                     let pipelineDescriptor = MTLRenderPipelineDescriptor()
                     pipelineDescriptor.vertexFunction = vertexFunction
                     pipelineDescriptor.fragmentFunction = fragmentFunctions[numBuffers]
                     pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
-                    pipelineStates.append( try metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+                    pipelineStates.append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
 
                     print("MetalView: setupShaders() - shaders loaded")
                 } catch {
@@ -205,12 +206,12 @@ struct MetalView: NSViewRepresentable {
             self.renderMgr = renderMgr
             self.renderSync = renderMgr.renderSync
             super.init()
-            self.bufferManager = BufferManager(mtkVC: self)
             renderMgr.setCoordinator(self)
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
             }
+            self.bufferManager = BufferManager(mtkVC: self)
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
 
             // must initialize render buffers
@@ -222,13 +223,9 @@ struct MetalView: NSViewRepresentable {
 
         }
 
-        func setupShaders() -> String? {
-            print("MetalView: setupShaders() on thread \(Thread.current)")
-
-            Task {
-                await bufferManager.setupPipelines()
-            }
-            return nil
+        func setupShaders() async -> String? {
+            print("MetalView: setupShaders()")
+            return await bufferManager.setupPipelines()
         }
 
         func createRenderBuffer(_ size: CGSize) -> MTLTexture {
@@ -268,16 +265,16 @@ struct MetalView: NSViewRepresentable {
             setupRenderBuffers(size)
         }
 
-        func loadShader(metallibURL: URL?) -> String? {
-            print("MetalView: loadShader(\(String(describing: metallibURL?.lastPathComponent)) on thread \(Thread.current)")
+        func loadShader(metallibURL: URL?) async -> String? {
+            print("MetalView: loadShader(\(String(describing: metallibURL?.lastPathComponent))")
             self.metallibURL = metallibURL
-            return reinitShaders()
+            return await reinitShaders()
         }
 
-        func reinitShaders() -> String? {
-            print("MetalView: reinitShaders() on thread \(Thread.current)")
+        func reinitShaders() async -> String? {
+            print("MetalView: reinitShaders()")
             frameCounter = 0
-            return setupShaders()
+            return await setupShaders()
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {

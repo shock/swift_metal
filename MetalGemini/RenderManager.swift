@@ -169,7 +169,9 @@ class RenderManager: ObservableObject {
 
             if shaderManager.loadShader(fileURL: selectedURL) {
                 shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-                shaderError = shaderError ?? mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                if shaderError == nil {
+                    shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                }
             } else {
                 shaderError = shaderManager.errorMessage
             }
