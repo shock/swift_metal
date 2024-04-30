@@ -67,12 +67,15 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         window?.delegate = self
         loadWindowFrame()
         loadLastFileOpened()
+        renderMgr?.renderingPaused = false
     }
 
     private func loadLastFileOpened() {
         if let fileURL = UserDefaults.standard.string(forKey: "LastFileOpened"),
            let renderMgr = renderMgr {
-            renderMgr.loadShaderFile(URL(string:fileURL))
+            Task {
+                await renderMgr.loadShaderFile(URL(string:fileURL))
+            }
         }
     }
 

@@ -10,93 +10,6 @@ import MetalKit
 import AppKit
 import SwiftOSC
 
-// Extension for Array of Floats to easily convert array to SIMD4<Float>
-extension Array where Element == Float
-{
-    // Convert the array to SIMD4<Float>, padding with zeros if necessary
-    func toSIMD4() -> SIMD4<Float>? {
-        var c = self
-        while( c.count < 4 ) { c.append(0) } // Pad with zeros if less than 4 elements
-        return SIMD4<Float>(c[0], c[1], c[2], c[3])
-    }
-}
-
-// A thread-safe dictionary to manage SIMD4<Float> values with string keys
-class Float4Dictionary
-{
-    private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dictionary
-    var map: [String: SIMD4<Float>] = [:]
-
-    init() {}
-
-    // Set a SIMD4<Float> value from an array of floats for the specified key
-    func setTuple( _ key: String, values: [Float])
-    {
-        semaphore.wait()  // Lock access to ensure thread safety
-        defer { semaphore.signal() }  // Unlock after operation
-        let value = values.toSIMD4()
-        map[key] = value
-    }
-
-    // Set a SIMD4<Float> value directly for the specified key
-    func set( _ key: String, _ simd4: SIMD4<Float> )
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        map[key] = simd4
-    }
-
-    // Retrieve a SIMD4<Float> value for the specified key, or return a default value
-    func get( _ key: String, _ defaultValue: SIMD4<Float> = SIMD4<Float>(0,0,0,0) ) -> SIMD4<Float>
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        return map[key, default: defaultValue]
-    }
-
-    // Retrieve the first component (Float) from a SIMD4<Float> for the specified key
-    func getAsFloat( _ key: String, _ defaultValue: Float = 0 ) -> Float
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        guard let float4 = map[key] else { return defaultValue }
-        return float4.x
-    }
-
-    // Retrieve the first two components (SIMD2<Float>) from a SIMD4<Float> for the specified key
-    func getAsFloat2( _ key: String, _ defaultValue: SIMD2<Float> = SIMD2<Float>(0,0)) -> SIMD2<Float>
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        guard let float4 = map[key] else { return defaultValue }
-        return SIMD2<Float>(float4.x,float4.y)
-    }
-
-    // Retrieve the first three components (SIMD3<Float>) from a SIMD4<Float> for the specified key
-    func getAsFloat3( _ key: String, _ defaultValue: SIMD3<Float> = SIMD3<Float>(0,0,0)) -> SIMD3<Float>
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        guard let float4 = map[key] else { return defaultValue }
-        return SIMD3<Float>(float4.x,float4.y,float4.z)
-    }
-
-    // Remove and return the SIMD4<Float> value for the specified key
-    func delete( _ key: String ) -> SIMD4<Float>?
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        return map.removeValue(forKey: key)
-    }
-
-    // Clear all entries in the dictionary
-    func clear() {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        map.removeAll()
-    }
-}
-
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
 class UniformManager
 {
@@ -113,70 +26,10 @@ class UniformManager
 
     private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
     private var saveQueue = DispatchQueue(label: "net.wdoughty.metaltoy.saveUniformsQueue") // Queue for saving operations
+    private var projectDirDelegate: ShaderProjectDirAccess!
 
-    init() {}
-
-    // Open a panel to select a directory for storing project files
-    private func selectDirectory() {
-        DispatchQueue.main.async {
-
-            let openPanel = NSOpenPanel()
-            openPanel.title = "Choose a directory"
-            openPanel.message = "Select the directory containing your shader file"
-            openPanel.showsResizeIndicator = true
-            openPanel.showsHiddenFiles = false
-            openPanel.canChooseDirectories = true
-            openPanel.canCreateDirectories = true
-            openPanel.canChooseFiles = false
-            openPanel.allowsMultipleSelection = false
-
-            openPanel.begin { (result) in
-                if result == .OK {
-                    if let selectedPath = openPanel.url {
-                        print("Directory selected: \(selectedPath.path)")
-                        self.storeSecurityScopedBookmark(for: selectedPath, withIdentifier: self.bookmarkID)
-                        self.uniformProjectDirURL = selectedPath
-                    }
-                } else {
-                    print("User cancelled the open panel")
-                }
-            }
-        }
-    }
-
-    // Store a security-scoped bookmark to persist access to the directory across app launches
-    private func storeSecurityScopedBookmark(for directory: URL, withIdentifier identifier: String) {
-        do {
-            let bookmarkData = try directory.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-            UserDefaults.standard.set(bookmarkData, forKey: "bookmark_\(identifier)")
-            print("Bookmark for \(identifier) saved successfully.")
-        } catch {
-            print("Failed to create bookmark for \(identifier): \(error)")
-        }
-    }
-
-    // Access a directory using a stored bookmark, performing a file operation within the bookmark's scope
-    private func accessBookmarkedDirectory(withIdentifier identifier: String, using fileOperation: (URL) -> Void) {
-        guard let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(identifier)") else {
-            print("No bookmark data found for \(identifier).")
-            return
-        }
-
-        var isStale = false
-        do {
-            let bookmarkedURL = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-            if isStale {
-                print("Bookmark for \(identifier) is stale, need to refresh")
-                selectDirectory()
-            } else {
-                if bookmarkedURL.startAccessingSecurityScopedResource() {
-                    fileOperation(bookmarkedURL)
-                    bookmarkedURL.stopAccessingSecurityScopedResource()
-                }
-            }
-        } catch {
-            print("Error resolving bookmark for \(identifier): \(error)")
-        }
+    init(projectDirDelegate: ShaderProjectDirAccess) {
+        self.projectDirDelegate = projectDirDelegate
     }
 
     // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
@@ -194,24 +47,15 @@ class UniformManager
 
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
     private func resetMapping() {
-        semaphore.wait()
-        defer { semaphore.signal() }
         parameterMap.removeAll()
         indexMap.removeAll()
-        dirty = true
-    }
-
-    // Clear all uniforms from the dictionary and mark as dirty
-    private func clearUniforms() {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        float4dict.clear()
         dirty = true
     }
 
     // Add a new uniform with the given name and type, returning its new index
     private func setIndex(name: String, type: String ) -> Int
     {
+        if debug { print("UniformManager: setIndex(\(name), \(type))") }
         indexMap.append((name,type))
         let index = indexMap.count-1
         parameterMap[name] = index
@@ -222,26 +66,15 @@ class UniformManager
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false)
     {
-        if !suppressSave {
-            semaphore.wait()
-        }
-        defer { semaphore.signal() }
+        if !suppressSave { semaphore.wait() }
+        if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
         float4dict.setTuple(name, values: values)
         dirty = true
         if( !suppressSave ) {
             requestSaveUniforms()
             if( debug ) { printUniforms() }
         }
-    }
-
-    // Set a SIMD4<Float> uniform value and schedule a file save
-    func setUniform( _ name: String, _ simd4: SIMD4<Float> )
-    {
-        semaphore.wait()
-        defer { semaphore.signal() }
-        float4dict.set(name, simd4)
-        dirty = true
-        requestSaveUniforms() // This debounces and schedules a save operation
+        if !suppressSave { semaphore.signal() }
     }
 
     // Update the uniforms buffer if necessary and return it
@@ -252,11 +85,11 @@ class UniformManager
         return buffer
     }
 
+    var insideSetUniform = false
     // Update the uniforms buffer if necessary, handling data alignment and copying
     private func mapUniformsToBuffer() throws {
-        semaphore.wait()
-        defer { semaphore.signal() }
         if !dirty { return }
+        print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
         dirty = false
         if debug { print("Updating uniforms buffer") }
         guard let buffer = self.buffer else { return }
@@ -343,7 +176,7 @@ class UniformManager
         }
 
         // Accessing the bookmark to perform file operations
-        accessBookmarkedDirectory(withIdentifier: bookmarkID) { dirUrl in
+        projectDirDelegate.accessDirectory() { dirUrl in
             do {
                 try uniforms.write(to: fileUrl, atomically: true, encoding: .utf8)
                 print("Data written successfully to \(fileUrl.path)")
@@ -407,9 +240,11 @@ class UniformManager
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
     func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
     {
-        resetMapping()
         semaphore.wait()
-        defer { semaphore.signal() }
+        resetMapping()
+
+        print("UniformManager: setupUniformsFromShader() - starting on thread \(Thread.current)")
+        insideSetUniform = true
 
         let lines = shaderSource.components(separatedBy: "\n")
 
@@ -443,9 +278,14 @@ class UniformManager
         let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
         if( bookmarkData == nil ) {
             print("WARNING: no project directory bookmark found")
-            selectDirectory()
+            Task {
+                await projectDirDelegate.selectDirectory()
+            }
         }
         loadUniformsFromFile()
+        print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")
+        insideSetUniform = false
+        defer { semaphore.signal() }
         return nil
     }
 }

@@ -8,9 +8,6 @@
 import Foundation
 import AppKit
 
-protocol ShaderProjectFileAccess {
-}
-
 class ShaderManager {
     var metallibURL: URL?
     var uniforms: [String: Any] = [:] // Define as per your data needs
@@ -76,12 +73,17 @@ class ShaderManager {
 
 }
 
+protocol ShaderProjectDirAccess {
+    func getURL() -> URL?
+    func accessDirectory(using fileOperation: (URL) -> Void)
+    func selectDirectory() async -> URL?
+}
 
-extension ShaderManager: ShaderProjectFileAccess {
-    
+extension ShaderManager: ShaderProjectDirAccess {
+
     // Open a panel to select a directory for storing project files
     @MainActor
-    private func selectProjectDirectory() async -> URL? {
+    func selectDirectory() async -> URL? {
         await withCheckedContinuation { continuation in
             let openPanel = NSOpenPanel()
             openPanel.title = "Choose a project directory"
@@ -100,22 +102,22 @@ extension ShaderManager: ShaderProjectFileAccess {
                         print("Directory selected: \(selectedPath.path)")
                         self.storeSecurityScopedBookmark(for: selectedPath, withIdentifier: self.bookmarkID)
                         self.projectDirURL = selectedPath
-//                        continuation.resume(returning: selectedPath)
+                        continuation.resume(returning: selectedPath)
                     } else {
                         print("User cancelled the open panel")
-//                        continuation.resume(returning: nil)
+                        continuation.resume(returning: nil)
                     }
                 }
             }
         }
     }
 
-    func getProjectDir() -> URL? {
+    func getURL() -> URL? {
         if let projectDirURL = projectDirURL {
             return projectDirURL
         }
         Task {
-            await selectProjectDirectory()
+            await selectDirectory()
         }
         return projectDirURL
     }
@@ -132,9 +134,9 @@ extension ShaderManager: ShaderProjectFileAccess {
     }
 
     // Access a directory using a stored bookmark, performing a file operation within the bookmark's scope
-    func accessProjectDirectory(withIdentifier identifier: String, using fileOperation: (URL) -> Void) {
-        guard let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(identifier)") else {
-            print("No bookmark data found for \(identifier).")
+    func accessDirectory(using fileOperation: (URL) -> Void) {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)") else {
+            print("No bookmark data found for \(bookmarkID).")
             return
         }
 
@@ -142,7 +144,7 @@ extension ShaderManager: ShaderProjectFileAccess {
         do {
             let bookmarkedURL = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
             if isStale {
-                print("Bookmark for \(identifier) is stale, need to refresh")
+                print("Bookmark for \(bookmarkID) is stale, need to refresh")
 //                selectProjectDirectory()
             } else {
                 if bookmarkedURL.startAccessingSecurityScopedResource() {
@@ -151,11 +153,11 @@ extension ShaderManager: ShaderProjectFileAccess {
                 }
             }
         } catch {
-            print("Error resolving bookmark for \(identifier): \(error)")
+            print("Error resolving bookmark for \(bookmarkID): \(error)")
         }
     }
-    
-    func getProjectDirectoryBookmark() {
+
+    private func getProjectDirectoryBookmark() {
         let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
         if( bookmarkData == nil ) {
             print("WARNING: no project directory bookmark found")
@@ -167,6 +169,11 @@ extension ShaderManager: ShaderProjectFileAccess {
 }
 
 extension ShaderManager {
+    func generateRandomHexadecimal() -> String {
+        let randomNumber = Int.random(in: 0x000000...0xFFFFFF)
+        return String(format: "%06X", randomNumber)
+    }
+
     func metalToLib(srcURL: URL) throws -> URL {
 
         // From: https://developer.apple.com/documentation/metal/shader_libraries/generating_and_loading_a_metal_library_symbol_file
@@ -181,27 +188,43 @@ extension ShaderManager {
         // cpp TestShaders.metal 2> /dev/null | egrep -e "# \d+\s+\"" | sed -n 's/.*"\(.*\)".*/\1/p' | grep -v '<' | sort | uniq | sed -e 's/\.\///g'
 
 
-        let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
-        let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension("metallib")
+        let randomHex = generateRandomHexadecimal()
 
-        var command = "xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+        let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
+        // adding random number is a hack to get the metal library loader to load anew every time
+        // it seems to work, but I'm not sure and I don't know why
+        let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension(randomHex).appendingPathExtension("metallib")
+
+        var command = " xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+        print(command)
         var execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
 
         command = "xcrun -sdk macosx metal -frecord-sources -o \(metalLibURL.path) \(airURL.path)"
+        print(command)
         execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
 
-        command = "xcrun -sdk macosx metal-dsymutil -flat -remove-source \(metalLibURL.path)"
+        command = "rm \(airURL.path)"
+        print(command)
         execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
-        
+
+        // may want to add this back if ever want to debug shaders in Xcode
+//        command = "rm \(airURL.path) && xcrun -sdk macosx metal-dsymutil -flat -remove-source \(metalLibURL.path)"
+//        print(command)
+//        execResult = shell_exec(command, cwd: nil)
+//        if execResult.exitCode != 0 {
+//            throw execResult.stdErr!
+//        }
+
+        print("metallib compiled")
         return metalLibURL
     }
 }

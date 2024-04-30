@@ -24,21 +24,21 @@ struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
     @ObservedObject var renderMgr: RenderManager
+    @State private var metalView: MetalView?
 
     var body: some View {
         VStack{
             if renderMgr.shaderError == nil {
+
                 VStack{
-                    MetalView(renderMgr: renderMgr)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    metalView?
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-                    // Button to start rendering
                 }
             } else {
                 ScrollView {
                     VStack {
                         Text(renderMgr.shaderError!)
-//                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .font(.system(size: 13, weight: .medium, design: .monospaced)) // Using a monospaced medium font
                             .multilineTextAlignment(.leading) // Set text alignment to leading (left-justified)
                             .lineLimit(nil)
@@ -49,24 +49,15 @@ struct ContentView: View {
                 .padding()
             }
         }
+        .onAppear {
+            // Only create MetalView if it hasn't been created yet
+            if metalView == nil {
+                metalView = MetalView(renderMgr: renderMgr)
+            }
+        }
         .onChange(of: renderMgr.frameCount) {
             doFrame()
         }
-        .onChange(of: selectedURL) {
-            handleFileChange()
-        }
-        .onChange(of: renderMgr.openFileDialog) {
-            if renderMgr.openFileDialog { fileDialog() }
-            renderMgr.openFileDialog = false
-        }
-    }
-
-    func fileDialog() {
-        let fileDialog = FileDialog(selectedURL: $selectedURL)
-        fileDialog.openDialog()
-    }
-    func handleFileChange() {
-        renderMgr.loadShaderFile(selectedURL)
     }
 
     func doFrame() {

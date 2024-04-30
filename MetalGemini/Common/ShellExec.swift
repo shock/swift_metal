@@ -15,7 +15,7 @@ struct ShellExecResult {
 }
 
 @discardableResult
-func shell_exec(_ command: String, cwd: String? ) -> ShellExecResult {
+func shell_exec(_ command: String, cwd: String?, waitUntilExit: Bool = true ) -> ShellExecResult {
     let task = Process()
     let pipeOut = Pipe()
     let pipeErr = Pipe()
@@ -31,7 +31,7 @@ func shell_exec(_ command: String, cwd: String? ) -> ShellExecResult {
     task.launchPath = "/bin/bash"
     task.standardInput = nil
     task.launch()
-    task.waitUntilExit()  // Wait for the process to finish
+    if waitUntilExit { task.waitUntilExit() } // Wait for the process to finish
 
     // print("executing command: \(cmd)")
     var execResult = ShellExecResult()
