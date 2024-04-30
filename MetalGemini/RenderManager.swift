@@ -22,6 +22,7 @@ class RenderManager: ObservableObject {
     private var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
     private var uniformManager: UniformManager!
+    private var textureManager: TextureManager!
     private var shaderManager: ShaderManager!
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
@@ -30,6 +31,7 @@ class RenderManager: ObservableObject {
     init() {
         self.shaderManager = ShaderManager()
         self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
+        self.textureManager = TextureManager(projectDirDelegate: shaderManager)
     }
 
     var metalDevice: MTLDevice? {
@@ -159,6 +161,7 @@ class RenderManager: ObservableObject {
             guard let selectedURL = self.selectedShaderURL else { return }
             let shaderManager = self.shaderManager!
             let uniformManager = self.uniformManager!
+            let textureManager = self.textureManager!
             guard let metalDevice = self.metalDevice else {
                 self.shaderError = "CRITICAL ERROR: metalDevice is nil"
                 return
@@ -171,13 +174,15 @@ class RenderManager: ObservableObject {
 
             if shaderManager.loadShader(fileURL: selectedURL) {
                 shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
+                shaderError = shaderError ?? textureManager.loadTexturesFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
                 if shaderError == nil {
+                    await mtkVC.resourceMgr.setTextures(mtlTextures: textureManager.mtlTextures)
                     shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
                 }
             } else {
                 shaderError = shaderManager.errorMessage
             }
-
+            
             self.shaderError = shaderError
 
             self.resetFrame()

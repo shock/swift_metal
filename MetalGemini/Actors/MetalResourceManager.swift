@@ -16,6 +16,7 @@ actor MetalResourceManager {
     var numBuffers = 0
     var metalDevice: MTLDevice!
     private var pipelineStates: [MTLRenderPipelineState] = []
+    public private(set) var mtlTextures:[MTLTexture] = []
 
     init(mtkVC: MetalView.Coordinator) {
         self.mtkVC = mtkVC
@@ -26,6 +27,10 @@ actor MetalResourceManager {
         numBuffers = -1
         print("BufferManager error: \(err)")
         return err
+    }
+
+    func setTextures( mtlTextures: [MTLTexture] ) {
+        self.mtlTextures = mtlTextures
     }
 
     func createBuffers(size: CGSize) {

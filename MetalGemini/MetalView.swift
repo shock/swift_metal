@@ -90,7 +90,7 @@ struct MetalView: NSViewRepresentable {
         public private(set) var metallibURL: URL?
         private var reloadShaders = false
         public private(set) var renderSync = MutexRunner()
-        private var resourceMgr: MetalResourceManager!
+        private(set) var resourceMgr: MetalResourceManager!
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent

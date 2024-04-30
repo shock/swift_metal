@@ -20,8 +20,6 @@ class UniformManager
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
-    var uniformProjectDirURL: URL? // Directory URL for the project
-    let bookmarkID = "net.wdoughty.metaltoy.projectdir" // Bookmark ID for sandboxed file access
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
 
     private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
@@ -170,10 +168,10 @@ class UniformManager
         guard let fileUrl = uniformsTxtURL else { return }
         let uniforms = uniformsToString()
 
-        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
-        if( bookmarkData == nil ) {
-            print("no bookmark")
-        }
+//        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
+//        if( bookmarkData == nil ) {
+//            print("no bookmark")
+//        }
 
         // Accessing the bookmark to perform file operations
         projectDirDelegate.accessDirectory() { dirUrl in
@@ -275,13 +273,15 @@ class UniformManager
         }
         uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
-        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
-        if( bookmarkData == nil ) {
-            print("WARNING: no project directory bookmark found")
-            Task {
-                await projectDirDelegate.selectDirectory()
-            }
-        }
+
+//        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
+//        if( bookmarkData == nil ) {
+//            print("WARNING: no project directory bookmark found")
+//            Task {
+//                await projectDirDelegate.selectDirectory()
+//            }
+//        }
+
         loadUniformsFromFile()
         print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")
         insideSetUniform = false
