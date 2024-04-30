@@ -193,7 +193,7 @@ extension ShaderManager {
         // it seems to work, but I'm not sure and I don't know why
         let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension(randomHex).appendingPathExtension("metallib")
 
-        var command = "rm \(metalLibURL.path); rm \(airURL.path); xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+        var command = " xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
         print(command)
         var execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {

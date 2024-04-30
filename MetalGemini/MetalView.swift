@@ -92,6 +92,12 @@ struct MetalView: NSViewRepresentable {
                 self.metalDevice = mtkVC.metalDevice
             }
 
+            func setError(_ err: String ) -> String {
+                numBuffers = -1
+                print("BufferManager error: \(err)")
+                return err
+            }
+
             func createBuffers(size: CGSize) {
                 // Deallocate old buffers
                 renderBuffers.removeAll()
@@ -119,11 +125,11 @@ struct MetalView: NSViewRepresentable {
 
                 // Load the default Metal library
                 guard var library = metalDevice.makeDefaultLibrary() else {
-                    return "Could not load default Metal library"
+                    return setError("Could not load default Metal library")
                 }
                 // Load the default vertex shader
                 guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-                    return "Could not find 'vertexShader' function"
+                    return setError("Could not find 'vertexShader' function")
                 }
 
                 if let metalLibURL = mtkVC.metallibURL {
@@ -135,7 +141,7 @@ struct MetalView: NSViewRepresentable {
                         let command = "rm \(metalLibURL.path)"
                         Task { let _ = shell_exec(command, cwd: nil) }
                     } catch {
-                        return "Couldn't load shader library at \(metalLibURL)\n\(error)"
+                        return setError("Couldn't load shader library at \(metalLibURL)\n\(error)")
                     }
                 }
 
@@ -153,7 +159,7 @@ struct MetalView: NSViewRepresentable {
                         print("fragmentShader\(i) found")
                     }
                     if fragmentFunctions.count < 1 {
-                        return "Shader must define at least one fragment shader named `fragmentShader0`"
+                        return setError("Shader must define at least one fragment shader named `fragmentShader0`")
                     }
                     numBuffers = fragmentFunctions.count-1
                     print("numBuffers: \(numBuffers)")
@@ -176,7 +182,8 @@ struct MetalView: NSViewRepresentable {
 
                     print("MetalView: setupShaders() - shaders loaded")
                 } catch {
-                    return "Failed to setup shaders: \(error)"
+                    numBuffers = -1
+                    return setError("Failed to setup shaders: \(error)")
                 }
                 return nil
             }
@@ -424,6 +431,7 @@ struct MetalView: NSViewRepresentable {
                     let (_aa, pipelineStates, numBuffers) = await self.bufferManager.getBuffersAndPipelines()
 
                     guard !self.renderMgr.renderingPaused else { return }
+                    guard numBuffers >= 0 else { return }
                     guard pipelineStates.count - 1 == numBuffers else { return }
 
                     if( renderMgr.vsyncOn && numBuffers > 0 ) { self.renderOffscreen() } else { self.frameCounter += 1 }

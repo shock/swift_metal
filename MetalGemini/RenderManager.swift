@@ -176,15 +176,18 @@ class RenderManager: ObservableObject {
                 shaderError = shaderManager.errorMessage
             }
 
-            if !self.vsyncOn {
-                mtkVC.startRendering() // renable offline rendering if vsync is false
-            }
+            self.shaderError = shaderError
 
             self.resetFrame()
             //        renderingPaused = false
             // monitor files even if there's an error, so if the file is corrected, we'll reload it
             self.monitorShaderFiles(shaderManager.filesToMonitor)
-            self.shaderError = shaderError
+            
+            if shaderError != nil { return }
+
+            if !self.vsyncOn {
+                mtkVC.startRendering() // renable offline rendering if vsync is false
+            }
 
         }
     }
