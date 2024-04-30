@@ -26,70 +26,10 @@ class UniformManager
 
     private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
     private var saveQueue = DispatchQueue(label: "net.wdoughty.metaltoy.saveUniformsQueue") // Queue for saving operations
+    private var projectDirDelegate: ShaderProjectDirAccess!
 
-    init() {}
-
-    // Open a panel to select a directory for storing project files
-    private func selectDirectory() {
-        DispatchQueue.main.async {
-
-            let openPanel = NSOpenPanel()
-            openPanel.title = "Choose a directory"
-            openPanel.message = "Select the directory containing your shader file"
-            openPanel.showsResizeIndicator = true
-            openPanel.showsHiddenFiles = false
-            openPanel.canChooseDirectories = true
-            openPanel.canCreateDirectories = true
-            openPanel.canChooseFiles = false
-            openPanel.allowsMultipleSelection = false
-
-            openPanel.begin { (result) in
-                if result == .OK {
-                    if let selectedPath = openPanel.url {
-                        print("Directory selected: \(selectedPath.path)")
-                        self.storeSecurityScopedBookmark(for: selectedPath, withIdentifier: self.bookmarkID)
-                        self.uniformProjectDirURL = selectedPath
-                    }
-                } else {
-                    print("User cancelled the open panel")
-                }
-            }
-        }
-    }
-
-    // Store a security-scoped bookmark to persist access to the directory across app launches
-    private func storeSecurityScopedBookmark(for directory: URL, withIdentifier identifier: String) {
-        do {
-            let bookmarkData = try directory.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-            UserDefaults.standard.set(bookmarkData, forKey: "bookmark_\(identifier)")
-            print("Bookmark for \(identifier) saved successfully.")
-        } catch {
-            print("Failed to create bookmark for \(identifier): \(error)")
-        }
-    }
-
-    // Access a directory using a stored bookmark, performing a file operation within the bookmark's scope
-    private func accessBookmarkedDirectory(withIdentifier identifier: String, using fileOperation: (URL) -> Void) {
-        guard let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(identifier)") else {
-            print("No bookmark data found for \(identifier).")
-            return
-        }
-
-        var isStale = false
-        do {
-            let bookmarkedURL = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-            if isStale {
-                print("Bookmark for \(identifier) is stale, need to refresh")
-                selectDirectory()
-            } else {
-                if bookmarkedURL.startAccessingSecurityScopedResource() {
-                    fileOperation(bookmarkedURL)
-                    bookmarkedURL.stopAccessingSecurityScopedResource()
-                }
-            }
-        } catch {
-            print("Error resolving bookmark for \(identifier): \(error)")
-        }
+    init(projectDirDelegate: ShaderProjectDirAccess) {
+        self.projectDirDelegate = projectDirDelegate
     }
 
     // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
@@ -236,7 +176,7 @@ class UniformManager
         }
 
         // Accessing the bookmark to perform file operations
-        accessBookmarkedDirectory(withIdentifier: bookmarkID) { dirUrl in
+        projectDirDelegate.accessDirectory() { dirUrl in
             do {
                 try uniforms.write(to: fileUrl, atomically: true, encoding: .utf8)
                 print("Data written successfully to \(fileUrl.path)")
@@ -338,7 +278,9 @@ class UniformManager
         let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
         if( bookmarkData == nil ) {
             print("WARNING: no project directory bookmark found")
-            selectDirectory()
+            Task {
+                await projectDirDelegate.selectDirectory()
+            }
         }
         loadUniformsFromFile()
         print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")

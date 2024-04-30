@@ -21,13 +21,15 @@ class RenderManager: ObservableObject {
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
-    private var uniformManager = UniformManager()
-    private var shaderManager = ShaderManager()
+    private var uniformManager: UniformManager!
+    private var shaderManager: ShaderManager!
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
     public private(set) var renderSync = MutexRunner()
 
     init() {
+        self.shaderManager = ShaderManager()
+        self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
     }
 
     var metalDevice: MTLDevice? {
@@ -155,8 +157,8 @@ class RenderManager: ObservableObject {
             print("RenderManager: reloadShaderFile()")
             guard let mtkVC = self.mtkVC else { return }
             guard let selectedURL = self.selectedShaderURL else { return }
-            let shaderManager = self.shaderManager
-            let uniformManager = self.uniformManager
+            let shaderManager = self.shaderManager!
+            let uniformManager = self.uniformManager!
             guard let metalDevice = self.metalDevice else {
                 self.shaderError = "CRITICAL ERROR: metalDevice is nil"
                 return
