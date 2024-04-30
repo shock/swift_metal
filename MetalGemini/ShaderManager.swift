@@ -78,7 +78,7 @@ class ShaderManager {
 
 
 extension ShaderManager: ShaderProjectFileAccess {
-    
+
     // Open a panel to select a directory for storing project files
     @MainActor
     private func selectProjectDirectory() async -> URL? {
@@ -154,7 +154,7 @@ extension ShaderManager: ShaderProjectFileAccess {
             print("Error resolving bookmark for \(identifier): \(error)")
         }
     }
-    
+
     func getProjectDirectoryBookmark() {
         let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
         if( bookmarkData == nil ) {
@@ -167,6 +167,11 @@ extension ShaderManager: ShaderProjectFileAccess {
 }
 
 extension ShaderManager {
+    func generateRandomHexadecimal() -> String {
+        let randomNumber = Int.random(in: 0x000000...0xFFFFFF)
+        return String(format: "%06X", randomNumber)
+    }
+
     func metalToLib(srcURL: URL) throws -> URL {
 
         // From: https://developer.apple.com/documentation/metal/shader_libraries/generating_and_loading_a_metal_library_symbol_file
@@ -181,27 +186,43 @@ extension ShaderManager {
         // cpp TestShaders.metal 2> /dev/null | egrep -e "# \d+\s+\"" | sed -n 's/.*"\(.*\)".*/\1/p' | grep -v '<' | sort | uniq | sed -e 's/\.\///g'
 
 
-        let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
-        let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension("metallib")
+        let randomHex = generateRandomHexadecimal()
 
-        var command = "xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+        let airURL = srcURL.deletingPathExtension().appendingPathExtension("air")
+        // adding random number is a hack to get the metal library loader to load anew every time
+        // it seems to work, but I'm not sure and I don't know why
+        let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension(randomHex).appendingPathExtension("metallib")
+
+        var command = "rm \(metalLibURL.path); rm \(airURL.path); xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+        print(command)
         var execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
 
         command = "xcrun -sdk macosx metal -frecord-sources -o \(metalLibURL.path) \(airURL.path)"
+        print(command)
         execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
 
-        command = "xcrun -sdk macosx metal-dsymutil -flat -remove-source \(metalLibURL.path)"
+        command = "rm \(airURL.path)"
+        print(command)
         execResult = shell_exec(command, cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }
-        
+
+        // may want to add this back if ever want to debug shaders in Xcode
+//        command = "rm \(airURL.path) && xcrun -sdk macosx metal-dsymutil -flat -remove-source \(metalLibURL.path)"
+//        print(command)
+//        execResult = shell_exec(command, cwd: nil)
+//        if execResult.exitCode != 0 {
+//            throw execResult.stdErr!
+//        }
+
+        print("metallib compiled")
         return metalLibURL
     }
 }

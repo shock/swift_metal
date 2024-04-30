@@ -108,7 +108,7 @@ struct MetalView: NSViewRepresentable {
             func getBuffers() -> ([MTLTexture], Int) {
                 return (renderBuffers, numBuffers)
             }
-            
+
             func setupPipelines() async -> String? {
                 guard let metalDevice = metalDevice else { return "Metal Device not available." }
                 print("BufferManager: setupPipelines() on thread")
@@ -130,6 +130,10 @@ struct MetalView: NSViewRepresentable {
                     do {
                         let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                         library = tryLibrary
+
+                        // asynchronously delete the metallib file now that we're done with it
+                        let command = "rm \(metalLibURL.path)"
+                        Task { let _ = shell_exec(command, cwd: nil) }
                     } catch {
                         return "Couldn't load shader library at \(metalLibURL)\n\(error)"
                     }
@@ -176,7 +180,7 @@ struct MetalView: NSViewRepresentable {
                 }
                 return nil
             }
-            
+
             func getBuffersAndPipelines() -> ([MTLTexture], [MTLRenderPipelineState], Int) {
                 return (renderBuffers, pipelineStates, numBuffers)
             }
@@ -372,7 +376,7 @@ struct MetalView: NSViewRepresentable {
             Task {
                 await renderSync.run {
                     let (currentBuffers, pipelineStates, numBuffers) = await self.bufferManager.getBuffersAndPipelines()
-                    
+
                     let renderMgr = self.renderMgr
                     guard numBuffers > 0 else { return }
                     if( !self.renderingActive && !renderMgr.vsyncOn ) { return }
@@ -448,4 +452,3 @@ struct MetalView: NSViewRepresentable {
 
     }
 }
-
