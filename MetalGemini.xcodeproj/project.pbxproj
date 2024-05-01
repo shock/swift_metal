@@ -154,13 +154,13 @@
 				B5E711BA2BB463510092172A /* MetalView.swift */,
 				B54CEB582BDC453200077D15 /* ShaderManager.swift */,
 				B597D0482BD0948900CBCA26 /* UniformManager.swift */,
+				B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */,
 				B5ED373B2BDA0F2A00A04963 /* Notification.swift */,
 				B5E711B42BB462FA0092172A /* MetalGemini.entitlements */,
 				B5E711FA2BB4F3BB0092172A /* main.swift */,
 				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
 				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
 				B5E711B12BB462FA0092172A /* Preview Content */,
-				B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */,
 			);
 			path = MetalGemini;
 			sourceTree = "<group>";
