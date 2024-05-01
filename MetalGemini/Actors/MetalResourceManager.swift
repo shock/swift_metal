@@ -14,10 +14,13 @@ actor MetalResourceManager {
     var version = 0
     var numBuffers = 0
     var metalDevice: MTLDevice!
+    private var projectDirDelegate: ShaderProjectDirAccess!
     private var pipelineStates: [MTLRenderPipelineState] = []
     public private(set) var mtlTextures:[MTLTexture] = []
-
-    init() {
+    private var debug = true
+    
+    init(projectDirDelegate: ShaderProjectDirAccess) {
+        self.projectDirDelegate = projectDirDelegate
         if let metalDevice = MTLCreateSystemDefaultDevice() {
             self.metalDevice = metalDevice
         } else {
@@ -31,17 +34,31 @@ actor MetalResourceManager {
         return err
     }
 
-    func setTextures( mtlTextures: [MTLTexture] ) {
-        self.mtlTextures = mtlTextures
-    }
+    func loadTextures(textureURLs: [URL]) -> String? {
+        var errors:[String] = []
 
-    func clearTextures() {
-        self.mtlTextures.removeAll()
-    }
+        let textureLoader = MTKTextureLoader(device: metalDevice)
+        let options: [MTKTextureLoader.Option : Any] = [
+            .origin : MTKTextureLoader.Origin.bottomLeft,
+            .SRGB : false
+        ]
 
-    func addTexture(mtlTexture: MTLTexture) {
-        print("MetalResourceManager: adding texture")
-        self.mtlTextures.append(mtlTexture)
+        mtlTextures.removeAll()
+        for url in textureURLs {
+            projectDirDelegate.accessDirectory() { dirUrl in
+                textureLoader.newTexture(URL: url, options: options) { (texture, error) in
+                    guard let texture = texture else {
+                        errors.append("Error loading texture: \(error?.localizedDescription ?? "Unknown error")")
+                        if self.debug { print(error?.localizedDescription as Any) }
+                        return
+                    }
+
+                    self.mtlTextures.append(texture)
+                }
+            }
+        }
+        if errors.count > 0 { return errors.joined(separator: "\n") }
+        return nil
     }
 
     func createRenderBuffer(_ size: CGSize) -> MTLTexture {

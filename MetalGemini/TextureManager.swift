@@ -9,16 +9,11 @@ import Foundation
 import MetalKit
 
 class TextureManager {
-    private var projectDirDelegate: ShaderProjectDirAccess!
     private(set) var textureURLs: [URL] = []
     public private(set) var mtlTextures:[MTLTexture] = []
-    private(set) var resourceMgr: MetalResourceManager!
     var debug = true
 
-    init(projectDirDelegate: ShaderProjectDirAccess, resourceMgr: MetalResourceManager) {
-        self.projectDirDelegate = projectDirDelegate
-        self.resourceMgr = resourceMgr
-    }
+    init() {    }
     
     // parses the shader file to look for a @texture declarations
     // which define which image files to load as shader textures
@@ -32,7 +27,7 @@ class TextureManager {
     // determines the order in which they are passed to the shader
     // functions.
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func loadTexturesFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
+    func loadTexturesFromShader(srcURL: URL, shaderSource: String) -> [URL]
     {
         print("TextureManager: loadTexturesFromShader() - starting on thread \(Thread.current)")
 
@@ -48,7 +43,7 @@ class TextureManager {
         }
         
         if debug { print("TextureManager: \(texturePaths.count) textures declared")}
-        if texturePaths.count == 0 { return nil }
+        if texturePaths.count == 0 { return [] }
 
         let shaderDir = srcURL.deletingLastPathComponent()
 
@@ -58,40 +53,7 @@ class TextureManager {
             let resolvedURL = appendPathToURL(directoryURL: shaderDir, relativePath: filePath)
             textureURLs.append( URL(fileURLWithPath: resolvedURL.path()) )
         }
-        return loadTextures(metalDevice: metalDevice)
-    }
-
-    private func loadTextures(metalDevice: MTLDevice) -> String? {
-        var errors:[String] = []
-
-        let textureLoader = MTKTextureLoader(device: metalDevice)
-        let options: [MTKTextureLoader.Option : Any] = [
-            .origin : MTKTextureLoader.Origin.bottomLeft,
-            .SRGB : false
-        ]
-
-        Task {
-            await resourceMgr.clearTextures()
-        }
-        mtlTextures.removeAll()
-        for url in textureURLs {
-            projectDirDelegate.accessDirectory() { dirUrl in
-                textureLoader.newTexture(URL: url, options: options) { (texture, error) in
-                    guard let texture = texture else {
-                        errors.append("Error loading texture: \(error?.localizedDescription ?? "Unknown error")")
-                        if self.debug { print(error?.localizedDescription as Any) }
-                        return
-                    }
-
-                    self.mtlTextures.append(texture)
-                    Task {
-                        await self.resourceMgr.addTexture(mtlTexture: texture)
-                    }
-                }
-            }
-        }
-        if errors.count > 0 { return errors.joined(separator: "\n") }
-        return nil
+        return textureURLs
     }
 
     private func appendPathToURL( directoryURL: URL, relativePath: String ) -> URL {
