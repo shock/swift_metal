@@ -18,6 +18,7 @@ actor MetalResourceManager {
     private var pipelineStates: [MTLRenderPipelineState] = []
     public private(set) var mtlTextures:[MTLTexture] = []
     private var debug = true
+    private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
     
     init(projectDirDelegate: ShaderProjectDirAccess) {
         self.projectDirDelegate = projectDirDelegate
@@ -34,31 +35,76 @@ actor MetalResourceManager {
         return err
     }
 
-    func loadTextures(textureURLs: [URL]) -> String? {
-        var errors:[String] = []
+//    func loadTextures(textureURLs: [URL]) -> String? {
+//        var errors:[String] = []
+//
+//        let textureLoader = MTKTextureLoader(device: metalDevice)
+//        let options: [MTKTextureLoader.Option : Any] = [
+//            .origin : MTKTextureLoader.Origin.bottomLeft,
+//            .SRGB : false
+//        ]
+//
+//        mtlTextures.removeAll()
+//        for url in textureURLs {
+//            projectDirDelegate.accessDirectory() { dirUrl in
+//                textureLoader.newTexture(URL: url, options: options) { (texture, error) in
+//                    guard let texture = texture else {
+//                        errors.append("Error loading texture: \(error?.localizedDescription ?? "Unknown error")")
+//                        if self.debug { print(error?.localizedDescription as Any) }
+//                        return
+//                    }
+//
+//                    self.mtlTextures.append(texture)
+//                }
+//            }
+//        }
+//        if errors.count > 0 { return errors.joined(separator: "\n") }
+//        return nil
+//    }
 
+    func loadTextures(textureURLs: [URL]) -> String? {
+        textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
         let textureLoader = MTKTextureLoader(device: metalDevice)
         let options: [MTKTextureLoader.Option : Any] = [
             .origin : MTKTextureLoader.Origin.bottomLeft,
             .SRGB : false
         ]
+        
+        var errors: [String] = []
+        let group = DispatchGroup()
 
-        mtlTextures.removeAll()
-        for url in textureURLs {
+        mtlTextures.removeAll()  // Clear existing textures
+        
+        for (index, url) in textureURLs.enumerated() {
+            group.enter()
             projectDirDelegate.accessDirectory() { dirUrl in
                 textureLoader.newTexture(URL: url, options: options) { (texture, error) in
-                    guard let texture = texture else {
-                        errors.append("Error loading texture: \(error?.localizedDescription ?? "Unknown error")")
-                        if self.debug { print(error?.localizedDescription as Any) }
-                        return
+                    defer { group.leave() }
+                    if let texture = texture {
+                        self.addTexture(texture, at: index)
+                    } else {
+                        let errorDescription = error?.localizedDescription ?? "Unknown error"
+                        errors.append("Error loading texture: \(errorDescription)")
+                        if self.debug { print(errorDescription) }
                     }
-
-                    self.mtlTextures.append(texture)
                 }
             }
         }
+        
+        group.notify(queue: .main) {
+            self.updateTextureArray(sortedBy: textureURLs.count)
+        }
+
         if errors.count > 0 { return errors.joined(separator: "\n") }
         return nil
+    }
+    
+    private func addTexture(_ texture: MTLTexture, at index: Int) {
+        textureDictionary[index] = texture
+    }
+    
+    private func updateTextureArray(sortedBy count: Int) {
+        mtlTextures = (0..<count).compactMap { textureDictionary[$0] }
     }
 
     func createRenderBuffer(_ size: CGSize) -> MTLTexture {
