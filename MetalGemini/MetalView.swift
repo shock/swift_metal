@@ -106,8 +106,8 @@ struct MetalView: NSViewRepresentable {
                 self.metalDevice = metalDevice
             }
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
-            self.resourceMgr = MetalResourceManager(mtkVC: self)
-            renderMgr.setCoordinator(self)
+            self.resourceMgr = renderMgr.resourceMgr
+            renderMgr.setViewCoordinator(self)
 
             // must initialize render buffers
             createUniformBuffers()
@@ -134,24 +134,14 @@ struct MetalView: NSViewRepresentable {
 
         func setupShaders() async -> String? {
             print("MetalView: setupShaders()")
-            return await resourceMgr.setupPipelines()
-        }
-
-        func createRenderBuffer(_ size: CGSize) -> MTLTexture {
-            let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba16Unorm,
-                                                                                width: Int(size.width),
-                                                                                height: Int(size.height),
-                                                                                mipmapped: false)
-            offscreenTextureDescriptor.usage = [.renderTarget, .shaderRead]
-            let buffer = metalDevice.makeTexture(descriptor: offscreenTextureDescriptor)!
-            return buffer
+            return await resourceMgr.setupPipelines(metallibURL: metallibURL)
         }
 
         func setupRenderBuffers(_ size: CGSize) {
             print("MetalView: setupRenderBuffers(\(size) on thread \(Thread.current)")
             // dealloc old buffers
             Task {
-                await resourceMgr.createBuffers(size: size)
+                await resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: size)
             }
         }
 
@@ -266,7 +256,7 @@ struct MetalView: NSViewRepresentable {
             // it's up to the shaders how to use them
 
             let mtlTextures = await resourceMgr.mtlTextures
-            for (index, texture) in mtlTextures.enumerated() {
+            for texture in mtlTextures {
 //                print("#### Adding texture \(index)")
                 encoder.setFragmentTexture(texture, index: textureIndex)
                 textureIndex += 1

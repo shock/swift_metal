@@ -12,15 +12,17 @@ actor MetalResourceManager {
     var renderBuffers: [MTLTexture] = []
     var sysUniformBuffer: MTLBuffer?
     var version = 0
-    var mtkVC: MetalView.Coordinator
     var numBuffers = 0
     var metalDevice: MTLDevice!
     private var pipelineStates: [MTLRenderPipelineState] = []
     public private(set) var mtlTextures:[MTLTexture] = []
 
-    init(mtkVC: MetalView.Coordinator) {
-        self.mtkVC = mtkVC
-        self.metalDevice = mtkVC.metalDevice
+    init() {
+        if let metalDevice = MTLCreateSystemDefaultDevice() {
+            self.metalDevice = metalDevice
+        } else {
+            fatalError("Metal not supported on this computer.")
+        }
     }
 
     func setError(_ err: String ) -> String {
@@ -42,13 +44,23 @@ actor MetalResourceManager {
         self.mtlTextures.append(mtlTexture)
     }
 
-    func createBuffers(size: CGSize) {
+    func createRenderBuffer(_ size: CGSize) -> MTLTexture {
+        let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba16Unorm,
+                                                                            width: Int(size.width),
+                                                                            height: Int(size.height),
+                                                                            mipmapped: false)
+        offscreenTextureDescriptor.usage = [.renderTarget, .shaderRead]
+        let buffer = metalDevice.makeTexture(descriptor: offscreenTextureDescriptor)!
+        return buffer
+    }
+
+    func createBuffers(numBuffers: Int, size: CGSize) {
         // Deallocate old buffers
         renderBuffers.removeAll()
 
         // Create new buffers
-        for _ in 0..<MAX_RENDER_BUFFERS {
-            renderBuffers.append(mtkVC.createRenderBuffer(size))
+        for _ in 0..<numBuffers {
+            renderBuffers.append(createRenderBuffer(size))
         }
 
         // Update version to indicate a new state of buffers
@@ -59,7 +71,7 @@ actor MetalResourceManager {
         return (renderBuffers, numBuffers)
     }
 
-    func setupPipelines() async -> String? {
+    func setupPipelines(metallibURL: URL?) async -> String? {
         guard let metalDevice = metalDevice else { return "Metal Device not available." }
         print("BufferManager: setupPipelines() on thread")
 //            stopRendering() // ensure offline rendering is disabled
@@ -76,7 +88,7 @@ actor MetalResourceManager {
             return setError("Could not find 'vertexShader' function")
         }
 
-        if let metalLibURL = mtkVC.metallibURL {
+        if let metalLibURL = metallibURL {
             do {
                 let tryLibrary = try metalDevice.makeLibrary(URL: metalLibURL)
                 library = tryLibrary

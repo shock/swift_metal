@@ -27,11 +27,12 @@ class RenderManager: ObservableObject {
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
     public private(set) var renderSync = MutexRunner()
-    private(set) var resourceMgr: MetalResourceManager!
+    private(set) var resourceMgr = MetalResourceManager()
 
     init() {
         self.shaderManager = ShaderManager()
         self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
+        self.textureManager = TextureManager(projectDirDelegate: shaderManager, resourceMgr: resourceMgr)
     }
 
     var metalDevice: MTLDevice? {
@@ -56,10 +57,8 @@ class RenderManager: ObservableObject {
         uniformManager.setUniformTuple("u_resolution", values: [Float(size.width), Float(size.height)], suppressSave: true)
     }
 
-    func setCoordinator(_ mtkVC: MetalView.Coordinator ) {
+    func setViewCoordinator(_ mtkVC: MetalView.Coordinator ) {
         self.mtkVC = mtkVC
-        self.resourceMgr = mtkVC.resourceMgr
-        self.textureManager = TextureManager(projectDirDelegate: shaderManager, resourceMgr: resourceMgr)
     }
 
     var vsyncOn: Bool = true {
@@ -158,7 +157,7 @@ class RenderManager: ObservableObject {
     @MainActor
     func reloadShaderFile() async {
         await renderSync.run {
-            print("RenderManager: reloadShaderFile()")
+            print("\n\nRenderManager: reloadShaderFile()")
             guard let mtkVC = self.mtkVC else { return }
             guard let selectedURL = self.selectedShaderURL else { return }
             let shaderManager = self.shaderManager!
@@ -172,7 +171,7 @@ class RenderManager: ObservableObject {
             mtkVC.stopRendering() // this must be here for reloading with vsync off!
             var shaderError: String? = nil
 
-            self.shaderError = "Loading '\(selectedURL.absoluteString)'"
+//            self.shaderError = "Loading '\(selectedURL.absoluteString)'"
 
             if shaderManager.loadShader(fileURL: selectedURL) {
                 shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
