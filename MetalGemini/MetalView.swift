@@ -256,6 +256,7 @@ struct MetalView: NSViewRepresentable {
             // it's up to the shaders how to use them
 
             let mtlTextures = await resourceMgr.mtlTextures
+//            print("MetalView: setupRenderEncoder() - setting encoder with \(mtlTextures.count) user textures")
             for texture in mtlTextures {
 //                print("#### Adding texture \(index)")
                 encoder.setFragmentTexture(texture, index: textureIndex)
