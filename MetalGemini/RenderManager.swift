@@ -27,11 +27,11 @@ class RenderManager: ObservableObject {
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
     public private(set) var renderSync = MutexRunner()
+    private(set) var resourceMgr: MetalResourceManager!
 
     init() {
         self.shaderManager = ShaderManager()
         self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
-        self.textureManager = TextureManager(projectDirDelegate: shaderManager)
     }
 
     var metalDevice: MTLDevice? {
@@ -58,6 +58,8 @@ class RenderManager: ObservableObject {
 
     func setCoordinator(_ mtkVC: MetalView.Coordinator ) {
         self.mtkVC = mtkVC
+        self.resourceMgr = mtkVC.resourceMgr
+        self.textureManager = TextureManager(projectDirDelegate: shaderManager, resourceMgr: resourceMgr)
     }
 
     var vsyncOn: Bool = true {
@@ -176,7 +178,7 @@ class RenderManager: ObservableObject {
                 shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
                 shaderError = shaderError ?? textureManager.loadTexturesFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
                 if shaderError == nil {
-                    await mtkVC.resourceMgr.setTextures(mtlTextures: textureManager.mtlTextures)
+//                    await mtkVC.resourceMgr.setTextures(mtlTextures: textureManager.mtlTextures)
                     shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
                 }
             } else {

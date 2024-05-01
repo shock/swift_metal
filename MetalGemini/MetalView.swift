@@ -90,7 +90,8 @@ struct MetalView: NSViewRepresentable {
         public private(set) var metallibURL: URL?
         private var reloadShaders = false
         public private(set) var renderSync = MutexRunner()
-        private(set) var resourceMgr: MetalResourceManager!
+        var resourceMgr: MetalResourceManager!
+        var samplerState: MTLSamplerState?
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
@@ -100,22 +101,36 @@ struct MetalView: NSViewRepresentable {
             self.renderMgr = renderMgr
             self.renderSync = renderMgr.renderSync
             super.init()
-            renderMgr.setCoordinator(self)
 
             if let metalDevice = MTLCreateSystemDefaultDevice() {
                 self.metalDevice = metalDevice
             }
-            self.resourceMgr = MetalResourceManager(mtkVC: self)
             self.metalCommandQueue = metalDevice.makeCommandQueue()!
+            self.resourceMgr = MetalResourceManager(mtkVC: self)
+            renderMgr.setCoordinator(self)
 
             // must initialize render buffers
             createUniformBuffers()
             updateViewportSize(CGSize(width:2,height:2))
 
+//            setupSamplers()
+
             // Load the default shaders and create the pipeline states
 //            reinitShaders()
 
         }
+
+//        // this isn't necessary, because samplers can be defined in the shader code
+//        func setupSamplers() {
+//            let samplerDescriptor = MTLSamplerDescriptor()
+//            samplerDescriptor.minFilter = .linear
+//            samplerDescriptor.magFilter = .linear
+//            samplerDescriptor.mipFilter = .linear
+//            samplerDescriptor.sAddressMode = .repeat
+//            samplerDescriptor.tAddressMode = .repeat
+//            samplerState = metalDevice.makeSamplerState(descriptor: samplerDescriptor)
+//            if let _ = samplerState {} else { print("Couldn't create samplerState") }
+//        }
 
         func setupShaders() async -> String? {
             print("MetalView: setupShaders()")
@@ -231,20 +246,32 @@ struct MetalView: NSViewRepresentable {
 
         func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) async {
             let (currentBuffers, numBuffers) = await resourceMgr.getBuffers()
-
+            
+            var textureIndex = 0
             for i in 0..<MAX_RENDER_BUFFERS {
                 if( i > currentBuffers.count - 1 ) {
                     print("i: \(i) - renderBuffers.count:\(currentBuffers.count)")
                 }
-                encoder.setFragmentTexture(currentBuffers[i], index: i)
-            }
-            // pass a dynamic reference to the last buffer rendered, if there is one
-            if numBuffers > 0 {
-                encoder.setFragmentTexture(currentBuffers[numBuffers-1], index: MAX_RENDER_BUFFERS)
+                encoder.setFragmentTexture(currentBuffers[i], index: textureIndex)
+                textureIndex += 1
             }
 
+            // pass a dynamic reference to the last buffer rendered, if there is one
+            if numBuffers > 0 {
+                encoder.setFragmentTexture(currentBuffers[numBuffers-1], index: textureIndex)
+                textureIndex += 1
+            }
+            
             // now the first MAX_RENDER_BUFFERS+1 buffers are passed
             // it's up to the shaders how to use them
+
+            let mtlTextures = await resourceMgr.mtlTextures
+            for (index, texture) in mtlTextures.enumerated() {
+//                print("#### Adding texture \(index)")
+                encoder.setFragmentTexture(texture, index: textureIndex)
+                textureIndex += 1
+            }
+//            encoder.setFragmentSamplerState(samplerState, index: 0)
 
             do {
                 updateUniforms()
