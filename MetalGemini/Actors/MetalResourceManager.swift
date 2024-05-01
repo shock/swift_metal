@@ -67,9 +67,10 @@ actor MetalResourceManager {
         let textureLoader = MTKTextureLoader(device: metalDevice)
         let options: [MTKTextureLoader.Option : Any] = [
             .origin : MTKTextureLoader.Origin.bottomLeft,
+            .generateMipmaps: true,
             .SRGB : false
         ]
-        
+
         var errors: [String] = []
         let group = DispatchGroup()
 
@@ -82,6 +83,7 @@ actor MetalResourceManager {
                     defer { group.leave() }
                     if let texture = texture {
                         self.addTexture(texture, at: index)
+                        print("Texture loaded successfully: \(url.lastPathComponent)")
                     } else {
                         let errorDescription = error?.localizedDescription ?? "Unknown error"
                         errors.append("Error loading texture: \(errorDescription)")
