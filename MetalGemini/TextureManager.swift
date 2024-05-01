@@ -12,10 +12,12 @@ class TextureManager {
     private var projectDirDelegate: ShaderProjectDirAccess!
     private(set) var textureURLs: [URL] = []
     public private(set) var mtlTextures:[MTLTexture] = []
+    private(set) var resourceMgr: MetalResourceManager!
     var debug = true
 
-    init(projectDirDelegate: ShaderProjectDirAccess) {
+    init(projectDirDelegate: ShaderProjectDirAccess, resourceMgr: MetalResourceManager) {
         self.projectDirDelegate = projectDirDelegate
+        self.resourceMgr = resourceMgr
     }
     
     // parses the shader file to look for a @texture declarations
@@ -68,6 +70,9 @@ class TextureManager {
             .SRGB : false
         ]
 
+        Task {
+            await resourceMgr.clearTextures()
+        }
         mtlTextures.removeAll()
         for url in textureURLs {
             projectDirDelegate.accessDirectory() { dirUrl in
@@ -79,6 +84,9 @@ class TextureManager {
                     }
 
                     self.mtlTextures.append(texture)
+                    Task {
+                        await self.resourceMgr.addTexture(mtlTexture: texture)
+                    }
                 }
             }
         }

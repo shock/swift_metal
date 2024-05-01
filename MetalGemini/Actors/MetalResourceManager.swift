@@ -33,6 +33,15 @@ actor MetalResourceManager {
         self.mtlTextures = mtlTextures
     }
 
+    func clearTextures() {
+        self.mtlTextures.removeAll()
+    }
+
+    func addTexture(mtlTexture: MTLTexture) {
+        print("MetalResourceManager: adding texture")
+        self.mtlTextures.append(mtlTexture)
+    }
+
     func createBuffers(size: CGSize) {
         // Deallocate old buffers
         renderBuffers.removeAll()
