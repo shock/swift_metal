@@ -73,7 +73,7 @@ class MetalResourceManager {
 //        return nil
 //    }
 
-    func loadTextures(textureURLs: [URL]) -> String? {
+    func loadTextures(textureURLs: [URL]) async -> String? {
         textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
         let textureLoader = MTKTextureLoader(device: metalDevice)
         let options: [MTKTextureLoader.Option : Any] = [
@@ -83,35 +83,38 @@ class MetalResourceManager {
         ]
 
         var errors: [String] = []
-        let group = DispatchGroup()
-
         mtlTexturesDbl[1-mtlTexturesCI].removeAll()  // Clear existing textures
         
-        for (index, url) in textureURLs.enumerated() {
-            group.enter()
-            projectDirDelegate.accessDirectory() { dirUrl in
-                textureLoader.newTexture(URL: url, options: options) { (texture, error) in
-                    defer { group.leave() }
-                    if let texture = texture {
+        await withTaskGroup(of: String?.self) { group in
+            for (index, url) in textureURLs.enumerated() {
+                group.addTask {
+                    do {
+                        let texture = try await textureLoader.newTexture(URL: url, options: options)
                         self.addTexture(texture, at: index)
                         print("Texture loaded successfully: \(url.lastPathComponent)")
-                    } else {
-                        let errorDescription = error?.localizedDescription ?? "Unknown error"
-                        errors.append("Error loading texture: \(errorDescription)")
+                        return nil
+                    } catch {
+                        let errorDescription = error.localizedDescription
                         if self.debug { print(errorDescription) }
+                        return "Error loading texture: \(errorDescription)"
                     }
                 }
             }
-        }
-        
-        group.notify(queue: .main) {
-            self.updateTextureArray(sortedBy: textureURLs.count)
+            
+            // Collect non-nil results
+            for await result in group {
+                if let validString = result {
+                    errors.append(validString)
+                }
+            }
+
         }
 
-        if errors.count > 0 { return errors.joined(separator: "\n") }
-        return nil
+        updateTextureArray(sortedBy: textureURLs.count)
+
+        return errors.isEmpty ? nil : errors.joined(separator: "\n")
     }
-    
+
     private func addTexture(_ texture: MTLTexture, at index: Int) {
         textureDictionary[index] = texture
     }
