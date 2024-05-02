@@ -23,7 +23,7 @@ class MetalResourceManager {
     private var mtlTexturesCI = 0
     private var renderBuffersDbl: [[MTLTexture]] = [[],[]]
     private var renderBuffersCI = 0
-    private var numBuffersDbl: [Int] = [0,0]
+    private var numBuffersDbl: [Int] = [-1,-1]
     private var numBuffersCI = 0
     private var pipelineStatesDbl: [[MTLRenderPipelineState]] = [[],[]]
     private var pipelineStatesCI = 0
@@ -136,7 +136,7 @@ class MetalResourceManager {
     func createBuffers(numBuffers: Int, size: CGSize) {
         // Deallocate old buffers
         
-        renderBuffersDbl[1-renderBuffersCI].removeAll()
+            renderBuffersDbl[1-renderBuffersCI].removeAll()
 
         // Create new buffers
         for _ in 0..<numBuffers {

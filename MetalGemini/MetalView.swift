@@ -266,6 +266,12 @@ struct MetalView: NSViewRepresentable {
 
                 if currentBuffers.count < MAX_RENDER_BUFFERS {
                     print("currentBuffers.count < MAX_RENDER_BUFFERS")
+                    if( !renderMgr.vsyncOn ) {
+                        print("Retrying in 10ms.")
+                        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.01) {
+                            self.renderOffscreen()
+                        }
+                    }
                     return
                 }
 
