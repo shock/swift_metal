@@ -179,7 +179,7 @@ class RenderManager: ObservableObject {
                 shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
                 if shaderError == nil {
                     let textureURLs = textureManager.loadTexturesFromShader(srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-                    shaderError = await resourceMgr.loadTextures(textureURLs: textureURLs)
+                    shaderError = resourceMgr.loadTextures(textureURLs: textureURLs)
                     if shaderError == nil {
                         shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
                     }

@@ -8,7 +8,7 @@
 import Foundation
 import MetalKit
 
-actor MetalResourceManager {
+class MetalResourceManager {
     var renderBuffers: [MTLTexture] = []
     var sysUniformBuffer: MTLBuffer?
     var version = 0

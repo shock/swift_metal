@@ -139,10 +139,7 @@ struct MetalView: NSViewRepresentable {
 
         func setupRenderBuffers(_ size: CGSize) {
             print("MetalView: setupRenderBuffers(\(size) on thread \(Thread.current)")
-            // dealloc old buffers
-            Task {
-                await resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: size)
-            }
+            resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: size)
         }
 
         func createUniformBuffers() {
@@ -234,9 +231,13 @@ struct MetalView: NSViewRepresentable {
         }
 
 
-        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) async {
-            let (currentBuffers, numBuffers) = await resourceMgr.getBuffers()
-            
+        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) throws {
+            let (currentBuffers, numBuffers) = resourceMgr.getBuffers()
+
+            if currentBuffers.count < MAX_RENDER_BUFFERS {
+                throw "currentBuffers.count < MAX_RENDER_BUFFERS"
+            }
+
             var textureIndex = 0
             for i in 0..<MAX_RENDER_BUFFERS {
                 if( i > currentBuffers.count - 1 ) {
@@ -255,7 +256,7 @@ struct MetalView: NSViewRepresentable {
             // now the first MAX_RENDER_BUFFERS+1 buffers are passed
             // it's up to the shaders how to use them
 
-            let mtlTextures = await resourceMgr.mtlTextures
+            let mtlTextures = resourceMgr.mtlTextures
 //            print("MetalView: setupRenderEncoder() - setting encoder with \(mtlTextures.count) user textures")
             for texture in mtlTextures {
 //                print("#### Adding texture \(index)")
@@ -276,82 +277,88 @@ struct MetalView: NSViewRepresentable {
         }
 
         private func renderOffscreen() {
-            Task {
-                await renderSync.run {
-                    let (currentBuffers, pipelineStates, numBuffers) = await self.resourceMgr.getBuffersAndPipelines()
+            let (currentBuffers, pipelineStates, numBuffers) = self.resourceMgr.getBuffersAndPipelines()
 
-                    let renderMgr = self.renderMgr
-                    guard numBuffers > 0 else { return }
-                    if( !self.renderingActive && !renderMgr.vsyncOn ) { return }
-
-                    guard let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
-
-                    var i=0
-
-                    // iterate through the shaders, giving them each access to all of the buffers
-                    // (see the pipeline setup)
-                    while i < (numBuffers) {
-                        let renderPassDescriptor = MTLRenderPassDescriptor()
-                        renderPassDescriptor.colorAttachments[0].texture = currentBuffers[i]
-                        renderPassDescriptor.colorAttachments[0].loadAction = .load
-                        renderPassDescriptor.colorAttachments[0].storeAction = .store
-
-                        guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
-
-                        commandEncoder.setRenderPipelineState(pipelineStates[i])
-                        await self.setupRenderEncoder(commandEncoder)
-                        commandEncoder.endEncoding()
-
-                        i += 1
-                    }
-
-                    // This is the most optimal way I found to do offline rendering
-                    // as quickly as possible.  The drawback is that slower renderings
-                    // like circle_and_lines don't display smoothly even though
-                    // framerates are faster than 60Hz.
-                    if( !renderMgr.vsyncOn ) {
-                                    commandBuffer.addScheduledHandler { commandBuffer in
-                                        self.renderOffscreen()
-                                    }
-                                }
-                                self.frameCounter += 1
-                                commandBuffer.commit()
+                if currentBuffers.count < MAX_RENDER_BUFFERS {
+                    print("currentBuffers.count < MAX_RENDER_BUFFERS")
+                    return
                 }
-            }
-        }
 
-        func draw(in view: MTKView) {
-            Task {
-                await renderSync.run {
-                    let renderMgr = self.renderMgr
-                    let (_, pipelineStates, numBuffers) = await self.resourceMgr.getBuffersAndPipelines()
+                let renderMgr = self.renderMgr
+                guard numBuffers > 0 else { return }
+                if( !self.renderingActive && !renderMgr.vsyncOn ) { return }
 
-                    guard !self.renderMgr.renderingPaused else { return }
-                    guard numBuffers >= 0 else { return }
-                    guard pipelineStates.count - 1 == numBuffers else { return }
+                guard let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
 
-                    if( renderMgr.vsyncOn && numBuffers > 0 ) { self.renderOffscreen() } else { self.frameCounter += 1 }
-                    guard let drawable = await view.currentDrawable,
-                          let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
+                var i=0
 
-                    let renderPassDescriptor = await view.currentRenderPassDescriptor!
-
-                    // renderPassDescriptor.colorAttachments[0].texture = renderBuffers[numBuffers-1]
+                // iterate through the shaders, giving them each access to all of the buffers
+                // (see the pipeline setup)
+                while i < (numBuffers) {
+                    let renderPassDescriptor = MTLRenderPassDescriptor()
+                    renderPassDescriptor.colorAttachments[0].texture = currentBuffers[i]
                     renderPassDescriptor.colorAttachments[0].loadAction = .load
                     renderPassDescriptor.colorAttachments[0].storeAction = .store
 
                     guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
 
-                    commandEncoder.setRenderPipelineState(pipelineStates[numBuffers])
-                    await self.setupRenderEncoder(commandEncoder)
+                    commandEncoder.setRenderPipelineState(pipelineStates[i])
+                    do {
+                        try self.setupRenderEncoder(commandEncoder)
+                    } catch {
+                        print(error.localizedDescription)
+                    }
                     commandEncoder.endEncoding()
 
-                    commandBuffer.present(drawable)
-                    commandBuffer.commit()
+                    i += 1
                 }
+
+                // This is the most optimal way I found to do offline rendering
+                // as quickly as possible.  The drawback is that slower renderings
+                // like circle_and_lines don't display smoothly even though
+                // framerates are faster than 60Hz.
+                if( !renderMgr.vsyncOn ) {
+                    commandBuffer.addScheduledHandler { commandBuffer in
+                        self.renderOffscreen()
+                    }
+                }
+                commandBuffer.commit()
+            self.frameCounter += 1
+        }
+
+        func draw(in view: MTKView) {
+            let renderMgr = self.renderMgr
+            let (_, pipelineStates, numBuffers) = self.resourceMgr.getBuffersAndPipelines()
+
+            guard !self.renderMgr.renderingPaused else { return }
+            guard numBuffers >= 0 else { return }
+            guard pipelineStates.count - 1 == numBuffers else { return }
+
+            if( renderMgr.vsyncOn && numBuffers > 0 ) { self.renderOffscreen() } else { self.frameCounter += 1 }
+            guard let drawable = view.currentDrawable,
+                  let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
+
+            let renderPassDescriptor = view.currentRenderPassDescriptor!
+
+                // renderPassDescriptor.colorAttachments[0].texture = renderBuffers[numBuffers-1]
+                renderPassDescriptor.colorAttachments[0].loadAction = .load
+                renderPassDescriptor.colorAttachments[0].storeAction = .store
+
+                guard let commandEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else { return }
+
+                commandEncoder.setRenderPipelineState(pipelineStates[numBuffers])
+            do {
+                try self.setupRenderEncoder(commandEncoder)
+            } catch {
+                print(error.localizedDescription)
             }
-            // renderMgr.frameCount is observed by ContentView forcing redraw at the next display sync
-            self.renderMgr.frameCount = self.frameCounter
+                commandEncoder.endEncoding()
+
+                commandBuffer.present(drawable)
+                commandBuffer.commit()
+
+                // renderMgr.frameCount is observed by ContentView forcing redraw at the next display sync
+                self.renderMgr.frameCount = self.frameCounter
         }
 
     }
