@@ -96,8 +96,6 @@ struct MetalView: NSViewRepresentable {
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
             self.frameCounter = 0
-//            self.renderBuffers = []
-//            self.pipelineStates = []
             self.renderMgr = renderMgr
             self.renderSync = renderMgr.renderSync
             super.init()
@@ -113,24 +111,7 @@ struct MetalView: NSViewRepresentable {
             createUniformBuffers()
             updateViewportSize(CGSize(width:2,height:2))
 
-//            setupSamplers()
-
-            // Load the default shaders and create the pipeline states
-//            reinitShaders()
-
         }
-
-//        // this isn't necessary, because samplers can be defined in the shader code
-//        func setupSamplers() {
-//            let samplerDescriptor = MTLSamplerDescriptor()
-//            samplerDescriptor.minFilter = .linear
-//            samplerDescriptor.magFilter = .linear
-//            samplerDescriptor.mipFilter = .linear
-//            samplerDescriptor.sAddressMode = .repeat
-//            samplerDescriptor.tAddressMode = .repeat
-//            samplerState = metalDevice.makeSamplerState(descriptor: samplerDescriptor)
-//            if let _ = samplerState {} else { print("Couldn't create samplerState") }
-//        }
 
         func setupShaders() async -> String? {
             print("MetalView: setupShaders()")

@@ -9,20 +9,24 @@ import Foundation
 import MetalKit
 
 struct RenderResources {
-    var renderBuffers: [MTLTexture]
-    var mtlTextures: [MTLTexture]
-    var pipelineStates: [MTLRenderPipelineState]
-    var numBuffers: Int
+    var renderBuffers: [MTLTexture] = []
+    var mtlTextures: [MTLTexture] = []
+    var pipelineStates: [MTLRenderPipelineState] = []
+    var numBuffers: Int = -1
 }
         
 class MetalResourceManager {
     var metalDevice: MTLDevice!
     private var projectDirDelegate: ShaderProjectDirAccess!
 
-    private var mtlTextures:[MTLTexture] = []
-    private var renderBuffers: [MTLTexture] = []
-    private var numBuffers = 0
-    private var pipelineStates: [MTLRenderPipelineState] = []
+    private var mtlTexturesDbl: [[MTLTexture]] = [[],[]]
+    private var mtlTexturesCI = 0
+    private var renderBuffersDbl: [[MTLTexture]] = [[],[]]
+    private var renderBuffersCI = 0
+    private var numBuffersDbl: [Int] = [0,0]
+    private var numBuffersCI = 0
+    private var pipelineStatesDbl: [[MTLRenderPipelineState]] = [[],[]]
+    private var pipelineStatesCI = 0
 
     private var debug = true
     private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
@@ -37,7 +41,7 @@ class MetalResourceManager {
     }
 
     func setError(_ err: String ) -> String {
-        numBuffers = -1
+        numBuffersDbl[1-numBuffersCI] = -1
         print("BufferManager error: \(err)")
         return err
     }
@@ -81,7 +85,7 @@ class MetalResourceManager {
         var errors: [String] = []
         let group = DispatchGroup()
 
-        mtlTextures.removeAll()  // Clear existing textures
+        mtlTexturesDbl[1-mtlTexturesCI].removeAll()  // Clear existing textures
         
         for (index, url) in textureURLs.enumerated() {
             group.enter()
@@ -113,7 +117,7 @@ class MetalResourceManager {
     }
     
     private func updateTextureArray(sortedBy count: Int) {
-        mtlTextures = (0..<count).compactMap { textureDictionary[$0] }
+        mtlTexturesDbl[1-mtlTexturesCI] = (0..<count).compactMap { textureDictionary[$0] }
     }
 
     func createRenderBuffer(_ size: CGSize) -> MTLTexture {
@@ -128,25 +132,29 @@ class MetalResourceManager {
 
     func createBuffers(numBuffers: Int, size: CGSize) {
         // Deallocate old buffers
-        renderBuffers.removeAll()
+        
+        renderBuffersDbl[1-renderBuffersCI].removeAll()
 
         // Create new buffers
         for _ in 0..<numBuffers {
-            renderBuffers.append(createRenderBuffer(size))
+            renderBuffersDbl[1-renderBuffersCI].append(createRenderBuffer(size))
+        }
+        DispatchQueue.main.async {
+            self.renderBuffersCI = 1 - self.renderBuffersCI
         }
     }
 
-    func getBuffers() -> ([MTLTexture], Int) {
-        return (renderBuffers, numBuffers)
-    }
-
+//    func getBuffers() -> ([MTLTexture], Int) {
+//        return (renderBuffers, numBuffers)
+//    }
+//
     func setupPipelines(metallibURL: URL?) async -> String? {
         guard let metalDevice = metalDevice else { return "Metal Device not available." }
         print("BufferManager: setupPipelines() on thread")
 //            stopRendering() // ensure offline rendering is disabled
 
-        numBuffers = 0
-        pipelineStates.removeAll()
+        numBuffersDbl[1-numBuffersCI] = 0
+        pipelineStatesDbl[1-pipelineStatesCI].removeAll()
 
         // Load the default Metal library
         guard var library = metalDevice.makeDefaultLibrary() else {
@@ -186,38 +194,46 @@ class MetalResourceManager {
             if fragmentFunctions.count < 1 {
                 return setError("Shader must define at least one fragment shader named `fragmentShader0`")
             }
-            numBuffers = fragmentFunctions.count-1
-            print("numBuffers: \(numBuffers)")
-            assert(numBuffers >= 0)
-            for i in 0..<numBuffers {
+            numBuffersDbl[1-numBuffersCI] = fragmentFunctions.count-1
+            print("numBuffers: \(numBuffersDbl[1-numBuffersCI])")
+            assert(numBuffersDbl[1-numBuffersCI] >= 0)
+            for i in 0..<numBuffersDbl[1-numBuffersCI] {
                 // Create a render pipeline state
                 let pipelineDescriptor = MTLRenderPipelineDescriptor()
                 pipelineDescriptor.vertexFunction = vertexFunction
                 pipelineDescriptor.fragmentFunction = fragmentFunctions[i]
                 pipelineDescriptor.colorAttachments[0].pixelFormat = .rgba16Unorm
 
-                pipelineStates.append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+                pipelineStatesDbl[1-pipelineStatesCI].append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
             }
             let pipelineDescriptor = MTLRenderPipelineDescriptor()
             pipelineDescriptor.vertexFunction = vertexFunction
-            pipelineDescriptor.fragmentFunction = fragmentFunctions[numBuffers]
+            pipelineDescriptor.fragmentFunction = fragmentFunctions[numBuffersDbl[1-numBuffersCI]]
             pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
 
-            pipelineStates.append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
+            pipelineStatesDbl[1-pipelineStatesCI].append( try await metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor) )
 
             print("MetalView: setupShaders() - shaders loaded")
         } catch {
-            numBuffers = -1
+            numBuffersDbl[1-numBuffersCI] = -1
             return setError("Failed to setup shaders: \(error)")
         }
         return nil
     }
+    
+    func swapNonBufferResources() {
+        DispatchQueue.main.async {
+            self.mtlTexturesCI = 1 - self.mtlTexturesCI
+            self.numBuffersCI = 1 - self.numBuffersCI
+            self.pipelineStatesCI = 1 - self.pipelineStatesCI
+        }
+    }
 
     func getCurrentResources() -> RenderResources {
-        let result = RenderResources(renderBuffers: renderBuffers, 
-                                     mtlTextures: mtlTextures,
-                                     pipelineStates: pipelineStates,
-                                     numBuffers: numBuffers)
+        let result = RenderResources(renderBuffers: renderBuffersDbl[renderBuffersCI],
+                                     mtlTextures: mtlTexturesDbl[mtlTexturesCI],
+                                     pipelineStates: pipelineStatesDbl[pipelineStatesCI],
+                                     numBuffers: numBuffersDbl[numBuffersCI])
         return result
     }
 

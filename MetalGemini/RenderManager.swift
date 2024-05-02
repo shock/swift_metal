@@ -182,6 +182,7 @@ class RenderManager: ObservableObject {
                     shaderError = resourceMgr.loadTextures(textureURLs: textureURLs)
                     if shaderError == nil {
                         shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                        resourceMgr.swapNonBufferResources()
                     }
                 }
             } else {
