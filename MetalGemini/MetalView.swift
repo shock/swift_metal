@@ -231,9 +231,11 @@ struct MetalView: NSViewRepresentable {
         }
 
 
-        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder ) throws {
-            let (currentBuffers, numBuffers) = resourceMgr.getBuffers()
-
+        func setupRenderEncoder( _ encoder: MTLRenderCommandEncoder, renderResources: RenderResources ) throws {
+            let currentBuffers = renderResources.renderBuffers
+            let numBuffers = renderResources.numBuffers
+            let mtlTextures = renderResources.mtlTextures
+            
             if currentBuffers.count < MAX_RENDER_BUFFERS {
                 throw "currentBuffers.count < MAX_RENDER_BUFFERS"
             }
@@ -256,7 +258,6 @@ struct MetalView: NSViewRepresentable {
             // now the first MAX_RENDER_BUFFERS+1 buffers are passed
             // it's up to the shaders how to use them
 
-            let mtlTextures = resourceMgr.mtlTextures
 //            print("MetalView: setupRenderEncoder() - setting encoder with \(mtlTextures.count) user textures")
             for texture in mtlTextures {
 //                print("#### Adding texture \(index)")
@@ -277,7 +278,10 @@ struct MetalView: NSViewRepresentable {
         }
 
         private func renderOffscreen() {
-            let (currentBuffers, pipelineStates, numBuffers) = self.resourceMgr.getBuffersAndPipelines()
+            let renderResources = resourceMgr.getCurrentResources()
+            let currentBuffers = renderResources.renderBuffers
+            let numBuffers = renderResources.numBuffers
+            let pipelineStates = renderResources.pipelineStates
 
                 if currentBuffers.count < MAX_RENDER_BUFFERS {
                     print("currentBuffers.count < MAX_RENDER_BUFFERS")
@@ -304,7 +308,7 @@ struct MetalView: NSViewRepresentable {
 
                     commandEncoder.setRenderPipelineState(pipelineStates[i])
                     do {
-                        try self.setupRenderEncoder(commandEncoder)
+                        try self.setupRenderEncoder(commandEncoder, renderResources: renderResources)
                     } catch {
                         print(error.localizedDescription)
                     }
@@ -328,7 +332,9 @@ struct MetalView: NSViewRepresentable {
 
         func draw(in view: MTKView) {
             let renderMgr = self.renderMgr
-            let (_, pipelineStates, numBuffers) = self.resourceMgr.getBuffersAndPipelines()
+            let renderResources = resourceMgr.getCurrentResources()
+            let numBuffers = renderResources.numBuffers
+            let pipelineStates = renderResources.pipelineStates
 
             guard !self.renderMgr.renderingPaused else { return }
             guard numBuffers >= 0 else { return }
@@ -348,7 +354,7 @@ struct MetalView: NSViewRepresentable {
 
                 commandEncoder.setRenderPipelineState(pipelineStates[numBuffers])
             do {
-                try self.setupRenderEncoder(commandEncoder)
+                try self.setupRenderEncoder(commandEncoder,renderResources: renderResources)
             } catch {
                 print(error.localizedDescription)
             }

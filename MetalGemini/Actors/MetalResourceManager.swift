@@ -8,15 +8,22 @@
 import Foundation
 import MetalKit
 
+struct RenderResources {
+    var renderBuffers: [MTLTexture]
+    var mtlTextures: [MTLTexture]
+    var pipelineStates: [MTLRenderPipelineState]
+    var numBuffers: Int
+}
+        
 class MetalResourceManager {
-    var renderBuffers: [MTLTexture] = []
-    var sysUniformBuffer: MTLBuffer?
-    var version = 0
-    var numBuffers = 0
     var metalDevice: MTLDevice!
     private var projectDirDelegate: ShaderProjectDirAccess!
+
+    private var mtlTextures:[MTLTexture] = []
+    private var renderBuffers: [MTLTexture] = []
+    private var numBuffers = 0
     private var pipelineStates: [MTLRenderPipelineState] = []
-    public private(set) var mtlTextures:[MTLTexture] = []
+
     private var debug = true
     private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
     
@@ -127,9 +134,6 @@ class MetalResourceManager {
         for _ in 0..<numBuffers {
             renderBuffers.append(createRenderBuffer(size))
         }
-
-        // Update version to indicate a new state of buffers
-        version += 1
     }
 
     func getBuffers() -> ([MTLTexture], Int) {
@@ -209,8 +213,12 @@ class MetalResourceManager {
         return nil
     }
 
-    func getBuffersAndPipelines() -> ([MTLTexture], [MTLRenderPipelineState], Int) {
-        return (renderBuffers, pipelineStates, numBuffers)
+    func getCurrentResources() -> RenderResources {
+        let result = RenderResources(renderBuffers: renderBuffers, 
+                                     mtlTextures: mtlTextures,
+                                     pipelineStates: pipelineStates,
+                                     numBuffers: numBuffers)
+        return result
     }
 
 }
