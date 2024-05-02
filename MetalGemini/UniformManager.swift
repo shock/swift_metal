@@ -18,7 +18,7 @@ class UniformManager
     var float4dict = Float4Dictionary() // Dictionary to store uniform values
     var dirty = true // Flag to indicate if the buffer needs updating
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
-    var debug = true // Debug flag to enable logging
+    var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
 
