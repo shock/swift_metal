@@ -87,7 +87,7 @@ struct MetalView: NSViewRepresentable {
         private var frameCounter: UInt32
         private var renderTimer: Timer?
         private var renderingActive = false
-        public private(set) var metallibURL: URL?
+//        public private(set) var metallibURL: URL?
         private var reloadShaders = false
         public private(set) var renderSync = MutexRunner()
         var resourceMgr: MetalResourceManager!
@@ -115,10 +115,10 @@ struct MetalView: NSViewRepresentable {
 
         }
 
-        func setupShaders() async throws {
-            print("MetalView: setupShaders()")
-            try await resourceMgr.setupPipelines(metallibURL: metallibURL)
-        }
+//        func setupShaders() async throws {
+//            print("MetalView: setupShaders()")
+//            try await resourceMgr.setupPipelines(metallibURL: metallibURL)
+//        }
 
         func setupRenderBuffers(_ size: CGSize) {
             print("MetalView: setupRenderBuffers(\(size) on thread \(Thread.current)")
@@ -152,17 +152,17 @@ struct MetalView: NSViewRepresentable {
             requestBufferResize(size)
         }
 
-        func loadShader(metallibURL: URL?) async throws {
-            print("MetalView: loadShader(\(String(describing: metallibURL?.lastPathComponent))")
-            self.metallibURL = metallibURL
-            try await reinitShaders()
-        }
-
-        func reinitShaders() async throws {
-            print("MetalView: reinitShaders()")
-            frameCounter = 0
-            try await setupShaders()
-        }
+//        func loadShader(metallibURL: URL?) async throws {
+//            print("MetalView: loadShader(\(String(describing: metallibURL?.lastPathComponent))")
+//            self.metallibURL = metallibURL
+//            try await reinitShaders()
+//        }
+//
+//        func reinitShaders() async throws {
+//            print("MetalView: reinitShaders()")
+//            frameCounter = 0
+//            try await setupShaders()
+//        }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
             Task {

@@ -292,7 +292,7 @@ class UniformManager
         print("UniformManager: setupUniformsFromShader()")
         insideSetUniform = false
         defer { semaphore.signal() }
-        guard let buffer = buffer else {
+        if buffer == nil {
             throw "Unable to create metal buffer"
         }
     }

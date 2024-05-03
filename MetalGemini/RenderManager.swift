@@ -176,12 +176,6 @@ class RenderManager: ObservableObject {
                     let shaderSource = shaderManager.rawShaderSource!
                     let textureURLs = textureManager.loadTexturesFromShader(srcURL: selectedURL, shaderSource: shaderSource)
 
-//                    try await uniformManager.setupUniformsFromShader(srcURL: selectedURL, shaderSource: shaderSource)
-//                    try await resourceMgr.loadTextures(textureURLs: textureURLs)
-//                    try await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
-//
-//                    resourceMgr.setUniformBuffer(uniformManager.getBuffer())
-//                    resourceMgr.swapNonBufferResources()
 
                     try await withThrowingTaskGroup(of: Void.self) { group in
                         group.addTask {
@@ -191,7 +185,7 @@ class RenderManager: ObservableObject {
                             try await resourceMgr.loadTextures(textureURLs: textureURLs)
                         }
                         group.addTask {
-                            try await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                            try await resourceMgr.setupPipelines(metallibURL: shaderManager.metallibURL)
                         }
 
                         try await group.waitForAll()
