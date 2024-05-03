@@ -110,7 +110,6 @@ struct MetalView: NSViewRepresentable {
             // must initialize render buffers
             createSysUniformsBuffer()
             updateViewportSize(CGSize(width:2,height:2))
-
         }
 
         private func setupRenderBuffers(_ size: CGSize) {
@@ -130,7 +129,7 @@ struct MetalView: NSViewRepresentable {
             renderMgr.setViewSize(size)
             renderMgr.resetFrame()
             resizeDebouncer.debounce { [weak self] in
-                self?.setupRenderBuffers(size)
+                self?.resourceMgr.resizeBuffers(numBuffers: MAX_RENDER_BUFFERS, size: size)
             }
 
         }

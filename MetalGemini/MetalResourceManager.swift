@@ -114,7 +114,7 @@ class MetalResourceManager {
         mtlTexturesDbl[1-mtlTexturesCI] = (0..<count).compactMap { textureDictionary[$0] }
     }
 
-    func createRenderBuffer(_ size: CGSize) -> MTLTexture {
+    private func createRenderBuffer(_ size: CGSize) -> MTLTexture {
         let offscreenTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba16Unorm,
                                                                             width: Int(size.width),
                                                                             height: Int(size.height),
@@ -132,6 +132,10 @@ class MetalResourceManager {
         for _ in 0..<numBuffers {
             renderBuffersDbl[1-renderBuffersCI].append(createRenderBuffer(size))
         }
+    }
+
+    func resizeBuffers(numBuffers: Int, size: CGSize) {
+        createBuffers(numBuffers: numBuffers, size: size)
         DispatchQueue.main.async {
             self.renderBuffersCI = 1 - self.renderBuffersCI
         }
@@ -216,13 +220,13 @@ class MetalResourceManager {
         }
     }
 
-    // swap the current index on all resources except
-    // renderBuffers which swaps itself independently due to resize
+    // swap the current index on all resources
     func swapCurrentResources() {
         DispatchQueue.main.async {
             self.mtlTexturesCI = 1 - self.mtlTexturesCI
             self.numBuffersCI = 1 - self.numBuffersCI
             self.pipelineStatesCI = 1 - self.pipelineStatesCI
+            self.renderBuffersCI = 1 - self.renderBuffersCI
             self.uniformBufferCI = 1 - self.uniformBufferCI
         }
     }

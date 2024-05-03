@@ -176,6 +176,7 @@ class RenderManager: ObservableObject {
                     }
                     // Execute completion code after all concurrent group tasks have succeeded
                     resourceMgr.setUniformBuffer(uniformManager.getBuffer())
+                    resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: self.size)
                     resourceMgr.swapCurrentResources()
                 } catch {
                     shaderError = error.localizedDescription
