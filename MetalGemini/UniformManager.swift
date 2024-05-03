@@ -62,7 +62,7 @@ class UniformManager
     }
 
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
-    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false)
+    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
         if !suppressSave { semaphore.wait() }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
@@ -73,19 +73,20 @@ class UniformManager
             if( debug ) { printUniforms() }
         }
         if !suppressSave { semaphore.signal() }
+        if updateBuffer { mapUniformsToBuffer() }
     }
 
     // Update the uniforms buffer if necessary and return it
-    func getBuffer() throws -> MTLBuffer? {
+    func getBuffer() -> MTLBuffer? {
         semaphore.wait()
         defer { semaphore.signal() }
-        try mapUniformsToBuffer()
+        mapUniformsToBuffer()
         return buffer
     }
 
     var insideSetUniform = false
     // Update the uniforms buffer if necessary, handling data alignment and copying
-    private func mapUniformsToBuffer() throws {
+    private func mapUniformsToBuffer() {
         if !dirty { return }
         print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
         dirty = false
@@ -120,7 +121,7 @@ class UniformManager
                 memcpy(buffer.contents().advanced(by: offset), &data, MemoryLayout<SIMD4<Float>>.size)
                 offset += MemoryLayout<SIMD4<Float>>.size
             default: // we shouldn't be here
-                throw "Bad data type: \(dataType)"
+                print("UniformManager: mapUniformsToBuffer() - Bad data type: \(dataType)")
             }
         }
     }
@@ -304,7 +305,7 @@ extension UniformManager: OSCMessageDelegate {
                 }
 
             }
-            self.setUniformTuple(String(name), values: tuple)
+            self.setUniformTuple(String(name), values: tuple, updateBuffer: true)
 
         }
     }

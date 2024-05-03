@@ -263,15 +263,11 @@ struct MetalView: NSViewRepresentable {
             }
 //            encoder.setFragmentSamplerState(samplerState, index: 0)
 
-            do {
-                updateUniforms()
-                encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
-                let uniformBuffer = try renderMgr.uniformBuffer()
-                encoder.setFragmentBuffer(uniformBuffer, offset: 0, index: 1)
-                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-            } catch {
-                print("Failed to setup render encoder: \(error.localizedDescription)")
-            }
+            updateUniforms()
+            encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
+            let uniformBuffer = renderResources.uniformBuffer
+            encoder.setFragmentBuffer(uniformBuffer, offset: 0, index: 1)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         }
 
         private func renderOffscreen() {

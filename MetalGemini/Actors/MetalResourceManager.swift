@@ -12,6 +12,7 @@ struct RenderResources {
     var renderBuffers: [MTLTexture] = []
     var mtlTextures: [MTLTexture] = []
     var pipelineStates: [MTLRenderPipelineState] = []
+    var uniformBuffer: MTLBuffer?
     var numBuffers: Int = -1
 }
         
@@ -23,6 +24,8 @@ class MetalResourceManager {
     private var mtlTexturesCI = 0
     private var renderBuffersDbl: [[MTLTexture]] = [[],[]]
     private var renderBuffersCI = 0
+    private var uniformBufferDbl: [MTLBuffer?]
+    private var uniformBufferCI = 0
     private var numBuffersDbl: [Int] = [-1,-1]
     private var numBuffersCI = 0
     private var pipelineStatesDbl: [[MTLRenderPipelineState]] = [[],[]]
@@ -38,6 +41,16 @@ class MetalResourceManager {
         } else {
             fatalError("Metal not supported on this computer.")
         }
+        let buffer = metalDevice.makeBuffer(length: 16, options: .storageModeShared)
+        uniformBufferDbl = [buffer, buffer]
+        
+    }
+    
+    func setUniformBuffer(_ buffer: MTLBuffer?) {
+        if( buffer == nil ) {
+            print("here")
+        }
+        uniformBufferDbl[1-uniformBufferCI] = buffer
     }
 
     func setError(_ err: String ) -> String {
@@ -229,6 +242,7 @@ class MetalResourceManager {
             self.mtlTexturesCI = 1 - self.mtlTexturesCI
             self.numBuffersCI = 1 - self.numBuffersCI
             self.pipelineStatesCI = 1 - self.pipelineStatesCI
+            self.uniformBufferCI = 1 - self.uniformBufferCI
         }
     }
 
@@ -236,6 +250,7 @@ class MetalResourceManager {
         let result = RenderResources(renderBuffers: renderBuffersDbl[renderBuffersCI],
                                      mtlTextures: mtlTexturesDbl[mtlTexturesCI],
                                      pipelineStates: pipelineStatesDbl[pipelineStatesCI],
+                                     uniformBuffer: uniformBufferDbl[uniformBufferCI],
                                      numBuffers: numBuffersDbl[numBuffersCI])
         return result
     }
