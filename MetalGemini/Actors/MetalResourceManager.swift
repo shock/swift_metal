@@ -30,6 +30,7 @@ class MetalResourceManager {
     private var numBuffersCI = 0
     private var pipelineStatesDbl: [[MTLRenderPipelineState]] = [[],[]]
     private var pipelineStatesCI = 0
+    private var serialRunner = MutexRunner()
 
     private var debug = true
     private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
@@ -103,7 +104,9 @@ class MetalResourceManager {
                 group.addTask {
                     do {
                         let texture = try await textureLoader.newTexture(URL: url, options: options)
-                        self.addTexture(texture, at: index)
+                        await self.serialRunner.run{
+                            await self.addTexture(texture, at: index)
+                        }
                         print("Texture loaded successfully: \(url.lastPathComponent)")
                         return nil
                     } catch {
@@ -128,7 +131,7 @@ class MetalResourceManager {
         return errors.isEmpty ? nil : errors.joined(separator: "\n")
     }
 
-    private func addTexture(_ texture: MTLTexture, at index: Int) {
+    private func addTexture(_ texture: MTLTexture, at index: Int) async {
         textureDictionary[index] = texture
     }
     
