@@ -83,8 +83,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.renderMgr.vsyncOn = self.vsyncEnabled
     }
 
-    @objc func createNewFile() {
-        renderMgr.openFileDialog = true
+    @objc func openFile() {
+        renderMgr.openFile()
     }
 
     @objc func promptForWindowSize() {
@@ -150,7 +150,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add items to your file menu...
         let fileMenuItem = NSMenuItem()
         fileMenuItem.submenu = fileMenu
-        var newItem = NSMenuItem(title: "Open", action: #selector(createNewFile), keyEquivalent: "o")
+        var newItem = NSMenuItem(title: "Open", action: #selector(openFile), keyEquivalent: "o")
         fileMenu.addItem(newItem)
         fileMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(fileMenuItem)

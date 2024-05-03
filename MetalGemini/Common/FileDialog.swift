@@ -20,27 +20,25 @@ private class FileDialogOpen {
     private init() { }
 }
 
+@MainActor
 class FileDialog {
-    @Binding var selectedURL: URL? // Binding for communication with SwiftUI view
+    init() {}
 
-    // Required initializer
-    init(selectedURL: Binding<URL?>) {
-        _selectedURL = selectedURL // Initialize the Binding
-    }
-
-    func openDialog() {
-        if( FileDialogOpen.shared.isOpen ) { return }
+    func openDialog() async -> URL? {
+        guard !FileDialogOpen.shared.isOpen else { return nil }
         FileDialogOpen.shared.isOpen = true
+
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.metal] // see UTType above and Info.plist Imported Type Identifiers
+        panel.allowedContentTypes = [.metal]
 
-        panel.begin { (result) in
-            if result == .OK {
-                self.selectedURL = panel.url // Do something with the selected URL
-            }
-            FileDialogOpen.shared.isOpen = false
+        let result = await panel.begin()
+        defer { FileDialogOpen.shared.isOpen = false }
+
+        if result == .OK, let url = panel.url {
+            return url
         }
+        return nil
     }
 }
