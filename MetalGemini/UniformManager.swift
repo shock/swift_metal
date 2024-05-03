@@ -243,8 +243,7 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func setupUniformsFromShader(srcURL: URL, shaderSource: String) throws -> MTLBuffer
-    {
+    func setupUniformsFromShader(srcURL: URL, shaderSource: String) throws {
         semaphore.wait()
         resetMapping()
 
@@ -296,8 +295,6 @@ class UniformManager
         guard let buffer = buffer else {
             throw "Unable to create metal buffer"
         }
-        mapUniformsToBuffer()
-        return buffer
     }
 }
 
