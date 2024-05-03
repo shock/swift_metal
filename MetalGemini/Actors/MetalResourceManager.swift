@@ -12,6 +12,7 @@ struct RenderResources {
     var renderBuffers: [MTLTexture] = []
     var mtlTextures: [MTLTexture] = []
     var pipelineStates: [MTLRenderPipelineState] = []
+    var uniformBuffer: MTLBuffer?
     var numBuffers: Int = -1
 }
         
@@ -23,10 +24,13 @@ class MetalResourceManager {
     private var mtlTexturesCI = 0
     private var renderBuffersDbl: [[MTLTexture]] = [[],[]]
     private var renderBuffersCI = 0
+    private var uniformBufferDbl: [MTLBuffer?]
+    private var uniformBufferCI = 0
     private var numBuffersDbl: [Int] = [-1,-1]
     private var numBuffersCI = 0
     private var pipelineStatesDbl: [[MTLRenderPipelineState]] = [[],[]]
     private var pipelineStatesCI = 0
+    private var serialRunner = MutexRunner()
 
     private var debug = true
     private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
@@ -38,6 +42,16 @@ class MetalResourceManager {
         } else {
             fatalError("Metal not supported on this computer.")
         }
+        let buffer = metalDevice.makeBuffer(length: 16, options: .storageModeShared)
+        uniformBufferDbl = [buffer, buffer]
+        
+    }
+    
+    func setUniformBuffer(_ buffer: MTLBuffer?) {
+        if( buffer == nil ) {
+            print("here")
+        }
+        uniformBufferDbl[1-uniformBufferCI] = buffer
     }
 
     func setError(_ err: String ) -> String {
@@ -90,7 +104,9 @@ class MetalResourceManager {
                 group.addTask {
                     do {
                         let texture = try await textureLoader.newTexture(URL: url, options: options)
-                        self.addTexture(texture, at: index)
+                        await self.serialRunner.run{
+                            await self.addTexture(texture, at: index)
+                        }
                         print("Texture loaded successfully: \(url.lastPathComponent)")
                         return nil
                     } catch {
@@ -115,7 +131,7 @@ class MetalResourceManager {
         return errors.isEmpty ? nil : errors.joined(separator: "\n")
     }
 
-    private func addTexture(_ texture: MTLTexture, at index: Int) {
+    private func addTexture(_ texture: MTLTexture, at index: Int) async {
         textureDictionary[index] = texture
     }
     
@@ -229,6 +245,7 @@ class MetalResourceManager {
             self.mtlTexturesCI = 1 - self.mtlTexturesCI
             self.numBuffersCI = 1 - self.numBuffersCI
             self.pipelineStatesCI = 1 - self.pipelineStatesCI
+            self.uniformBufferCI = 1 - self.uniformBufferCI
         }
     }
 
@@ -236,6 +253,7 @@ class MetalResourceManager {
         let result = RenderResources(renderBuffers: renderBuffersDbl[renderBuffersCI],
                                      mtlTextures: mtlTexturesDbl[mtlTexturesCI],
                                      pipelineStates: pipelineStatesDbl[pipelineStatesCI],
+                                     uniformBuffer: uniformBufferDbl[uniformBufferCI],
                                      numBuffers: numBuffersDbl[numBuffersCI])
         return result
     }

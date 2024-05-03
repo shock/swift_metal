@@ -13,6 +13,7 @@ import SwiftOSC
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
 class UniformManager
 {
+    var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
     var float4dict = Float4Dictionary() // Dictionary to store uniform values
@@ -28,6 +29,11 @@ class UniformManager
 
     init(projectDirDelegate: ShaderProjectDirAccess) {
         self.projectDirDelegate = projectDirDelegate
+        if let metalDevice = MTLCreateSystemDefaultDevice() {
+            self.metalDevice = metalDevice
+        } else {
+            fatalError("Metal not supported on this computer.")
+        }
     }
 
     // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
@@ -62,7 +68,7 @@ class UniformManager
     }
 
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
-    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false)
+    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
         if !suppressSave { semaphore.wait() }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
@@ -73,21 +79,22 @@ class UniformManager
             if( debug ) { printUniforms() }
         }
         if !suppressSave { semaphore.signal() }
+        if updateBuffer { mapUniformsToBuffer() }
     }
 
     // Update the uniforms buffer if necessary and return it
-    func getBuffer() throws -> MTLBuffer? {
+    func getBuffer() -> MTLBuffer? {
         semaphore.wait()
         defer { semaphore.signal() }
-        try mapUniformsToBuffer()
+        mapUniformsToBuffer()
         return buffer
     }
 
     var insideSetUniform = false
     // Update the uniforms buffer if necessary, handling data alignment and copying
-    private func mapUniformsToBuffer() throws {
+    private func mapUniformsToBuffer() {
         if !dirty { return }
-        print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
+//        print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
         dirty = false
         if debug { print("Updating uniforms buffer") }
         guard let buffer = self.buffer else { return }
@@ -120,7 +127,7 @@ class UniformManager
                 memcpy(buffer.contents().advanced(by: offset), &data, MemoryLayout<SIMD4<Float>>.size)
                 offset += MemoryLayout<SIMD4<Float>>.size
             default: // we shouldn't be here
-                throw "Bad data type: \(dataType)"
+                print("UniformManager: mapUniformsToBuffer() - Bad data type: \(dataType)")
             }
         }
     }
@@ -236,8 +243,7 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
-    {
+    func setupUniformsFromShader(srcURL: URL, shaderSource: String) throws {
         semaphore.wait()
         resetMapping()
 
@@ -286,7 +292,9 @@ class UniformManager
         print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")
         insideSetUniform = false
         defer { semaphore.signal() }
-        return nil
+        guard let buffer = buffer else {
+            throw "Unable to create metal buffer"
+        }
     }
 }
 
@@ -304,7 +312,7 @@ extension UniformManager: OSCMessageDelegate {
                 }
 
             }
-            self.setUniformTuple(String(name), values: tuple)
+            self.setUniformTuple(String(name), values: tuple, updateBuffer: true)
 
         }
     }
