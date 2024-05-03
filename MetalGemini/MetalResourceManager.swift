@@ -30,7 +30,7 @@ class MetalResourceManager {
     private var numBuffersCI = 0
     private var pipelineStatesDbl: [[MTLRenderPipelineState]] = [[],[]]
     private var pipelineStatesCI = 0
-    private var serialRunner = MutexRunner()
+    private var serialRunner = SerialRunner()
 
     private var debug = true
     private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
@@ -59,33 +59,6 @@ class MetalResourceManager {
         print("BufferManager error: \(err)")
         throw err
     }
-
-//    func loadTextures(textureURLs: [URL]) -> String? {
-//        var errors:[String] = []
-//
-//        let textureLoader = MTKTextureLoader(device: metalDevice)
-//        let options: [MTKTextureLoader.Option : Any] = [
-//            .origin : MTKTextureLoader.Origin.bottomLeft,
-//            .SRGB : false
-//        ]
-//
-//        mtlTextures.removeAll()
-//        for url in textureURLs {
-//            projectDirDelegate.accessDirectory() { dirUrl in
-//                textureLoader.newTexture(URL: url, options: options) { (texture, error) in
-//                    guard let texture = texture else {
-//                        errors.append("Error loading texture: \(error?.localizedDescription ?? "Unknown error")")
-//                        if self.debug { print(error?.localizedDescription as Any) }
-//                        return
-//                    }
-//
-//                    self.mtlTextures.append(texture)
-//                }
-//            }
-//        }
-//        if errors.count > 0 { return errors.joined(separator: "\n") }
-//        return nil
-//    }
 
     func loadTextures(textureURLs: [URL]) async throws {
         textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
@@ -153,8 +126,7 @@ class MetalResourceManager {
 
     func createBuffers(numBuffers: Int, size: CGSize) {
         // Deallocate old buffers
-
-            renderBuffersDbl[1-renderBuffersCI].removeAll()
+        renderBuffersDbl[1-renderBuffersCI].removeAll()
 
         // Create new buffers
         for _ in 0..<numBuffers {
@@ -165,14 +137,9 @@ class MetalResourceManager {
         }
     }
 
-//    func getBuffers() -> ([MTLTexture], Int) {
-//        return (renderBuffers, numBuffers)
-//    }
-//
     func setupPipelines(metallibURL: URL?) async throws {
         guard let metalDevice = metalDevice else { throw "Metal Device not available." }
         print("BufferManager: setupPipelines() on thread")
-//            stopRendering() // ensure offline rendering is disabled
 
         numBuffersDbl[1-numBuffersCI] = 0
         pipelineStatesDbl[1-pipelineStatesCI].removeAll()
@@ -249,7 +216,9 @@ class MetalResourceManager {
         }
     }
 
-    func swapNonBufferResources() {
+    // swap the current index on all resources except
+    // renderBuffers which swaps itself independently due to resize
+    func swapCurrentResources() {
         DispatchQueue.main.async {
             self.mtlTexturesCI = 1 - self.mtlTexturesCI
             self.numBuffersCI = 1 - self.numBuffersCI

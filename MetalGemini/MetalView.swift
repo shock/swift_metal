@@ -87,13 +87,11 @@ struct MetalView: NSViewRepresentable {
         private var frameCounter: UInt32
         private var renderTimer: Timer?
         private var renderingActive = false
-        public private(set) var metallibURL: URL?
         private var reloadShaders = false
-        public private(set) var renderSync = MutexRunner()
+        public private(set) var renderSync = SerialRunner()
         var resourceMgr: MetalResourceManager!
         var samplerState: MTLSamplerState?
-        private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
-        private var resizeQueue = DispatchQueue(label: "net.wdoughty.metaltoy.resizeView")
+        private var resizeDebouncer = Debouncer(delay: 0.01, queueLabel: "net.wdoughty.metaltoy.resizeView") // Debouncer for resizing buffers
 
         init(_ parent: MetalView, renderMgr: RenderManager ) {
             self.parent = parent
@@ -110,37 +108,19 @@ struct MetalView: NSViewRepresentable {
             renderMgr.setViewCoordinator(self)
 
             // must initialize render buffers
-            createUniformBuffers()
+            createSysUniformsBuffer()
             updateViewportSize(CGSize(width:2,height:2))
 
         }
 
-        func setupShaders() async throws {
-            print("MetalView: setupShaders()")
-            try await resourceMgr.setupPipelines(metallibURL: metallibURL)
-        }
-
-        func setupRenderBuffers(_ size: CGSize) {
+        private func setupRenderBuffers(_ size: CGSize) {
             print("MetalView: setupRenderBuffers(\(size) on thread \(Thread.current)")
             resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: size)
         }
 
-        func createUniformBuffers() {
+        private func createSysUniformsBuffer() {
             // 32 bytes is more than enough to hold SysUniforms, packed
             sysUniformBuffer = metalDevice.makeBuffer(length: 32, options: .storageModeShared)
-        }
-
-        // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
-        private func requestBufferResize(_ size: CGSize) {
-            saveWorkItem?.cancel() // Cancel the previous task if it exists
-            saveWorkItem = DispatchWorkItem { [weak self] in
-                self?.setupRenderBuffers(size)
-            }
-
-            // Schedule the resize after a delay
-            if let saveWorkItem = saveWorkItem {
-                resizeQueue.asyncAfter(deadline: .now() + 0.01, execute: saveWorkItem)
-            }
         }
 
         func updateViewportSize(_ size: CGSize) {
@@ -149,19 +129,10 @@ struct MetalView: NSViewRepresentable {
             memcpy(bufferPointer, &viewportSize, MemoryLayout<ViewportSize>.size)
             renderMgr.setViewSize(size)
             renderMgr.resetFrame()
-            requestBufferResize(size)
-        }
+            resizeDebouncer.debounce { [weak self] in
+                self?.setupRenderBuffers(size)
+            }
 
-        func loadShader(metallibURL: URL?) async throws {
-            print("MetalView: loadShader(\(String(describing: metallibURL?.lastPathComponent))")
-            self.metallibURL = metallibURL
-            try await reinitShaders()
-        }
-
-        func reinitShaders() async throws {
-            print("MetalView: reinitShaders()")
-            frameCounter = 0
-            try await setupShaders()
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -216,9 +187,7 @@ struct MetalView: NSViewRepresentable {
             memcpy(bufferPointer.advanced(by: offset), &elapsedTime, memSize)
             offset += memSize
 
-
-//            var pNum = numBuffers
-            var pNum = 0 // remove this d
+            var pNum = 0 // remove this
             memAlign = MemoryLayout<UInt32>.alignment
             memSize = MemoryLayout<UInt32>.size
             offset = (offset + memAlign - 1) / memAlign * memAlign
@@ -238,6 +207,8 @@ struct MetalView: NSViewRepresentable {
             }
 
             var textureIndex = 0
+
+            // pass the first MAX_RENDER_BUFFERS
             for i in 0..<MAX_RENDER_BUFFERS {
                 if( i > currentBuffers.count - 1 ) {
                     print("i: \(i) - renderBuffers.count:\(currentBuffers.count)")
@@ -247,21 +218,17 @@ struct MetalView: NSViewRepresentable {
             }
 
             // pass a dynamic reference to the last buffer rendered, if there is one
+            // TODO: remove this
             if numBuffers > 0 {
                 encoder.setFragmentTexture(currentBuffers[numBuffers-1], index: textureIndex)
                 textureIndex += 1
             }
             
-            // now the first MAX_RENDER_BUFFERS+1 buffers are passed
-            // it's up to the shaders how to use them
-
-//            print("MetalView: setupRenderEncoder() - setting encoder with \(mtlTextures.count) user textures")
+            // Add user textures
             for texture in mtlTextures {
-//                print("#### Adding texture \(index)")
                 encoder.setFragmentTexture(texture, index: textureIndex)
                 textureIndex += 1
             }
-//            encoder.setFragmentSamplerState(samplerState, index: 0)
 
             updateUniforms()
             encoder.setFragmentBuffer(sysUniformBuffer, offset: 0, index: 0)
