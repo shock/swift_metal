@@ -115,9 +115,9 @@ struct MetalView: NSViewRepresentable {
 
         }
 
-        func setupShaders() async -> String? {
+        func setupShaders() async throws {
             print("MetalView: setupShaders()")
-            return await resourceMgr.setupPipelines(metallibURL: metallibURL)
+            try await resourceMgr.setupPipelines(metallibURL: metallibURL)
         }
 
         func setupRenderBuffers(_ size: CGSize) {
@@ -152,16 +152,16 @@ struct MetalView: NSViewRepresentable {
             requestBufferResize(size)
         }
 
-        func loadShader(metallibURL: URL?) async -> String? {
+        func loadShader(metallibURL: URL?) async throws {
             print("MetalView: loadShader(\(String(describing: metallibURL?.lastPathComponent))")
             self.metallibURL = metallibURL
-            return await reinitShaders()
+            try await reinitShaders()
         }
 
-        func reinitShaders() async -> String? {
+        func reinitShaders() async throws {
             print("MetalView: reinitShaders()")
             frameCounter = 0
-            return await setupShaders()
+            try await setupShaders()
         }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {

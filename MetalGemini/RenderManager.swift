@@ -175,15 +175,11 @@ class RenderManager: ObservableObject {
                 do {
                     let shaderSource = shaderManager.rawShaderSource!
                     let textureURLs = textureManager.loadTexturesFromShader(srcURL: selectedURL, shaderSource: shaderSource)
-                    try uniformManager.setupUniformsFromShader(srcURL: selectedURL, shaderSource: shaderSource)
-                    if shaderError == nil {
-                        shaderError = await resourceMgr.loadTextures(textureURLs: textureURLs)
-                        if shaderError == nil {
-                            shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
-                            resourceMgr.setUniformBuffer(uniformManager.getBuffer())
-                            resourceMgr.swapNonBufferResources()
-                        }
-                    }
+                    try await uniformManager.setupUniformsFromShader(srcURL: selectedURL, shaderSource: shaderSource)
+                    try await resourceMgr.loadTextures(textureURLs: textureURLs)
+                    try await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                    resourceMgr.setUniformBuffer(uniformManager.getBuffer())
+                    resourceMgr.swapNonBufferResources()
                 } catch {
                     shaderError = error.localizedDescription
                 }
