@@ -26,7 +26,7 @@ class RenderManager: ObservableObject {
     private var shaderManager: ShaderManager!
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-    public private(set) var renderSync = MutexRunner()
+    public private(set) var renderSync = SerialRunner()
     private(set) var resourceMgr: MetalResourceManager!
 
     init() {
@@ -36,22 +36,6 @@ class RenderManager: ObservableObject {
         self.resourceMgr = MetalResourceManager(projectDirDelegate: shaderManager)
     }
 
-    var metalDevice: MTLDevice? {
-        get {
-            return mtkVC?.metalDevice
-        }
-    }
-
-//    func uniformBuffer() throws -> MTLBuffer? {
-//        do {
-//            let buffer = try uniformManager.getBuffer()
-//            return buffer
-//        } catch {
-//            shaderError = "failed to get uniform buffer: \(error.localizedDescription)"
-//            throw error
-//        }
-//    }
-//
     func setViewSize(_ size: CGSize) {
         self.size.width = size.width
         self.size.height = size.height
@@ -190,9 +174,9 @@ class RenderManager: ObservableObject {
 
                         try await group.waitForAll()
                     }
-                    // Execute your completion block here after all tasks have succeeded
+                    // Execute completion code after all concurrent group tasks have succeeded
                     resourceMgr.setUniformBuffer(uniformManager.getBuffer())
-                    resourceMgr.swapNonBufferResources()
+                    resourceMgr.swapCurrentResources()
                 } catch {
                     shaderError = error.localizedDescription
                 }
