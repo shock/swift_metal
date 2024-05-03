@@ -15,7 +15,7 @@ struct RenderResources {
     var uniformBuffer: MTLBuffer?
     var numBuffers: Int = -1
 }
-        
+
 class MetalResourceManager {
     var metalDevice: MTLDevice!
     private var projectDirDelegate: ShaderProjectDirAccess!
@@ -34,7 +34,7 @@ class MetalResourceManager {
 
     private var debug = true
     private var textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
-    
+
     init(projectDirDelegate: ShaderProjectDirAccess) {
         self.projectDirDelegate = projectDirDelegate
         if let metalDevice = MTLCreateSystemDefaultDevice() {
@@ -44,9 +44,9 @@ class MetalResourceManager {
         }
         let buffer = metalDevice.makeBuffer(length: 16, options: .storageModeShared)
         uniformBufferDbl = [buffer, buffer]
-        
+
     }
-    
+
     func setUniformBuffer(_ buffer: MTLBuffer?) {
         if( buffer == nil ) {
             print("here")
@@ -54,10 +54,10 @@ class MetalResourceManager {
         uniformBufferDbl[1-uniformBufferCI] = buffer
     }
 
-    func setError(_ err: String ) -> String {
+    func setError(_ err: String ) throws {
         numBuffersDbl[1-numBuffersCI] = -1
         print("BufferManager error: \(err)")
-        return err
+        throw err
     }
 
 //    func loadTextures(textureURLs: [URL]) -> String? {
@@ -87,7 +87,7 @@ class MetalResourceManager {
 //        return nil
 //    }
 
-    func loadTextures(textureURLs: [URL]) async -> String? {
+    func loadTextures(textureURLs: [URL]) async throws {
         textureDictionary = [Int: MTLTexture]()  // Temporary dictionary to store textures with their index
         let textureLoader = MTKTextureLoader(device: metalDevice)
         let options: [MTKTextureLoader.Option : Any] = [
@@ -98,7 +98,7 @@ class MetalResourceManager {
 
         var errors: [String] = []
         mtlTexturesDbl[1-mtlTexturesCI].removeAll()  // Clear existing textures
-        
+
         await withTaskGroup(of: String?.self) { group in
             for (index, url) in textureURLs.enumerated() {
                 group.addTask {
@@ -116,7 +116,7 @@ class MetalResourceManager {
                     }
                 }
             }
-            
+
             // Collect non-nil results
             for await result in group {
                 if let validString = result {
@@ -128,13 +128,15 @@ class MetalResourceManager {
 
         updateTextureArray(sortedBy: textureURLs.count)
 
-        return errors.isEmpty ? nil : errors.joined(separator: "\n")
+        if errors.isEmpty { return } else {
+            throw errors.joined(separator: "\n")
+        }
     }
 
     private func addTexture(_ texture: MTLTexture, at index: Int) async {
         textureDictionary[index] = texture
     }
-    
+
     private func updateTextureArray(sortedBy count: Int) {
         mtlTexturesDbl[1-mtlTexturesCI] = (0..<count).compactMap { textureDictionary[$0] }
     }
@@ -151,7 +153,7 @@ class MetalResourceManager {
 
     func createBuffers(numBuffers: Int, size: CGSize) {
         // Deallocate old buffers
-        
+
             renderBuffersDbl[1-renderBuffersCI].removeAll()
 
         // Create new buffers
@@ -167,8 +169,8 @@ class MetalResourceManager {
 //        return (renderBuffers, numBuffers)
 //    }
 //
-    func setupPipelines(metallibURL: URL?) async -> String? {
-        guard let metalDevice = metalDevice else { return "Metal Device not available." }
+    func setupPipelines(metallibURL: URL?) async throws {
+        guard let metalDevice = metalDevice else { throw "Metal Device not available." }
         print("BufferManager: setupPipelines() on thread")
 //            stopRendering() // ensure offline rendering is disabled
 
@@ -177,11 +179,16 @@ class MetalResourceManager {
 
         // Load the default Metal library
         guard var library = metalDevice.makeDefaultLibrary() else {
-            return setError("Could not load default Metal library")
+            let error = "Could not load default Metal library"
+            try setError(error)
+            return
         }
+        
         // Load the default vertex shader
         guard let vertexFunction = library.makeFunction(name: "vertexShader") else {
-            return setError("Could not find 'vertexShader' function")
+            let error = "Could not find 'vertexShader' function"
+            try setError(error)
+            return
         }
 
         if let metalLibURL = metallibURL {
@@ -193,7 +200,8 @@ class MetalResourceManager {
                 let command = "rm \(metalLibURL.path)"
                 Task { let _ = shell_exec(command, cwd: nil) }
             } catch {
-                return setError("Couldn't load shader library at \(metalLibURL)\n\(error)")
+                 let error = "Couldn't load shader library at \(metalLibURL)\n\(error)"
+                 try setError(error)
             }
         }
 
@@ -211,7 +219,8 @@ class MetalResourceManager {
                 print("fragmentShader\(i) found")
             }
             if fragmentFunctions.count < 1 {
-                return setError("Shader must define at least one fragment shader named `fragmentShader0`")
+                 let error = "Shader must define at least one fragment shader named `fragmentShader0`"
+                 try setError(error)
             }
             numBuffersDbl[1-numBuffersCI] = fragmentFunctions.count-1
             print("numBuffers: \(numBuffersDbl[1-numBuffersCI])")
@@ -235,11 +244,11 @@ class MetalResourceManager {
             print("MetalView: setupShaders() - shaders loaded")
         } catch {
             numBuffersDbl[1-numBuffersCI] = -1
-            return setError("Failed to setup shaders: \(error)")
+             let error = "Failed to setup shaders: \(error)"
+             try setError(error)
         }
-        return nil
     }
-    
+
     func swapNonBufferResources() {
         DispatchQueue.main.async {
             self.mtlTexturesCI = 1 - self.mtlTexturesCI
@@ -259,4 +268,3 @@ class MetalResourceManager {
     }
 
 }
-

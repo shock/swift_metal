@@ -243,11 +243,11 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func setupUniformsFromShader(srcURL: URL, shaderSource: String) throws {
-        semaphore.wait()
+    func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
+//        semaphore.wait()
         resetMapping()
 
-        print("UniformManager: setupUniformsFromShader() - starting on thread \(Thread.current)")
+        print("UniformManager: setupUniformsFromShader()")
         insideSetUniform = true
 
         let lines = shaderSource.components(separatedBy: "\n")
@@ -289,7 +289,7 @@ class UniformManager
 //        }
 
         loadUniformsFromFile()
-        print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")
+        print("UniformManager: setupUniformsFromShader()")
         insideSetUniform = false
         defer { semaphore.signal() }
         guard let buffer = buffer else {
