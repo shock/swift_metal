@@ -22,30 +22,18 @@ class RenderManager: ObservableObject {
     private var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
     private var uniformManager: UniformManager!
+    private var textureManager: TextureManager!
     private var shaderManager: ShaderManager!
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-    public private(set) var renderSync = MutexRunner()
+    public private(set) var renderSync = SerialRunner()
+    private(set) var resourceMgr: MetalResourceManager!
 
     init() {
         self.shaderManager = ShaderManager()
         self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
-    }
-
-    var metalDevice: MTLDevice? {
-        get {
-            return mtkVC?.metalDevice
-        }
-    }
-
-    func uniformBuffer() throws -> MTLBuffer? {
-        do {
-            let buffer = try uniformManager.getBuffer()
-            return buffer
-        } catch {
-            shaderError = "failed to get uniform buffer: \(error.localizedDescription)"
-            throw error
-        }
+        self.textureManager = TextureManager()
+        self.resourceMgr = MetalResourceManager(projectDirDelegate: shaderManager)
     }
 
     func setViewSize(_ size: CGSize) {
@@ -54,7 +42,7 @@ class RenderManager: ObservableObject {
         uniformManager.setUniformTuple("u_resolution", values: [Float(size.width), Float(size.height)], suppressSave: true)
     }
 
-    func setCoordinator(_ mtkVC: MetalView.Coordinator ) {
+    func setViewCoordinator(_ mtkVC: MetalView.Coordinator ) {
         self.mtkVC = mtkVC
     }
 
@@ -154,30 +142,49 @@ class RenderManager: ObservableObject {
     @MainActor
     func reloadShaderFile() async {
         await renderSync.run {
-            print("RenderManager: reloadShaderFile()")
+            print("\n\nRenderManager: reloadShaderFile()")
             guard let mtkVC = self.mtkVC else { return }
             guard let selectedURL = self.selectedShaderURL else { return }
             let shaderManager = self.shaderManager!
             let uniformManager = self.uniformManager!
-            guard let metalDevice = self.metalDevice else {
-                self.shaderError = "CRITICAL ERROR: metalDevice is nil"
-                return
-            }
+            let textureManager = self.textureManager!
+            let resourceMgr = self.resourceMgr!
 
             mtkVC.stopRendering() // this must be here for reloading with vsync off!
             var shaderError: String? = nil
 
-            self.shaderError = "Loading '\(selectedURL.absoluteString)'"
+//            self.shaderError = "Loading '\(selectedURL.absoluteString)'"
 
             if shaderManager.loadShader(fileURL: selectedURL) {
-                shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-                if shaderError == nil {
-                    shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                do {
+                    let shaderSource = shaderManager.rawShaderSource!
+                    let textureURLs = textureManager.loadTexturesFromShader(srcURL: selectedURL, shaderSource: shaderSource)
+
+
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        group.addTask {
+                            try await uniformManager.setupUniformsFromShader(srcURL: selectedURL, shaderSource: shaderSource)
+                        }
+                        group.addTask {
+                            try await resourceMgr.loadTextures(textureURLs: textureURLs)
+                        }
+                        group.addTask {
+                            try await resourceMgr.setupPipelines(metallibURL: shaderManager.metallibURL)
+                        }
+
+                        try await group.waitForAll()
+                    }
+                    // Execute completion code after all concurrent group tasks have succeeded
+                    resourceMgr.setUniformBuffer(uniformManager.getBuffer())
+                    resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: self.size)
+                    resourceMgr.swapCurrentResources()
+                } catch {
+                    shaderError = error.localizedDescription
                 }
             } else {
                 shaderError = shaderManager.errorMessage
             }
-
+            
             self.shaderError = shaderError
 
             self.resetFrame()

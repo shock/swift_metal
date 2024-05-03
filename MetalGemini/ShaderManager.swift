@@ -195,23 +195,27 @@ extension ShaderManager {
         // it seems to work, but I'm not sure and I don't know why
         let metalLibURL = srcURL.deletingPathExtension().appendingPathExtension(randomHex).appendingPathExtension("metallib")
 
-        var command = " xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
+        var commands:[String] = []
+        var command = "xcrun -sdk macosx metal -c -frecord-sources \(srcURL.path) -o \(airURL.path)"
         print(command)
-        var execResult = shell_exec(command, cwd: nil)
-        if execResult.exitCode != 0 {
-            throw execResult.stdErr!
-        }
+        commands.append(command)
+//        var execResult = shell_exec(command, cwd: nil)
+//        if execResult.exitCode != 0 {
+//            throw execResult.stdErr!
+//        }
 
         command = "xcrun -sdk macosx metal -frecord-sources -o \(metalLibURL.path) \(airURL.path)"
         print(command)
-        execResult = shell_exec(command, cwd: nil)
-        if execResult.exitCode != 0 {
-            throw execResult.stdErr!
-        }
+        commands.append(command)
+//        execResult = shell_exec(command, cwd: nil)
+//        if execResult.exitCode != 0 {
+//            throw execResult.stdErr!
+//        }
 
         command = "rm \(airURL.path)"
         print(command)
-        execResult = shell_exec(command, cwd: nil)
+        commands.append(command)
+        let execResult = shell_exec(commands.joined(separator: " && "), cwd: nil)
         if execResult.exitCode != 0 {
             throw execResult.stdErr!
         }

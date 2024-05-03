@@ -13,6 +13,7 @@ import SwiftOSC
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
 class UniformManager
 {
+    var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
     var float4dict = Float4Dictionary() // Dictionary to store uniform values
@@ -20,28 +21,18 @@ class UniformManager
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
-    var uniformProjectDirURL: URL? // Directory URL for the project
-    let bookmarkID = "net.wdoughty.metaltoy.projectdir" // Bookmark ID for sandboxed file access
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
 
-    private var saveWorkItem: DispatchWorkItem? // Work item for saving uniforms
-    private var saveQueue = DispatchQueue(label: "net.wdoughty.metaltoy.saveUniformsQueue") // Queue for saving operations
+    private var saveDebouncer = Debouncer(delay: 0.5, queueLabel: "net.wdoughty.metaltoy.saveUniformsQueue") // Debouncer for saving operations
+    private var updateBufferDebouncer = Debouncer(delay: 0.005, queueLabel: "net.wdoughty.metaltoy.mapToBuffer") // Debouncer for updating buffer
     private var projectDirDelegate: ShaderProjectDirAccess!
 
     init(projectDirDelegate: ShaderProjectDirAccess) {
         self.projectDirDelegate = projectDirDelegate
-    }
-
-    // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
-    private func requestSaveUniforms() {
-        saveWorkItem?.cancel() // Cancel the previous task if it exists
-        saveWorkItem = DispatchWorkItem { [weak self] in
-            self?.saveUniformsToFile()
-        }
-
-        // Schedule the save after a delay (e.g., 500 milliseconds)
-        if let saveWorkItem = saveWorkItem {
-            saveQueue.asyncAfter(deadline: .now() + 0.5, execute: saveWorkItem)
+        if let metalDevice = MTLCreateSystemDefaultDevice() {
+            self.metalDevice = metalDevice
+        } else {
+            fatalError("Metal not supported on this computer.")
         }
     }
 
@@ -64,32 +55,37 @@ class UniformManager
     }
 
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
-    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false)
+    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
         if !suppressSave { semaphore.wait() }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
         float4dict.setTuple(name, values: values)
         dirty = true
         if( !suppressSave ) {
-            requestSaveUniforms()
+            saveDebouncer.debounce { [weak self] in
+                self?.saveUniformsToFile()
+            }
             if( debug ) { printUniforms() }
         }
         if !suppressSave { semaphore.signal() }
+        if updateBuffer {
+            updateBufferDebouncer.debounce { [weak self] in
+                self?.mapUniformsToBuffer()
+            }
+        }
     }
 
     // Update the uniforms buffer if necessary and return it
-    func getBuffer() throws -> MTLBuffer? {
+    func getBuffer() -> MTLBuffer? {
         semaphore.wait()
         defer { semaphore.signal() }
-        try mapUniformsToBuffer()
+        mapUniformsToBuffer()
         return buffer
     }
 
-    var insideSetUniform = false
     // Update the uniforms buffer if necessary, handling data alignment and copying
-    private func mapUniformsToBuffer() throws {
+    private func mapUniformsToBuffer() {
         if !dirty { return }
-        print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
         dirty = false
         if debug { print("Updating uniforms buffer") }
         guard let buffer = self.buffer else { return }
@@ -122,7 +118,7 @@ class UniformManager
                 memcpy(buffer.contents().advanced(by: offset), &data, MemoryLayout<SIMD4<Float>>.size)
                 offset += MemoryLayout<SIMD4<Float>>.size
             default: // we shouldn't be here
-                throw "Bad data type: \(dataType)"
+                print("UniformManager: mapUniformsToBuffer() - Bad data type: \(dataType)")
             }
         }
     }
@@ -169,11 +165,6 @@ class UniformManager
 
         guard let fileUrl = uniformsTxtURL else { return }
         let uniforms = uniformsToString()
-
-        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
-        if( bookmarkData == nil ) {
-            print("no bookmark")
-        }
 
         // Accessing the bookmark to perform file operations
         projectDirDelegate.accessDirectory() { dirUrl in
@@ -238,13 +229,10 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
-    {
-        semaphore.wait()
+    func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
         resetMapping()
 
-        print("UniformManager: setupUniformsFromShader() - starting on thread \(Thread.current)")
-        insideSetUniform = true
+        print("UniformManager: setupUniformsFromShader() starting")
 
         let lines = shaderSource.components(separatedBy: "\n")
 
@@ -270,23 +258,16 @@ class UniformManager
         buffer = metalDevice.makeBuffer(length: length, options: .storageModeShared)
         dirty = true
 
-        if( debug ) {
-            printUniforms()
-        }
+        if( debug ) { printUniforms() }
         uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
-        let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(bookmarkID)")
-        if( bookmarkData == nil ) {
-            print("WARNING: no project directory bookmark found")
-            Task {
-                await projectDirDelegate.selectDirectory()
-            }
-        }
+
         loadUniformsFromFile()
-        print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")
-        insideSetUniform = false
+        print("UniformManager: setupUniformsFromShader() finished")
         defer { semaphore.signal() }
-        return nil
+        if buffer == nil {
+            throw "Unable to create metal buffer"
+        }
     }
 }
 
@@ -304,7 +285,7 @@ extension UniformManager: OSCMessageDelegate {
                 }
 
             }
-            self.setUniformTuple(String(name), values: tuple)
+            self.setUniformTuple(String(name), values: tuple, updateBuffer: true)
 
         }
     }
