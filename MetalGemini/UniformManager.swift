@@ -13,6 +13,7 @@ import SwiftOSC
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
 class UniformManager
 {
+    var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
     var float4dict = Float4Dictionary() // Dictionary to store uniform values
@@ -28,6 +29,11 @@ class UniformManager
 
     init(projectDirDelegate: ShaderProjectDirAccess) {
         self.projectDirDelegate = projectDirDelegate
+        if let metalDevice = MTLCreateSystemDefaultDevice() {
+            self.metalDevice = metalDevice
+        } else {
+            fatalError("Metal not supported on this computer.")
+        }
     }
 
     // Schedule a task to save the uniforms to a file, cancelling any previous scheduled task
@@ -88,7 +94,7 @@ class UniformManager
     // Update the uniforms buffer if necessary, handling data alignment and copying
     private func mapUniformsToBuffer() {
         if !dirty { return }
-        print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
+//        print("UniformManager: mapUniformsToBuffer() - dirty - insideSetUniform: \(insideSetUniform) on thread \(Thread.current)")
         dirty = false
         if debug { print("Updating uniforms buffer") }
         guard let buffer = self.buffer else { return }
@@ -237,7 +243,7 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    func setupUniformsFromShader(metalDevice: MTLDevice, srcURL: URL, shaderSource: String) -> String?
+    func setupUniformsFromShader(srcURL: URL, shaderSource: String) throws -> MTLBuffer
     {
         semaphore.wait()
         resetMapping()
@@ -287,7 +293,11 @@ class UniformManager
         print("UniformManager: setupUniformsFromShader() - finished on thread \(Thread.current)")
         insideSetUniform = false
         defer { semaphore.signal() }
-        return nil
+        guard let buffer = buffer else {
+            throw "Unable to create metal buffer"
+        }
+        mapUniformsToBuffer()
+        return buffer
     }
 }
 

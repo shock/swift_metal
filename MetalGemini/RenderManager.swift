@@ -165,10 +165,6 @@ class RenderManager: ObservableObject {
             let uniformManager = self.uniformManager!
             let textureManager = self.textureManager!
             let resourceMgr = self.resourceMgr!
-            guard let metalDevice = self.metalDevice else {
-                self.shaderError = "CRITICAL ERROR: metalDevice is nil"
-                return
-            }
 
             mtkVC.stopRendering() // this must be here for reloading with vsync off!
             var shaderError: String? = nil
@@ -176,15 +172,20 @@ class RenderManager: ObservableObject {
 //            self.shaderError = "Loading '\(selectedURL.absoluteString)'"
 
             if shaderManager.loadShader(fileURL: selectedURL) {
-                shaderError = shaderError ?? uniformManager.setupUniformsFromShader(metalDevice: metalDevice, srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-                resourceMgr.setUniformBuffer(uniformManager.getBuffer())
-                if shaderError == nil {
-                    let textureURLs = textureManager.loadTexturesFromShader(srcURL: selectedURL, shaderSource: shaderManager.rawShaderSource!)
-                    shaderError = await resourceMgr.loadTextures(textureURLs: textureURLs)
+                do {
+                    let shaderSource = shaderManager.rawShaderSource!
+                    let textureURLs = textureManager.loadTexturesFromShader(srcURL: selectedURL, shaderSource: shaderSource)
+                    let uniformBuffer = try uniformManager.setupUniformsFromShader(srcURL: selectedURL, shaderSource: shaderSource)
+                    resourceMgr.setUniformBuffer(uniformBuffer)
                     if shaderError == nil {
-                        shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
-                        resourceMgr.swapNonBufferResources()
+                        shaderError = await resourceMgr.loadTextures(textureURLs: textureURLs)
+                        if shaderError == nil {
+                            shaderError = await mtkVC.loadShader(metallibURL: shaderManager.metallibURL)
+                            resourceMgr.swapNonBufferResources()
+                        }
                     }
+                } catch {
+                    shaderError = error.localizedDescription
                 }
             } else {
                 shaderError = shaderManager.errorMessage
