@@ -54,6 +54,20 @@ class UniformManager
         return index
     }
 
+    // Add to a float uniform value by name, optionally suppressing the file save operation
+    func incrementFloatUniform( _ name: String, increment: Float, min: Float, max: Float, suppressSave:Bool = false, updateBuffer:Bool = true)
+    {
+        var value = float4dict.getAsFloat(name)
+        value += increment
+        value += -min
+        value = value.truncatingRemainder(dividingBy: max-min)
+        if value < 0 { value = max-min+value } // wrap around negative
+        value -= -min
+        print(value)
+        let values:[Float] = [value]
+        setUniformTuple(name, values: values, suppressSave: suppressSave, updateBuffer: updateBuffer)
+    }
+
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
@@ -127,7 +141,7 @@ class UniformManager
     func printUniforms() {
         print(uniformsToString())
     }
-    
+
     func getUniformFloat4( _ name: String ) -> SIMD4<Float>? {
         guard parameterMap[name] != nil else {
             return nil

@@ -179,7 +179,7 @@ struct MetalView: NSViewRepresentable {
             // Update the offset
             offset += memSize
 
-            var elapsedTime = Float(-renderMgr.startDate.timeIntervalSinceNow)
+            var elapsedTime = Float(renderMgr.renderTime())
             memAlign = MemoryLayout<Float>.alignment
             memSize = MemoryLayout<Float>.size
             offset = (offset + memAlign - 1) / memAlign * memAlign
@@ -199,7 +199,7 @@ struct MetalView: NSViewRepresentable {
             let currentBuffers = renderResources.renderBuffers
             let numBuffers = renderResources.numBuffers
             let mtlTextures = renderResources.mtlTextures
-            
+
             if currentBuffers.count < MAX_RENDER_BUFFERS {
                 print("currentBuffers.count < MAX_RENDER_BUFFERS")
                 return
@@ -222,7 +222,7 @@ struct MetalView: NSViewRepresentable {
                 encoder.setFragmentTexture(currentBuffers[numBuffers-1], index: textureIndex)
                 textureIndex += 1
             }
-            
+
             // Add user textures
             for texture in mtlTextures {
                 encoder.setFragmentTexture(texture, index: textureIndex)
@@ -242,7 +242,7 @@ struct MetalView: NSViewRepresentable {
             let numBuffers = renderResources.numBuffers
             let pipelineStates = renderResources.pipelineStates
 
-            if !self.renderingActive && !renderMgr.vsyncOn { return }
+            if !self.renderingActive && !renderMgr.vsyncOn && !renderMgr.doOneFrame { return }
             if currentBuffers.count < MAX_RENDER_BUFFERS {
                 if( !renderMgr.vsyncOn ) {
                     print("currentBuffers.count < MAX_RENDER_BUFFERS - Retrying in 10ms")
@@ -304,13 +304,17 @@ struct MetalView: NSViewRepresentable {
             let numBuffers = renderResources.numBuffers
             let pipelineStates = renderResources.pipelineStates
 
-            guard !self.renderMgr.renderingPaused else { return }
+            guard (!self.renderMgr.renderingPaused || renderMgr.doOneFrame) else { return }
             guard numBuffers >= 0 else { return }
             guard pipelineStates.count - 1 == numBuffers else { return }
-
-            if( renderMgr.vsyncOn && numBuffers > 0 ) { self.renderOffscreen() } else { self.frameCounter += 1 }
             guard let drawable = view.currentDrawable,
                   let commandBuffer = self.metalCommandQueue.makeCommandBuffer() else { return }
+
+            if renderMgr.vsyncOn || renderMgr.doOneFrame { self.renderOffscreen() } else {
+                if !renderMgr.doOneFrame  { self.frameCounter += 1 }
+            }
+            renderMgr.doOneFrame = false
+
 
             let renderPassDescriptor = view.currentRenderPassDescriptor!
 
