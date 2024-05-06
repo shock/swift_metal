@@ -13,7 +13,7 @@ import Combine
 class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private var renderMgr: RenderManager?
     private var cancellables: Set<AnyCancellable> = []
-    private var keyboardView: KeyboardView!
+    private var keyboardMouseView: KeyboardMouseView!
 
     convenience init(rootView: ContentView) {
         let hostingController = NSHostingController(rootView: rootView)
@@ -33,13 +33,13 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
     }
 
     private func setupKeyboardView() {
-        keyboardView = KeyboardView()
+        keyboardMouseView = KeyboardMouseView()
         if let contentViewBounds = window?.contentView?.bounds {
-            keyboardView.frame = contentViewBounds
+            keyboardMouseView.frame = contentViewBounds
         }
-        keyboardView.delegate = renderMgr!
-        window?.contentView?.addSubview(keyboardView)
-        window?.makeFirstResponder(keyboardView)
+        keyboardMouseView.keyboardDelegate = renderMgr!
+        window?.contentView?.addSubview(keyboardMouseView)
+        window?.makeFirstResponder(keyboardMouseView)
     }
 
     private func setupObservers() {

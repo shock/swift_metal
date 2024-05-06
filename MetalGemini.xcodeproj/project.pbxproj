@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B5461CF42BD1D52400F085FD /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5461CF32BD1D52400F085FD /* KeyboardView.swift */; };
+		B5461CF42BD1D52400F085FD /* KeyboardMouseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5461CF32BD1D52400F085FD /* KeyboardMouseView.swift */; };
 		B5495DFC2BDEF2320036A337 /* Float4Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */; };
 		B5495DFE2BE052990036A337 /* SerialRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5495DFD2BE052990036A337 /* SerialRunner.swift */; };
 		B54CEB592BDC453200077D15 /* ShaderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB582BDC453200077D15 /* ShaderManager.swift */; };
@@ -38,7 +38,7 @@
 /* Begin PBXFileReference section */
 		04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetalGemini.release.xcconfig"; path = "Target Support Files/Pods-MetalGemini/Pods-MetalGemini.release.xcconfig"; sourceTree = "<group>"; };
 		0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MetalGemini.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		B5461CF32BD1D52400F085FD /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
+		B5461CF32BD1D52400F085FD /* KeyboardMouseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardMouseView.swift; sourceTree = "<group>"; };
 		B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Float4Dictionary.swift; sourceTree = "<group>"; };
 		B5495DFD2BE052990036A337 /* SerialRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialRunner.swift; sourceTree = "<group>"; };
 		B54CEB582BDC453200077D15 /* ShaderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderManager.swift; sourceTree = "<group>"; };
@@ -114,7 +114,7 @@
 				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
 				B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */,
 				B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */,
-				B5461CF32BD1D52400F085FD /* KeyboardView.swift */,
+				B5461CF32BD1D52400F085FD /* KeyboardMouseView.swift */,
 				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
 				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
 				B57F5CD22BDFD33300326A51 /* TaskManager.swift */,
@@ -305,7 +305,7 @@
 				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
 				B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */,
 				B55A3AD42BE51450009A2C9A /* Debouncer.swift in Sources */,
-				B5461CF42BD1D52400F085FD /* KeyboardView.swift in Sources */,
+				B5461CF42BD1D52400F085FD /* KeyboardMouseView.swift in Sources */,
 				B5495DFE2BE052990036A337 /* SerialRunner.swift in Sources */,
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
 				B54CEB592BDC453200077D15 /* ShaderManager.swift in Sources */,

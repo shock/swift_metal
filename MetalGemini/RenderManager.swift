@@ -210,7 +210,7 @@ class RenderManager: ObservableObject {
     }
 }
 
-extension RenderManager: KeyboardViewDelegate {
+extension RenderManager: KeyboardEventsDelegate {
     func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
         //        if event.isARepeat { return }
 
@@ -247,6 +247,21 @@ extension RenderManager: KeyboardViewDelegate {
         mtkVC?.stopRendering()
     }
 }
+
+extension RenderManager: MouseEventsDelegate {
+    func mouseDownEvent(event: NSEvent) {}
+    func mouseUpEvent(event: NSEvent) {}
+    func mouseMovedEvent(event: NSEvent) {}
+    func mouseScrolledEvent(event: NSEvent) {}
+    func rightMouseDownEvent(event: NSEvent) {}
+    func rightMouseUpEvent(event: NSEvent) {}
+    func mouseDraggedEvent(event: NSEvent) {}
+    func rightMouseDraggedEvent(event: NSEvent) {}
+    func pinchGesture(event: NSEvent) {}
+    func rotateGesture(event: NSEvent) {}
+    func swipeGesture(event: NSEvent) {}
+}
+
 
 extension RenderManager: OSCMessageDelegate {
     func handleOSCMessage(message: OSCMessage) {

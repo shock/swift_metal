@@ -32,8 +32,16 @@ struct ContentView: View {
 
                 VStack{
                     metalView?
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
+                        .overlay(
+                            KeyboardMouseViewRepresentable(
+                                keyboardDelegate: renderMgr,
+                                mouseDelegate: renderMgr
+                            )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .allowsHitTesting(true)  // Allows events to pass through
+                        )
                 }
             } else {
                 ScrollView {
