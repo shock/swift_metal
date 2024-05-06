@@ -20,6 +20,14 @@ extension EnvironmentValues {
     }
 }
 
+let uniformData = [
+    UniformVariable(name: "o_distance", values: [0.5], range: (min: 0.0, max: 1.0)),
+    UniformVariable(name: "o_color", values: [0.2, 0.3, 0.4], range: (min: 0.0, max: 1.0))
+]
+
+let uniformViewModel = UniformControlViewModel(variables: uniformData)
+
+
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
@@ -30,18 +38,23 @@ struct ContentView: View {
         VStack{
             if renderMgr.shaderError == nil {
 
-                VStack{
+                ZStack{
                     metalView?
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-                        .overlay(
-                            KeyboardMouseViewRepresentable(
-                                keyboardDelegate: renderMgr,
-                                mouseDelegate: renderMgr
-                            )
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .allowsHitTesting(true)  // Allows events to pass through
-                        )
+                        .zIndex(0)
+                    KeyboardMouseViewRepresentable(
+                        keyboardDelegate: renderMgr,
+                        mouseDelegate: renderMgr
+                    )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(false)  // Allows events to pass through
+                        .zIndex(1)
+                    UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                        .frame(height: 300) // Configurable
+                        .opacity(0.9) // Assuming there's a toggle to show/hide
+                        .zIndex(2)
+
                 }
             } else {
                 ScrollView {

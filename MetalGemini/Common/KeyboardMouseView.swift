@@ -170,7 +170,7 @@ struct KeyboardMouseViewRepresentable: NSViewRepresentable {
         let view = KeyboardMouseView()
         view.keyboardDelegate = keyboardDelegate
         view.mouseDelegate = mouseDelegate
-        view.becomeFirstResponder()  // Attempt to make the view the first responder
+//        view.becomeFirstResponder()  // Attempt to make the view the first responder
         return view
     }
 

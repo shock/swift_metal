@@ -22,7 +22,7 @@ class RenderManager: ObservableObject {
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
-    private var uniformManager: UniformManager!
+    var uniformManager: UniformManager!
     private var textureManager: TextureManager!
     private var shaderManager: ShaderManager!
     private var pauseTime = Date()
@@ -281,9 +281,9 @@ extension RenderManager: MouseEventsDelegate {
     func rightMouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
 
     func mouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
-        let deltaP = getMouseDelta(event: event)
-        let delta = deltaP.y/300
-        uniformManager.incrementFloatUniform("o_distance", increment: Float(delta), min: -1, max: 1)
+//        let deltaP = getMouseDelta(event: event)
+//        let delta = deltaP.y/300
+//        uniformManager.incrementFloatUniform("o_distance", increment: Float(delta), min: -1, max: 1)
         if renderingPaused { updateFrame() }
     }
 

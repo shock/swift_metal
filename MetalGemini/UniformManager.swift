@@ -11,12 +11,12 @@ import AppKit
 import SwiftOSC
 
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
-class UniformManager
-{
+class UniformManager: ObservableObject {
     var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
-    var float4dict = Float4Dictionary() // Dictionary to store uniform values
+//    var float4dict = Float4Dictionary() // Dictionary to store uniform values
+    @Published var uniformVariables: [UniformVariable] = []
     var dirty = true // Flag to indicate if the buffer needs updating
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
@@ -26,6 +26,18 @@ class UniformManager
     private var saveDebouncer = Debouncer(delay: 0.5, queueLabel: "net.wdoughty.metaltoy.saveUniformsQueue") // Debouncer for saving operations
     private var updateBufferDebouncer = Debouncer(delay: 0.005, queueLabel: "net.wdoughty.metaltoy.mapToBuffer") // Debouncer for updating buffer
     private var projectDirDelegate: ShaderProjectDirAccess!
+
+    func updateValue(index: Int, valueIndex: Int, newValue: Float) {
+        guard newValue >= uniformVariables[index].range.min &&
+              newValue <= uniformVariables[index].range.max else { return }
+        dirty = true
+        uniformVariables[index].values[valueIndex] = newValue
+        mapUniformsToBuffer()
+    }
+
+    func getCurrentValues() -> [UniformVariable] {
+        return uniformVariables
+    }
 
     init(projectDirDelegate: ShaderProjectDirAccess) {
         self.projectDirDelegate = projectDirDelegate
@@ -39,41 +51,90 @@ class UniformManager
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
     private func resetMapping() {
         parameterMap.removeAll()
+        uniformVariables.removeAll()
         indexMap.removeAll()
         dirty = true
     }
 
+    private func truncateValues( index: Int, values: [Float] ) -> [Float] {
+        let uVar = uniformVariables[index]
+        let (_, type) = indexMap[index]
+        let values = values.map { max(uVar.range.min, min($0, uVar.range.max)) }
+        switch type {
+        case "float":
+            return [values[0]]
+        case "float2":
+            return Array(values.prefix(2))
+        case "float3":
+            return Array(values.prefix(3))
+        case "float4":
+            return values
+        default: // we shouldn't be here
+            print("UniformManager: truncateValues() - Bad data type: \(type)")
+            return []
+        }
+    }
+
     // Add a new uniform with the given name and type, returning its new index
-    private func setIndex(name: String, type: String ) -> Int
+    private func setIndex(name: String, type: String, min: Float, max: Float ) -> Int
     {
         if debug { print("UniformManager: setIndex(\(name), \(type))") }
         indexMap.append((name,type))
         let index = indexMap.count-1
         parameterMap[name] = index
         dirty = true
+        var values: [Float] = []
+        switch type {
+        case "float":
+            values.append(0)
+        case "float2":
+            values = [0,0]
+        case "float3":
+            values = [0,0,0]
+        case "float4":
+            values = [0,0,0,0]
+        default: // we shouldn't be here
+            print("UniformManager: setIndex() - Bad data type: \(type)")
+            return -1
+        }
+        let uVar = UniformVariable(name: name, values: values, range: (min:min, max:max))
+        uniformVariables.append(uVar)
         return index
     }
-
-    // Add to a float uniform value by name, optionally suppressing the file save operation
-    func incrementFloatUniform( _ name: String, increment: Float, min: Float, max: Float, suppressSave:Bool = false, updateBuffer:Bool = true)
-    {
-        var value = float4dict.getAsFloat(name)
-        value += increment
-        value += -min
-        value = value.truncatingRemainder(dividingBy: max-min)
-        if value < 0 { value = max-min+value } // wrap around negative
-        value -= -min
-        print(value)
-        let values:[Float] = [value]
-        setUniformTuple(name, values: values, suppressSave: suppressSave, updateBuffer: updateBuffer)
-    }
+    
+//    // Add to a float uniform value by name, optionally suppressing the file save operation
+//    func incrementFloatUniform( _ name: String, increment: Float, min: Float, max: Float, suppressSave:Bool = false, updateBuffer:Bool = true)
+//    {
+//        var value = float4dict.getAsFloat(name)
+//        value += increment
+//        value += -min
+//        value = value.truncatingRemainder(dividingBy: max-min)
+//        if value < 0 { value = max-min+value } // wrap around negative
+//        value -= -min
+//        print(value)
+//        let values:[Float] = [value]
+//        setUniformTuple(name, values: values, suppressSave: suppressSave, updateBuffer: updateBuffer)
+//    }
+    
+//    func getUniformTuple(_ name: String) -> [Float] {
+//        let index = parameterMap[name]!
+//        let (_,type) = indexMap[index]
+//        var tuple = uniformVariables[index].values
+//        return tuple
+//    }
+//
 
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
+        guard let index = parameterMap[name] else {
+            print("No uniform named: \(name)")
+            return
+        }
+        let values = truncateValues(index: index, values: values)
         if !suppressSave { semaphore.wait() }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
-        float4dict.setTuple(name, values: values)
+        uniformVariables[index].values = values
         dirty = true
         if( !suppressSave ) {
             saveDebouncer.debounce { [weak self] in
@@ -106,10 +167,12 @@ class UniformManager
 
         var offset = 0
         for i in 0..<indexMap.count {
-            let (key, dataType) = indexMap[i]
+            let (_, dataType) = indexMap[i]
+            var values = uniformVariables[i].values
+            if values.count == 0 { values = [0,0,0,0] }
             switch dataType {
             case "float":
-                var data = float4dict.getAsFloat(key)
+                var data = values[0]
                 // Ensure the offset is aligned
                 offset = (offset + MemoryLayout<Float>.alignment - 1) / MemoryLayout<Float>.alignment * MemoryLayout<Float>.alignment
                 // Copy the data
@@ -117,17 +180,17 @@ class UniformManager
                 // Update the offset
                 offset += MemoryLayout<Float>.size
             case "float2":
-                var data = float4dict.getAsFloat2(key)
+                var data = Array(values.prefix(2))
                 offset = (offset + MemoryLayout<SIMD2<Float>>.alignment - 1) / MemoryLayout<SIMD2<Float>>.alignment * MemoryLayout<SIMD2<Float>>.alignment
                 memcpy(buffer.contents().advanced(by: offset), &data, MemoryLayout<SIMD3<Float>>.size)
                 offset += MemoryLayout<SIMD2<Float>>.size
             case "float3":
-                var data = float4dict.getAsFloat3(key)
+                var data = Array(values.prefix(3))
                 offset = (offset + MemoryLayout<SIMD3<Float>>.alignment - 1) / MemoryLayout<SIMD3<Float>>.alignment * MemoryLayout<SIMD3<Float>>.alignment
                 memcpy(buffer.contents().advanced(by: offset), &data, MemoryLayout<SIMD3<Float>>.size)
                 offset += MemoryLayout<SIMD3<Float>>.size
             case "float4":
-                var data = float4dict.get(key)
+                var data = values
                 offset = (offset + MemoryLayout<SIMD4<Float>>.alignment - 1) / MemoryLayout<SIMD4<Float>>.alignment * MemoryLayout<SIMD4<Float>>.alignment
                 memcpy(buffer.contents().advanced(by: offset), &data, MemoryLayout<SIMD4<Float>>.size)
                 offset += MemoryLayout<SIMD4<Float>>.size
@@ -143,31 +206,20 @@ class UniformManager
     }
 
     func getUniformFloat4( _ name: String ) -> SIMD4<Float>? {
-        guard parameterMap[name] != nil else {
+        guard let index = parameterMap[name] else {
             return nil
         }
-        let data = float4dict.get(name)
+        let data = uniformVariables[index].values.toSIMD4()
         return data
     }
 
     // Convert uniforms to a string representation for debugging
     func uniformsToString() -> String {
         let uniforms = Array(indexMap.indices).map { i in
-            let (key, dataType) = indexMap[i]
-            switch dataType {
-            case "float":
-                let data = float4dict.getAsFloat(key)
-                return "\(key), \(data)"
-            case "float2":
-                let data = float4dict.getAsFloat2(key)
-                return "\(key), \(data.x), \(data.y)"
-            case "float3":
-                let data = float4dict.getAsFloat3(key)
-                return "\(key), \(data.x), \(data.y), \(data.z),"
-            default: // Assuming default is "float4"
-                let data = float4dict.get(key)
-                return "\(key), \(data.x), \(data.y), \(data.z), \(data.w)"
-            }
+            let (key, _) = indexMap[i]
+            let values = uniformVariables[i].values
+            let joinedString = values.map { String($0) }.joined(separator: ", ")
+            return "\(key), \(joinedString)"
         }.joined(separator: "\n")
 
         return uniforms
@@ -222,7 +274,9 @@ class UniformManager
             }
 
             for (name, _, floats) in data {
-                setUniformTuple(name,values: floats, suppressSave: true)
+                DispatchQueue.main.async {
+                    self.setUniformTuple(name, values: floats, suppressSave: true)
+                }
             }
             print("Uniforms successfully loaded from file.")
 
@@ -243,6 +297,7 @@ class UniformManager
     //    }
     //
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
+    @MainActor
     func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
         resetMapping()
 
@@ -252,14 +307,20 @@ class UniformManager
 
         let structRegex = /\s*struct\s+(\w+)\s*\{\s*\/\/\s*@uniform/
         let endStructRegex = /\s*\}\;/
-        let metadataRegex = /\s?(float\d?)\s+(\w+)/
-
+        let metadataRegex = /^\s*(float\d?)\s+(\w+)/
+        let rangeRegex = /.*\/\/\s+@range[\s:]+(-?\d+.?\d*)\s+\.\.\s+(-?\d+.?\d*)/
         var index = 0
         var insideStruct = false
         for line in lines {
             if( insideStruct ) {
                 if let firstMatch = line.firstMatch(of: metadataRegex) {
-                    index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1))
+                    var min:Float=0.0, max:Float=1.0
+                    if let secondMatch = line.firstMatch(of: rangeRegex) {
+                        if let _min = Float(secondMatch.1) { min = _min }
+                        if let _max = Float(secondMatch.2) { max = _max }
+                        print("Found range \(min) .. \(max)")
+                    }
+                    index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1), min: min, max: max)
                 }
                 if( line.firstMatch(of: endStructRegex) != nil ) {
                     break
