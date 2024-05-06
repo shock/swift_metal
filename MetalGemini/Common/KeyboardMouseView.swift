@@ -11,6 +11,8 @@ import SwiftUI
 
 protocol KeyboardEventsDelegate: AnyObject {
     func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
 }
 
 protocol MouseEventsDelegate: AnyObject {
@@ -33,21 +35,32 @@ class KeyboardMouseView: NSView {
     weak var keyboardDelegate: KeyboardEventsDelegate?
     weak var mouseDelegate: MouseEventsDelegate?
     var lastCursorPosition = NSPoint()
+    let debug = false
     override var acceptsFirstResponder: Bool { return true }
 
     override func keyDown(with event: NSEvent) {
-        print("Key down code: \(event.keyCode)")
+        if debug { print("Key down code: \(event.keyCode)") }
         keyboardDelegate?.keyDownEvent(event: event, flags: flags)
 //        interpretKeyEvents([event])  // This seems to turn the event back over to the framework
     }
 
     override func keyUp(with event: NSEvent) {
-        print("Key up code: \(event.keyCode)")
+        keyboardDelegate?.keyUpEvent(event: event, flags: flags)
+        if debug { print("Key up code: \(event.keyCode)") }
     }
 
     override func flagsChanged(with event: NSEvent) {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         self.flags = flags
+        keyboardDelegate?.flagsChangedEvent(event: event, flags: flags)
+        var modifiers = ""
+        if flags.contains(.shift) { modifiers += "Shift " }
+        if flags.contains(.control) { modifiers += "Control " }
+        if flags.contains(.option) { modifiers += "Option " }
+        if flags.contains(.command) { modifiers += "Command " }
+        if flags.contains(.capsLock) { modifiers += "Capslock " }
+        if flags.contains(.function) { modifiers += "Function " }
+        if debug { print("Current modifiers: \(modifiers)") }
     }
 
     func captureMouse(_ position: NSPoint) {
@@ -81,57 +94,57 @@ class KeyboardMouseView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        print("Mouse down at \(event.locationInWindow)")
+        if debug { print("Mouse down at \(event.locationInWindow)") }
         mouseDelegate?.mouseDownEvent(event: event, flags: flags)
     }
 
     override func mouseUp(with event: NSEvent) {
-        print("Mouse up at \(event.locationInWindow)")
+        if debug { print("Mouse up at \(event.locationInWindow)") }
         mouseDelegate?.mouseUpEvent(event: event, flags: flags)
     }
 
     override func mouseMoved(with event: NSEvent) {
-        print("Mouse moved to \(event.locationInWindow)")
+        if debug { print("Mouse moved to \(event.locationInWindow)") }
         mouseDelegate?.mouseMovedEvent(event: event, flags: flags)
     }
 
     override func scrollWheel(with event: NSEvent) {
-        print("Scrolling at \(event.locationInWindow) with delta x: \(event.scrollingDeltaX), delta y: \(event.scrollingDeltaY)")
+        if debug { print("Scrolling at \(event.locationInWindow) with delta x: \(event.scrollingDeltaX), delta y: \(event.scrollingDeltaY)") }
         mouseDelegate?.mouseScrolledEvent(event: event, flags: flags)
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        print("Right mouse button down at \(event.locationInWindow)")
+        if debug { print("Right mouse button down at \(event.locationInWindow)") }
         mouseDelegate?.rightMouseDownEvent(event: event, flags: flags)
     }
 
     override func rightMouseUp(with event: NSEvent) {
-        print("Right mouse button down at \(event.locationInWindow)")
+        if debug { print("Right mouse button down at \(event.locationInWindow)") }
         mouseDelegate?.rightMouseUpEvent(event: event, flags: flags)
     }
 
     override func mouseDragged(with event: NSEvent) {
-        print("Mouse dragged at \(event.locationInWindow) with left button")
+        if debug { print("Mouse dragged at \(event.locationInWindow) with left button") }
         mouseDelegate?.mouseDraggedEvent(event: event, flags: flags)
     }
 
     override func rightMouseDragged(with event: NSEvent) {
-        print("Mouse dragged at \(event.locationInWindow) with right button")
+        if debug { print("Mouse dragged at \(event.locationInWindow) with right button") }
         mouseDelegate?.rightMouseDraggedEvent(event: event, flags: flags)
     }
 
     override func magnify(with event: NSEvent) {
-        print("Pinch with magnification: \(event.magnification)")
+        if debug { print("Pinch with magnification: \(event.magnification)") }
         mouseDelegate?.pinchGesture(event: event, flags: flags)
     }
 
     override func rotate(with event: NSEvent) {
-        print("Rotate with rotation: \(event.rotation)")
+        if debug { print("Rotate with rotation: \(event.rotation)") }
         mouseDelegate?.rotateGesture(event: event, flags: flags)
     }
 
     override func swipe(with event: NSEvent) {
-        print("Swipe with delta x: \(event.deltaX), delta y: \(event.deltaY)")
+        if debug { print("Swipe with delta x: \(event.deltaX), delta y: \(event.deltaY)") }
         mouseDelegate?.swipeGesture(event: event, flags: flags)
     }
 

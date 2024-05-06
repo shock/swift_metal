@@ -225,6 +225,10 @@ class RenderManager: ObservableObject {
 }
 
 extension RenderManager: KeyboardEventsDelegate {
+    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) { }
+
+    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) { }
+
     func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
         //        if event.isARepeat { return }
 
@@ -246,17 +250,6 @@ extension RenderManager: KeyboardEventsDelegate {
         default:
             break // Do nothing for other key codes
         }
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-
-        var modifiers = ""
-        if flags.contains(.shift) { modifiers += "Shift " }
-        if flags.contains(.control) { modifiers += "Control " }
-        if flags.contains(.option) { modifiers += "Option " }
-        if flags.contains(.command) { modifiers += "Command " }
-        if flags.contains(.capsLock) { modifiers += "Capslock " }
-        if flags.contains(.function) { modifiers += "Function " }
-        print("Current modifiers: \(modifiers)")
-
     }
 
     func shutDown() {
