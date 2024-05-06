@@ -14,17 +14,17 @@ protocol KeyboardEventsDelegate: AnyObject {
 }
 
 protocol MouseEventsDelegate: AnyObject {
-    func mouseDownEvent(event: NSEvent)
-    func mouseUpEvent(event: NSEvent)
-    func mouseMovedEvent(event: NSEvent)
-    func mouseScrolledEvent(event: NSEvent)
-    func rightMouseDownEvent(event: NSEvent)
-    func rightMouseUpEvent(event: NSEvent)
-    func mouseDraggedEvent(event: NSEvent)
-    func rightMouseDraggedEvent(event: NSEvent)
-    func pinchGesture(event: NSEvent)
-    func rotateGesture(event: NSEvent)
-    func swipeGesture(event: NSEvent)
+    func mouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func mouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func mouseMovedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func mouseScrolledEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func rightMouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func rightMouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func mouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func rightMouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func pinchGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func rotateGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func swipeGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
 }
 
 class KeyboardMouseView: NSView {
@@ -32,7 +32,7 @@ class KeyboardMouseView: NSView {
     var flags = NSEvent.ModifierFlags()
     weak var keyboardDelegate: KeyboardEventsDelegate?
     weak var mouseDelegate: MouseEventsDelegate?
-
+    var lastCursorPosition = NSPoint()
     override var acceptsFirstResponder: Bool { return true }
 
     override func keyDown(with event: NSEvent) {
@@ -49,21 +49,22 @@ class KeyboardMouseView: NSView {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         self.flags = flags
     }
-    
-    func captureMouse() {
+
+    func captureMouse(_ position: NSPoint) {
 //        CGAssociateMouseAndMouseCursorPosition(0)  // Lock the mouse cursor position
+        lastCursorPosition = position
         NSCursor.hide()  // Hide the cursor
     }
-    
+
     func releaseMouse() {
 //        CGAssociateMouseAndMouseCursorPosition(1)  // Release the mouse cursor position
+        setCursorPosition(lastCursorPosition)
         NSCursor.unhide()  // Show the cursor
     }
-    
-    func centerCursor() {
-        let centerPoint = CGPoint(x: self.bounds.midX, y: self.bounds.midY)
+
+    func setCursorPosition(_ position: NSPoint) {
         if let window = self.window {
-            let windowPoint = self.convert(centerPoint, to: nil)
+            let windowPoint = self.convert(position, to: nil)
             var screenPoint = window.convertPoint(toScreen: windowPoint)
 
             // Adjust the y-coordinate to flip it for the screen's coordinate system
@@ -74,59 +75,64 @@ class KeyboardMouseView: NSView {
         }
     }
 
+    func centerCursor() {
+        let centerPoint = CGPoint(x: self.bounds.midX, y: self.bounds.midY)
+        setCursorPosition(centerPoint)
+    }
+
     override func mouseDown(with event: NSEvent) {
         print("Mouse down at \(event.locationInWindow)")
-        mouseDelegate?.mouseDownEvent(event: event)
+        mouseDelegate?.mouseDownEvent(event: event, flags: flags)
     }
 
     override func mouseUp(with event: NSEvent) {
         print("Mouse up at \(event.locationInWindow)")
-        mouseDelegate?.mouseUpEvent(event: event)
+        mouseDelegate?.mouseUpEvent(event: event, flags: flags)
     }
 
     override func mouseMoved(with event: NSEvent) {
         print("Mouse moved to \(event.locationInWindow)")
-        mouseDelegate?.mouseMovedEvent(event: event)
+        mouseDelegate?.mouseMovedEvent(event: event, flags: flags)
     }
-    
+
     override func scrollWheel(with event: NSEvent) {
         print("Scrolling at \(event.locationInWindow) with delta x: \(event.scrollingDeltaX), delta y: \(event.scrollingDeltaY)")
-        mouseDelegate?.mouseScrolledEvent(event: event)
+        mouseDelegate?.mouseScrolledEvent(event: event, flags: flags)
     }
-    
+
     override func rightMouseDown(with event: NSEvent) {
         print("Right mouse button down at \(event.locationInWindow)")
-        mouseDelegate?.rightMouseDownEvent(event: event)
+        mouseDelegate?.rightMouseDownEvent(event: event, flags: flags)
     }
 
     override func rightMouseUp(with event: NSEvent) {
         print("Right mouse button down at \(event.locationInWindow)")
-        mouseDelegate?.rightMouseUpEvent(event: event)
+        mouseDelegate?.rightMouseUpEvent(event: event, flags: flags)
     }
 
     override func mouseDragged(with event: NSEvent) {
         print("Mouse dragged at \(event.locationInWindow) with left button")
-        mouseDelegate?.mouseDraggedEvent(event: event)
+        mouseDelegate?.mouseDraggedEvent(event: event, flags: flags)
     }
 
     override func rightMouseDragged(with event: NSEvent) {
         print("Mouse dragged at \(event.locationInWindow) with right button")
-        mouseDelegate?.rightMouseDraggedEvent(event: event)
+        mouseDelegate?.rightMouseDraggedEvent(event: event, flags: flags)
     }
-    
+
     override func magnify(with event: NSEvent) {
         print("Pinch with magnification: \(event.magnification)")
-        mouseDelegate?.pinchGesture(event: event)
+        mouseDelegate?.pinchGesture(event: event, flags: flags)
     }
 
     override func rotate(with event: NSEvent) {
         print("Rotate with rotation: \(event.rotation)")
-        mouseDelegate?.rotateGesture(event: event)
+        mouseDelegate?.rotateGesture(event: event, flags: flags)
     }
 
     override func swipe(with event: NSEvent) {
         print("Swipe with delta x: \(event.deltaX), delta y: \(event.deltaY)")
-        mouseDelegate?.swipeGesture(event: event)
+        mouseDelegate?.swipeGesture(event: event, flags: flags)
     }
 
     override func updateTrackingAreas() {
@@ -161,4 +167,3 @@ struct KeyboardMouseViewRepresentable: NSViewRepresentable {
         nsView.mouseDelegate = mouseDelegate
     }
 }
-

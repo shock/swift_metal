@@ -17,6 +17,7 @@ class RenderManager: ObservableObject {
     @Published var selectedShaderURL: URL? = nil
     @Published var title: String? = nil
     @Published private(set) var shaderError: String? = nil
+    @Published var doOneFrame = false
 
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var mtkVC: MetalView.Coordinator?
@@ -54,6 +55,13 @@ class RenderManager: ObservableObject {
         }
     }
 
+    func renderTime() -> TimeInterval {
+        if renderingPaused {
+            return pauseTime.timeIntervalSince(startDate)
+        }
+        return -startDate.timeIntervalSinceNow
+    }
+
     private var renderingWasPaused = true
     var renderingPaused: Bool = false {
         didSet {
@@ -67,6 +75,10 @@ class RenderManager: ObservableObject {
             }
             updateTitle()
         }
+    }
+
+    func updateFrame() {
+        doOneFrame = true
     }
 
     func updateTitle() {
@@ -184,14 +196,14 @@ class RenderManager: ObservableObject {
             } else {
                 shaderError = shaderManager.errorMessage
             }
-            
+
             self.shaderError = shaderError
 
             self.resetFrame()
             //        renderingPaused = false
             // monitor files even if there's an error, so if the file is corrected, we'll reload it
             self.monitorShaderFiles(shaderManager.filesToMonitor)
-            
+
             if shaderError != nil { return }
 
             if !self.vsyncOn {
@@ -208,6 +220,8 @@ class RenderManager: ObservableObject {
     func fforward() {
         startDate -= 1
     }
+
+    var lastMousePosition = CGPoint()
 }
 
 extension RenderManager: KeyboardEventsDelegate {
@@ -220,12 +234,15 @@ extension RenderManager: KeyboardEventsDelegate {
             break
         case 125: // Down arrow
             resetFrame()
+            if renderingPaused { updateFrame() }
         case 126: // Up arrow
             renderingPaused.toggle()
         case 123: // Left arrow
             rewind()
+            if renderingPaused { updateFrame() }
         case 124: // Right arrow
             fforward()
+            if renderingPaused { updateFrame() }
         default:
             break // Do nothing for other key codes
         }
@@ -249,22 +266,47 @@ extension RenderManager: KeyboardEventsDelegate {
 }
 
 extension RenderManager: MouseEventsDelegate {
-    func mouseDownEvent(event: NSEvent) {}
-    func mouseUpEvent(event: NSEvent) {}
-    func mouseMovedEvent(event: NSEvent) {}
-    func mouseScrolledEvent(event: NSEvent) {}
-    func rightMouseDownEvent(event: NSEvent) {}
-    func rightMouseUpEvent(event: NSEvent) {}
-    func mouseDraggedEvent(event: NSEvent) {}
-    func rightMouseDraggedEvent(event: NSEvent) {}
-    func pinchGesture(event: NSEvent) {}
-    func rotateGesture(event: NSEvent) {}
-    func swipeGesture(event: NSEvent) {}
+
+    func getMouseDelta( event: NSEvent ) -> NSPoint {
+        let x = event.locationInWindow.x - lastMousePosition.x
+        let y = event.locationInWindow.y - lastMousePosition.y
+        lastMousePosition.x = event.locationInWindow.x
+        lastMousePosition.y = event.locationInWindow.y
+        return NSPoint(x:x,y:y)
+    }
+
+    func mouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func mouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func mouseMovedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func mouseScrolledEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func rightMouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func rightMouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func mouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
+        let deltaP = getMouseDelta(event: event)
+        let delta = deltaP.y/300
+        uniformManager.incrementFloatUniform("o_distance", increment: Float(delta), min: -1, max: 1)
+        if renderingPaused { updateFrame() }
+    }
+
+    func rightMouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func pinchGesture(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func rotateGesture(event: NSEvent, flags: NSEvent.ModifierFlags) {}
+
+    func swipeGesture(event: NSEvent, flags: NSEvent.ModifierFlags) {}
 }
 
 
 extension RenderManager: OSCMessageDelegate {
     func handleOSCMessage(message: OSCMessage) {
         self.uniformManager.handleOSCMessage(message: message)
+        if renderingPaused { updateFrame() }
     }
 }
