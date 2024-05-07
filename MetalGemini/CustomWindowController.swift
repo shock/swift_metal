@@ -27,7 +27,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
         // Call the setup method immediately after initialization
 
-        setupKeyboardView()
+//        setupKeyboardView()
         setupObservers()
         setupWindowProperties()
     }

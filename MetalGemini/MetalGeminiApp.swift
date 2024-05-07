@@ -24,6 +24,7 @@ struct MetalGeminiApp: App {
 // Separate AppDelegate class
 class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController: CustomWindowController! // Store window controller reference
+    var uniformWindowController: UniformWindowController?
     var mainMenu: NSMenu! // Store the main menu
     var renderMgr = RenderManager() // Create the ViewModel instance here
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
@@ -86,6 +87,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleUniformOverlay(sender: NSMenuItem) {
         renderMgr.uniformOverlayVisible.toggle()
         sender.state = renderMgr.uniformOverlayVisible ? .on : .off
+    }
+
+    @objc func toggleUniformWindow(sender: NSMenuItem) {
+        if let window = uniformWindowController?.window, window.isVisible {
+            window.close()  // Closes the auxiliary window
+            sender.state = .off
+        } else {
+            // Lazily initializes and shows the auxiliary window
+            let overlayView = UniformsView(renderMgr: renderMgr)
+            uniformWindowController = UniformWindowController(contentView: overlayView)
+            uniformWindowController?.showWindow(self)
+            sender.state = .on
+        }
     }
 
     @objc func openFile() {
@@ -177,6 +191,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(vsyncItem)
         let toggleUniformOverlay = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
         viewMenu.addItem(toggleUniformOverlay)
+        let toggleUniformWindow = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformWindow), keyEquivalent: "i")
+        viewMenu.addItem(toggleUniformWindow)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)
 
