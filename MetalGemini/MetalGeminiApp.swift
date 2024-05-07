@@ -122,9 +122,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController.window?.setContentSize(NSSize(width: width, height: height))
 //        windowController.window?.center()
     }
-
+    
+    @objc func updateRenderFrame(notification: Notification) {
+        DispatchQueue.main.async {
+            self.renderMgr.updateFrame()
+        }
+    }
+ 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(self, selector: #selector(handleVsyncChange(notification:)), name: .vsyncStatusDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateRenderFrame(notification:)), name: .updateRenderFrame, object: nil)
         windowController = CustomWindowController(rootView: ContentView(renderMgr: renderMgr))
         windowController.showWindow(self)
         oscServer = OSCServerManager(delegate: self)

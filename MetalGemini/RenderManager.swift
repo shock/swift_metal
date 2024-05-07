@@ -79,7 +79,7 @@ class RenderManager: ObservableObject {
     }
 
     func updateFrame() {
-        doOneFrame = true
+        if renderingPaused { doOneFrame = true }
     }
 
     func updateTitle() {
@@ -239,15 +239,15 @@ extension RenderManager: KeyboardEventsDelegate {
             break
         case 125: // Down arrow
             resetFrame()
-            if renderingPaused { updateFrame() }
+            updateFrame()
         case 126: // Up arrow
             renderingPaused.toggle()
         case 123: // Left arrow
             rewind()
-            if renderingPaused { updateFrame() }
+            updateFrame()
         case 124: // Right arrow
             fforward()
-            if renderingPaused { updateFrame() }
+            updateFrame()
         default:
             break // Do nothing for other key codes
         }
@@ -285,7 +285,7 @@ extension RenderManager: MouseEventsDelegate {
 //        let deltaP = getMouseDelta(event: event)
 //        let delta = deltaP.y/300
 //        uniformManager.incrementFloatUniform("o_distance", increment: Float(delta), min: -1, max: 1)
-        if renderingPaused { updateFrame() }
+        updateFrame()
     }
 
     func rightMouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
@@ -301,6 +301,6 @@ extension RenderManager: MouseEventsDelegate {
 extension RenderManager: OSCMessageDelegate {
     func handleOSCMessage(message: OSCMessage) {
         self.uniformManager.handleOSCMessage(message: message)
-        if renderingPaused { updateFrame() }
+//        updateFrame()
     }
 }

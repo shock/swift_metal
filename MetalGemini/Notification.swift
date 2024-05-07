@@ -9,4 +9,5 @@ import Foundation
 
 extension Notification.Name {
     static let vsyncStatusDidChange = Notification.Name("vsyncStatusDidChange")
+    static let updateRenderFrame = Notification.Name("updateRenderFrame")
 }

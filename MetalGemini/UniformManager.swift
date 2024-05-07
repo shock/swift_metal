@@ -32,7 +32,10 @@ class UniformManager: ObservableObject {
               newValue <= uniformVariables[index].range.max else { return }
         dirty = true
         uniformVariables[index].values[valueIndex] = newValue
-        mapUniformsToBuffer()
+        updateBufferDebouncer.debounce { [weak self] in
+            self?.triggerRenderRefresh()
+            self?.mapUniformsToBuffer()
+        }
     }
 
     func getCurrentValues() -> [UniformVariable] {
@@ -123,7 +126,11 @@ class UniformManager: ObservableObject {
 //        return tuple
 //    }
 //
-
+    
+    func triggerRenderRefresh() {
+        NotificationCenter.default.post(name: .updateRenderFrame, object: nil, userInfo: [:])
+    }
+    
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
@@ -145,6 +152,7 @@ class UniformManager: ObservableObject {
         if !suppressSave { semaphore.signal() }
         if updateBuffer {
             updateBufferDebouncer.debounce { [weak self] in
+                self?.triggerRenderRefresh()
                 self?.mapUniformsToBuffer()
             }
         }
