@@ -98,6 +98,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
                 UserDefaults.standard.set(path, forKey: "LastFileOpened")
             }
         }
+        NSApplication.shared.terminate(self)
     }
 
 }
