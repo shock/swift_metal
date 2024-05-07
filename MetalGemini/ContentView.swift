@@ -43,19 +43,15 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
                         .zIndex(0)
-                    KeyboardMouseViewRepresentable(
-                        keyboardDelegate: renderMgr,
-                        mouseDelegate: renderMgr
-                    )
+                    KeyboardMouseViewRepresentable( keyboardDelegate: renderMgr, mouseDelegate: renderMgr )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(!renderMgr.uniformOverlayVisible)  // Allows events to pass through
                         .zIndex(1)
-                    if renderMgr.uniformOverlayVisible {
-                        UniformOverlayUI(viewModel: renderMgr.uniformManager)
-                            .frame(height: 300) // Configurable
-                            .opacity(0.9) // Assuming there's a toggle to show/hide
-                            .zIndex(2)
-                    }
+                    UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                        .frame(height: 300) // Configurable
+                        .offset(x: 0, y: renderMgr.uniformOverlayVisible ? 0 : 20000)  // Moves the view offscreen to keep its scroll position
+                        .opacity(0.8) 
+                        .zIndex(2)
                 }
             } else {
                 ScrollView {
