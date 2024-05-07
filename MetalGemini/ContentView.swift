@@ -50,11 +50,12 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(false)  // Allows events to pass through
                         .zIndex(1)
-                    UniformOverlayUI(viewModel: renderMgr.uniformManager)
-                        .frame(height: 300) // Configurable
-                        .opacity(0.9) // Assuming there's a toggle to show/hide
-                        .zIndex(2)
-
+                    if renderMgr.uniformOverlayVisible {
+                        UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                            .frame(height: 300) // Configurable
+                            .opacity(0.9) // Assuming there's a toggle to show/hide
+                            .zIndex(2)
+                    }
                 }
             } else {
                 ScrollView {

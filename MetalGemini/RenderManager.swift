@@ -18,6 +18,7 @@ class RenderManager: ObservableObject {
     @Published var title: String? = nil
     @Published private(set) var shaderError: String? = nil
     @Published var doOneFrame = false
+    @Published var uniformOverlayVisible: Bool = false
 
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     private var mtkVC: MetalView.Coordinator?

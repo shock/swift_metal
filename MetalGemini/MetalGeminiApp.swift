@@ -83,6 +83,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.renderMgr.vsyncOn = self.vsyncEnabled
     }
 
+    @objc func toggleUniformOverlay(sender: NSMenuItem) {
+        renderMgr.uniformOverlayVisible.toggle()
+        sender.state = renderMgr.uniformOverlayVisible ? .on : .off
+    }
+
     @objc func openFile() {
         renderMgr.openFile()
     }
@@ -163,6 +168,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         vsyncItem.state = vsyncEnabled ? .on : .off
         vsyncItem.tag = 1001  // Example unique tag
         viewMenu.addItem(vsyncItem)
+        let toggleUniformOverlay = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
+        viewMenu.addItem(toggleUniformOverlay)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)
 
