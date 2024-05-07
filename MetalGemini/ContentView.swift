@@ -48,7 +48,7 @@ struct ContentView: View {
                         mouseDelegate: renderMgr
                     )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .allowsHitTesting(false)  // Allows events to pass through
+                        .allowsHitTesting(!renderMgr.uniformOverlayVisible)  // Allows events to pass through
                         .zIndex(1)
                     if renderMgr.uniformOverlayVisible {
                         UniformOverlayUI(viewModel: renderMgr.uniformManager)

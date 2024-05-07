@@ -16,11 +16,11 @@ struct VerticalSlider: View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
                 Rectangle() // Slider Track
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(Color.white.opacity(0.15))
                     .frame(width: 40)
 
                 Rectangle() // Slider Thumb
-                    .fill(Color.blue)
+                    .fill(Color.init(red: 0, green: 0.6, blue: 0.85).opacity(0.7))
                     .frame(width: 40, height: max(0,CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * geometry.size.height))
 
                 Rectangle() // Invisible Interactive Layer

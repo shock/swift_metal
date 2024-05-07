@@ -33,6 +33,7 @@ struct UniformControlView: View {
             Text(viewModel.uniformVariables[variableIndex].name)
         }
         .padding()
+        .background(Color.black.opacity(0.5))
         .border(Color.gray, width: 1)
     }
 }
