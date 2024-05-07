@@ -41,7 +41,6 @@ class RenderManager: ObservableObject {
     func setViewSize(_ size: CGSize) {
         self.size.width = size.width
         self.size.height = size.height
-        uniformManager.setUniformTuple("u_resolution", values: [Float(size.width), Float(size.height)], suppressSave: true)
     }
 
     func setViewCoordinator(_ mtkVC: MetalView.Coordinator ) {

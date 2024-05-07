@@ -36,6 +36,10 @@ class UniformManager: ObservableObject {
             self?.triggerRenderRefresh()
             self?.mapUniformsToBuffer()
         }
+        saveDebouncer.debounce { [weak self] in
+            self?.saveUniformsToFile()
+        }
+
     }
 
     func getCurrentValues() -> [UniformVariable] {
