@@ -38,8 +38,12 @@ class UniformManager: ObservableObject {
     func updateValue(index: Int, valueIndex: Int, newValue: Float) {
         guard newValue >= uniformVariables[index].range.min &&
               newValue <= uniformVariables[index].range.max else { return }
-        dirty = true
         uniformVariables[index].values[valueIndex] = newValue
+        valueUpdated()
+    }
+
+    func valueUpdated() {
+        dirty = true
         updateBufferDebouncer.debounce { [weak self] in
             self?.triggerRenderRefresh()
             self?.mapUniformsToBuffer()
@@ -47,7 +51,6 @@ class UniformManager: ObservableObject {
         saveDebouncer.debounce { [weak self] in
             self?.saveUniformsToFile()
         }
-
     }
 
     func getCurrentValues() -> [UniformVariable] {

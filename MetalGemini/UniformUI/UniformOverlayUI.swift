@@ -16,11 +16,11 @@ struct UniformOverlayUI: View {
             if viewModel.uniformVariables.count > 0 {
                 HStack {
                     // since lazy doesn't establish geometry we have to establish it with one non-lazy view first
-                    UniformControlView(viewModel: viewModel, variableIndex: 0)
+                    UniformControlView(uVar: $viewModel.uniformVariables[0], viewModel: viewModel)
                     LazyHStack {
                         ForEach(1..<viewModel.uniformVariables.count, id: \.self) { index in
                             if index < viewModel.uniformVariables.count {
-                                UniformControlView(viewModel: viewModel, variableIndex: index)
+                                UniformControlView(uVar: $viewModel.uniformVariables[index], viewModel: viewModel)
                             } else {
                                 Text("Shouldn't be here")
                             }
