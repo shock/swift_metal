@@ -18,7 +18,12 @@ class RenderManager: ObservableObject {
     @Published var title: String? = nil
     @Published private(set) var shaderError: String? = nil
     @Published var doOneFrame = false
-    @Published var uniformOverlayVisible: Bool = false
+    @Published var uniformOverlayVisible: Bool = false {
+        didSet {
+            print("RenderManager: uniformOverlayVisible: didSet( \(self.uniformOverlayVisible) )")
+            NotificationCenter.default.post(name: .menuStateDidChange, object: nil, userInfo: [:])
+        }
+    }
 
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     var mtkVC: MetalView.Coordinator?
@@ -51,7 +56,7 @@ class RenderManager: ObservableObject {
         didSet {
             print("RenderManager: vsyncOn: didSet( \(self.vsyncOn) )")
             self.mtkVC?.updateVSyncState(self.vsyncOn)
-            NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
+            NotificationCenter.default.post(name: .menuStateDidChange, object: nil, userInfo: ["enabled": vsyncOn])
         }
     }
 
@@ -206,7 +211,7 @@ class RenderManager: ObservableObject {
 
             if shaderError != nil { return }
 
-            if !self.vsyncOn {
+            if !self.uniformOverlayVisible {
                 mtkVC.startRendering() // renable offline rendering if vsync is false
             }
 
@@ -234,8 +239,10 @@ extension RenderManager: KeyboardEventsDelegate {
 
         let keyCode = event.keyCode
         switch keyCode {
+        case 53:  // Esc key
+            self.uniformOverlayVisible = false
         case 49:  // Space bar
-            break
+            self.uniformOverlayVisible.toggle()
         case 125: // Down arrow
             resetFrame()
             updateFrame()

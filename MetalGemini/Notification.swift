@@ -8,6 +8,6 @@
 import Foundation
 
 extension Notification.Name {
-    static let vsyncStatusDidChange = Notification.Name("vsyncStatusDidChange")
+    static let menuStateDidChange = Notification.Name("menuStateDidChange")
     static let updateRenderFrame = Notification.Name("updateRenderFrame")
 }

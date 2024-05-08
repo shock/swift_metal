@@ -34,16 +34,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         oscServer.startServer()
     }
 
-    // Initialize a variable to track the VSync state
-    var vsyncEnabled: Bool = false {
-        didSet {
-            DispatchQueue.main.async {
-                UserDefaults.standard.set(self.vsyncEnabled, forKey: "VSyncEnabled")
-                self.updateMenuState()
-            }
-        }
-    }
-
     func findMenuItem(withTitle title: String, in menu: NSMenu) -> NSMenuItem? {
         for item in menu.items {
             if item.title == title {
@@ -71,17 +61,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateMenuState() {
-        if let vsyncMenuItem = findMenuItem(withTitle: "Enable VSync", in: NSApplication.shared.mainMenu!) {
+        if let menuItem = findMenuItem(withTitle: "Enable VSync", in: NSApplication.shared.mainMenu!) {
             DispatchQueue.main.async {
-                vsyncMenuItem.state = self.vsyncEnabled != true ? .off : .on
+                menuItem.state = self.renderMgr.vsyncOn == true ? .on : .off
             }
+        }
+        if let menuItem = findMenuItem(withTitle: "Uniforms Overlay", in: NSApplication.shared.mainMenu!) {
+            DispatchQueue.main.async {
+                menuItem.state = self.renderMgr.uniformOverlayVisible == true ? .on : .off
+            }
+        }
+        DispatchQueue.main.async {
+            UserDefaults.standard.set(self.renderMgr.vsyncOn, forKey: "VSyncEnabled")
         }
     }
 
     @objc func toggleVSync(sender: NSMenuItem) {
-        vsyncEnabled.toggle()
-        sender.state = vsyncEnabled ? .on : .off
-        self.renderMgr.vsyncOn = self.vsyncEnabled
+        renderMgr.vsyncOn.toggle()
+        sender.state = renderMgr.vsyncOn ? .on : .off
     }
 
     @objc func toggleUniformOverlay(sender: NSMenuItem) {
@@ -89,19 +86,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         sender.state = renderMgr.uniformOverlayVisible ? .on : .off
     }
 
-//    @objc func toggleUniformWindow(sender: NSMenuItem) {
-//        if let window = uniformWindowController?.window, window.isVisible {
-//            window.close()  // Closes the auxiliary window
-//            sender.state = .off
-//        } else {
-//            // Lazily initializes and shows the auxiliary window
-//            let overlayView = UniformsView(renderMgr: renderMgr)
-//            uniformWindowController = UniformWindowController(contentView: overlayView)
-//            uniformWindowController?.showWindow(self)
-//            sender.state = .on
-//        }
-//    }
-    
     @objc func toggleUniformWindow(sender: NSMenuItem) {
         if uniformWindowController == nil {
             // Lazily initializes the window only once
@@ -163,7 +147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
  
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NotificationCenter.default.addObserver(self, selector: #selector(handleVsyncChange(notification:)), name: .vsyncStatusDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleMenuStateChange(notification:)), name: .menuStateDidChange, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateRenderFrame(notification:)), name: .updateRenderFrame, object: nil)
         windowController = CustomWindowController(rootView: ContentView(renderMgr: renderMgr))
         windowController.showWindow(self)
@@ -178,7 +162,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Load the saved VSync state if available
         if let savedVSyncEnabled = UserDefaults.standard.object(forKey: "VSyncEnabled") as? Bool {
-            vsyncEnabled = savedVSyncEnabled
             renderMgr.vsyncOn = savedVSyncEnabled
         }
 
@@ -213,8 +196,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let viewMenuItem = NSMenuItem()
         viewMenuItem.submenu = viewMenu
         let vsyncItem = NSMenuItem(title: "Enable VSync", action: #selector(toggleVSync), keyEquivalent: "v")
-        vsyncItem.state = vsyncEnabled ? .on : .off
-        vsyncItem.tag = 1001  // Example unique tag
         viewMenu.addItem(vsyncItem)
         let toggleUniformOverlay = NSMenuItem(title: "Uniforms Overlay", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
         viewMenu.addItem(toggleUniformOverlay)
@@ -236,19 +217,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Set the main menu
         NSApplication.shared.mainMenu = mainMenu
+        updateMenuState()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true // Let SwiftUI manage window closing
     }
 
-    @objc func handleVsyncChange(notification: Notification) {
-        if let userInfo = notification.userInfo, let enabled = userInfo["enabled"] as? Bool {
+    @objc func handleMenuStateChange(notification: Notification) {
+//        if let userInfo = notification.userInfo, let _ = userInfo["enabled"] as? Bool {
             DispatchQueue.main.async {
-                self.vsyncEnabled = enabled
                 self.updateMenuState()
             }
-        }
+//        }
     }
 
 }
