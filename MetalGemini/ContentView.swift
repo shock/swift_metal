@@ -21,8 +21,8 @@ extension EnvironmentValues {
 }
 
 let uniformData = [
-    UniformVariable(name: "o_distance", values: [0.5], range: (min: 0.0, max: 1.0)),
-    UniformVariable(name: "o_color", values: [0.2, 0.3, 0.4], range: (min: 0.0, max: 1.0))
+    UniformVariable(name: "o_distance", type: "float", values: [0.5], range: (min: 0.0, max: 1.0)),
+    UniformVariable(name: "o_color", type: "float3", values: [0.2, 0.3, 0.4], range: (min: 0.0, max: 1.0))
 ]
 
 let uniformViewModel = UniformControlViewModel(variables: uniformData)
@@ -47,11 +47,14 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(!renderMgr.uniformOverlayVisible)  // Allows events to pass through
                         .zIndex(1)
-                    UniformOverlayUI(viewModel: renderMgr.uniformManager)
-                        .frame(height: 300) // Configurable
-                        .offset(x: 0, y: renderMgr.uniformOverlayVisible ? 0 : 20000)  // Moves the view offscreen to keep its scroll position
-                        .opacity(0.8) 
-                        .zIndex(2)
+                    if false {
+                        UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(height: 300) // Configurable
+                            .offset(x: 0, y: renderMgr.uniformOverlayVisible ? 0 : 20000)  // Moves the view offscreen to keep its scroll position
+                            .opacity(0.8)
+                            .zIndex(2)
+                    }
                 }
             } else {
                 ScrollView {

@@ -14,9 +14,10 @@ import SwiftOSC
 class UniformManager: ObservableObject {
     var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
-    var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
+//    var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
 //    var float4dict = Float4Dictionary() // Dictionary to store uniform values
     @Published var uniformVariables: [UniformVariable] = []
+    var stagingUniformVariables: [UniformVariable] = []
     var dirty = true // Flag to indicate if the buffer needs updating
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
@@ -59,36 +60,14 @@ class UniformManager: ObservableObject {
     private func resetMapping() {
         parameterMap.removeAll()
         uniformVariables.removeAll()
-        indexMap.removeAll()
+//        indexMap.removeAll()
         dirty = true
-    }
-
-    private func truncateValues( index: Int, values: [Float] ) -> [Float] {
-        let uVar = uniformVariables[index]
-        let (_, type) = indexMap[index]
-        let values = values.map { max(uVar.range.min, min($0, uVar.range.max)) }
-        switch type {
-        case "float":
-            return [values[0]]
-        case "float2":
-            return Array(values.prefix(2))
-        case "float3":
-            return Array(values.prefix(3))
-        case "float4":
-            return values
-        default: // we shouldn't be here
-            print("UniformManager: truncateValues() - Bad data type: \(type)")
-            return []
-        }
     }
 
     // Add a new uniform with the given name and type, returning its new index
     private func setIndex(name: String, type: String, min: Float, max: Float ) -> Int
     {
         if debug { print("UniformManager: setIndex(\(name), \(type))") }
-        indexMap.append((name,type))
-        let index = indexMap.count-1
-        parameterMap[name] = index
         dirty = true
         var values: [Float] = []
         switch type {
@@ -104,9 +83,71 @@ class UniformManager: ObservableObject {
             print("UniformManager: setIndex() - Bad data type: \(type)")
             return -1
         }
-        let uVar = UniformVariable(name: name, values: values, range: (min:min, max:max))
+        let uVar = UniformVariable(name: name, type:type, values: values, range: (min:min, max:max))
         uniformVariables.append(uVar)
+        let index = uniformVariables.count-1
+        parameterMap[name] = index
         return index
+    }
+    
+    // parses the shader file to look for a struct tagged
+    // with @uniform, which will define which uniforms
+    // are managed by the application and sent to the fragment
+    // shader in a buffer.  Example struct in fragment.metal:
+    //
+    //    struct MyShaderData { // @uniform
+    //        float2 o_long;
+    //        float4 o_pan;
+    //        float o_col1r;
+    //    }
+    //
+    // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
+    @MainActor
+    func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
+        resetMapping()
+
+        print("UniformManager: setupUniformsFromShader() starting")
+
+        let lines = shaderSource.components(separatedBy: "\n")
+
+        let structRegex = /\s*struct\s+(\w+)\s*\{\s*\/\/\s*@uniform/
+        let endStructRegex = /\s*\}\;/
+        let metadataRegex = /^\s*(float\d?)\s+(\w+)/
+        let rangeRegex = /.*\/\/\s+@range[\s:]+(-?\d+.?\d*)\s+\.\.\s+(-?\d+.?\d*)/
+        var index = 0
+        var insideStruct = false
+        for line in lines {
+            if( insideStruct ) {
+                if let firstMatch = line.firstMatch(of: metadataRegex) {
+                    var min:Float=0.0, max:Float=1.0
+                    if let secondMatch = line.firstMatch(of: rangeRegex) {
+                        if let _min = Float(secondMatch.1) { min = _min }
+                        if let _max = Float(secondMatch.2) { max = _max }
+                        print("Found range \(min) .. \(max)")
+                    }
+                    index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1), min: min, max: max)
+                }
+                if( line.firstMatch(of: endStructRegex) != nil ) {
+                    break
+                }
+            }
+            if( line.firstMatch(of: structRegex) != nil ) { insideStruct = true }
+        }
+        let numUniforms = index + 1
+        let length = MemoryLayout<SIMD4<Float>>.size*numUniforms
+        buffer = metalDevice.makeBuffer(length: length, options: .storageModeShared)
+        dirty = true
+
+        if( debug ) { printUniforms() }
+        uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
+        uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
+
+        loadUniformsFromFile()
+        print("UniformManager: setupUniformsFromShader() finished")
+//        defer { semaphore.signal() }
+        if buffer == nil {
+            throw "Unable to create metal buffer"
+        }
     }
     
 //    // Add to a float uniform value by name, optionally suppressing the file save operation
@@ -135,6 +176,25 @@ class UniformManager: ObservableObject {
         NotificationCenter.default.post(name: .updateRenderFrame, object: nil, userInfo: [:])
     }
     
+    private func truncateValues( index: Int, values: [Float] ) -> [Float] {
+        let uVar = uniformVariables[index]
+        let type = uVar.type
+        let values = values.map { max(uVar.range.min, min($0, uVar.range.max)) }
+        switch type {
+        case "float":
+            return [values[0]]
+        case "float2":
+            return Array(values.prefix(2))
+        case "float3":
+            return Array(values.prefix(3))
+        case "float4":
+            return values
+        default: // we shouldn't be here
+            print("UniformManager: truncateValues() - Bad data type: \(type)")
+            return []
+        }
+    }
+
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
@@ -178,9 +238,9 @@ class UniformManager: ObservableObject {
         guard let buffer = self.buffer else { return }
 
         var offset = 0
-        for i in 0..<indexMap.count {
-            let (_, dataType) = indexMap[i]
+        for i in 0..<uniformVariables.count {
             var values = uniformVariables[i].values
+            let dataType = uniformVariables[i].type
             if values.count == 0 { values = [0,0,0,0] }
             switch dataType {
             case "float":
@@ -227,11 +287,11 @@ class UniformManager: ObservableObject {
 
     // Convert uniforms to a string representation for debugging
     func uniformsToString() -> String {
-        let uniforms = Array(indexMap.indices).map { i in
-            let (key, _) = indexMap[i]
-            let values = uniformVariables[i].values
+        let uniforms = uniformVariables.map { uVar in
+            let values = uVar.values
+            let name = uVar.name
             let joinedString = values.map { String($0) }.joined(separator: ", ")
-            return "\(key), \(joinedString)"
+            return "\(name), \(joinedString)"
         }.joined(separator: "\n")
 
         return uniforms
@@ -239,7 +299,7 @@ class UniformManager: ObservableObject {
 
     // Save uniforms to a file, checking if there's a need to prompt for a directory
     func saveUniformsToFile() {
-        if( indexMap.count == 0 ) { return }
+        if( uniformVariables.count == 0 ) { return }
 
         guard let fileUrl = uniformsTxtURL else { return }
         let uniforms = uniformsToString()
@@ -297,65 +357,6 @@ class UniformManager: ObservableObject {
         }
     }
 
-    // parses the shader file to look for a struct tagged
-    // with @uniform, which will define which uniforms
-    // are managed by the application and sent to the fragment
-    // shader in a buffer.  Example struct in fragment.metal:
-    //
-    //    struct MyShaderData { // @uniform
-    //        float2 o_long;
-    //        float4 o_pan;
-    //        float o_col1r;
-    //    }
-    //
-    // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
-    @MainActor
-    func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
-        resetMapping()
-
-        print("UniformManager: setupUniformsFromShader() starting")
-
-        let lines = shaderSource.components(separatedBy: "\n")
-
-        let structRegex = /\s*struct\s+(\w+)\s*\{\s*\/\/\s*@uniform/
-        let endStructRegex = /\s*\}\;/
-        let metadataRegex = /^\s*(float\d?)\s+(\w+)/
-        let rangeRegex = /.*\/\/\s+@range[\s:]+(-?\d+.?\d*)\s+\.\.\s+(-?\d+.?\d*)/
-        var index = 0
-        var insideStruct = false
-        for line in lines {
-            if( insideStruct ) {
-                if let firstMatch = line.firstMatch(of: metadataRegex) {
-                    var min:Float=0.0, max:Float=1.0
-                    if let secondMatch = line.firstMatch(of: rangeRegex) {
-                        if let _min = Float(secondMatch.1) { min = _min }
-                        if let _max = Float(secondMatch.2) { max = _max }
-                        print("Found range \(min) .. \(max)")
-                    }
-                    index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1), min: min, max: max)
-                }
-                if( line.firstMatch(of: endStructRegex) != nil ) {
-                    break
-                }
-            }
-            if( line.firstMatch(of: structRegex) != nil ) { insideStruct = true }
-        }
-        let numUniforms = index + 1
-        let length = MemoryLayout<SIMD4<Float>>.size*numUniforms
-        buffer = metalDevice.makeBuffer(length: length, options: .storageModeShared)
-        dirty = true
-
-        if( debug ) { printUniforms() }
-        uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
-        uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
-
-        loadUniformsFromFile()
-        print("UniformManager: setupUniformsFromShader() finished")
-        defer { semaphore.signal() }
-        if buffer == nil {
-            throw "Unable to create metal buffer"
-        }
-    }
 }
 
 extension UniformManager: OSCMessageDelegate {

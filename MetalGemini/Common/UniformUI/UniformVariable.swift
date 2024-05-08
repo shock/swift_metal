@@ -9,6 +9,7 @@ import Foundation
 
 struct UniformVariable {
     let name: String
+    let type: String
     var values: [Float]
     let range: (min: Float, max: Float)
 }
