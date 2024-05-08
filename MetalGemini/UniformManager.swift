@@ -10,6 +10,13 @@ import MetalKit
 import AppKit
 import SwiftOSC
 
+struct UniformVariable {
+    let name: String
+    let type: String
+    var values: [Float]
+    let range: (min: Float, max: Float)
+}
+
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
 class UniformManager: ObservableObject {
     var metalDevice: MTLDevice!

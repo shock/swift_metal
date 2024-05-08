@@ -19,8 +19,6 @@
 		B57F5CD82BE0F86900326A51 /* MetalResourceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */; };
 		B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0462BD08B7E00CBCA26 /* OSCManager.swift */; };
 		B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0482BD0948900CBCA26 /* UniformManager.swift */; };
-		B5B286FC2BE9792400FECB38 /* UniformVariable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B286FB2BE9792400FECB38 /* UniformVariable.swift */; };
-		B5B286FE2BE9795100FECB38 /* UniformControlViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B286FD2BE9795100FECB38 /* UniformControlViewModel.swift */; };
 		B5B287002BE9798300FECB38 /* UniformControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B286FF2BE9798300FECB38 /* UniformControlView.swift */; };
 		B5B287022BE979A900FECB38 /* UniformOverlayUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */; };
 		B5B287042BE9861000FECB38 /* VerticalSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B287032BE9861000FECB38 /* VerticalSlider.swift */; };
@@ -57,8 +55,6 @@
 		B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalResourceManager.swift; sourceTree = "<group>"; };
 		B597D0462BD08B7E00CBCA26 /* OSCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCManager.swift; sourceTree = "<group>"; };
 		B597D0482BD0948900CBCA26 /* UniformManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformManager.swift; sourceTree = "<group>"; };
-		B5B286FB2BE9792400FECB38 /* UniformVariable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformVariable.swift; sourceTree = "<group>"; };
-		B5B286FD2BE9795100FECB38 /* UniformControlViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformControlViewModel.swift; sourceTree = "<group>"; };
 		B5B286FF2BE9798300FECB38 /* UniformControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformControlView.swift; sourceTree = "<group>"; };
 		B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformOverlayUI.swift; sourceTree = "<group>"; };
 		B5B287032BE9861000FECB38 /* VerticalSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerticalSlider.swift; sourceTree = "<group>"; };
@@ -134,7 +130,6 @@
 				B57F5CD22BDFD33300326A51 /* TaskManager.swift */,
 				B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */,
 				B55A3AD32BE51450009A2C9A /* Debouncer.swift */,
-				B5B286FA2BE9790400FECB38 /* UniformUI */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -142,8 +137,6 @@
 		B5B286FA2BE9790400FECB38 /* UniformUI */ = {
 			isa = PBXGroup;
 			children = (
-				B5B286FB2BE9792400FECB38 /* UniformVariable.swift */,
-				B5B286FD2BE9795100FECB38 /* UniformControlViewModel.swift */,
 				B5B286FF2BE9798300FECB38 /* UniformControlView.swift */,
 				B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */,
 				B5B287032BE9861000FECB38 /* VerticalSlider.swift */,
@@ -190,6 +183,7 @@
 				B5E711FA2BB4F3BB0092172A /* main.swift */,
 				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
 				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
+				B5B286FA2BE9790400FECB38 /* UniformUI */,
 				B54AAF532BEAD3D800586048 /* UniformsView.swift */,
 				B5E711B12BB462FA0092172A /* Preview Content */,
 				B54AAF512BEACF2B00586048 /* UniformWindowController.swift */,
@@ -323,7 +317,6 @@
 				B57F5CD32BDFD33300326A51 /* TaskManager.swift in Sources */,
 				B5495DFC2BDEF2320036A337 /* Float4Dictionary.swift in Sources */,
 				B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */,
-				B5B286FE2BE9795100FECB38 /* UniformControlViewModel.swift in Sources */,
 				B54AAF542BEAD3D800586048 /* UniformsView.swift in Sources */,
 				B57F5CD82BE0F86900326A51 /* MetalResourceManager.swift in Sources */,
 				B54AAF522BEACF2B00586048 /* UniformWindowController.swift in Sources */,
@@ -337,7 +330,6 @@
 				B5ED373E2BDD283700A04963 /* ThreadSafeFlag.swift in Sources */,
 				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
 				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
-				B5B286FC2BE9792400FECB38 /* UniformVariable.swift in Sources */,
 				B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */,
 				B55A3AD42BE51450009A2C9A /* Debouncer.swift in Sources */,
 				B5461CF42BD1D52400F085FD /* KeyboardMouseView.swift in Sources */,

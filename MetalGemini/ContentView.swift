@@ -20,14 +20,6 @@ extension EnvironmentValues {
     }
 }
 
-let uniformData = [
-    UniformVariable(name: "o_distance", type: "float", values: [0.5], range: (min: 0.0, max: 1.0)),
-    UniformVariable(name: "o_color", type: "float3", values: [0.2, 0.3, 0.4], range: (min: 0.0, max: 1.0))
-]
-
-let uniformViewModel = UniformControlViewModel(variables: uniformData)
-
-
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
