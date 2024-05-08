@@ -27,6 +27,7 @@ struct UniformOverlayUI: View {
                         }
                     }
                 }
+                .padding(1)
             }
         }
         .background(Color.clear)

@@ -14,27 +14,49 @@ struct UniformControlView: View {
 
     var body: some View {
         VStack {
-            HStack {
-                ForEach(0..<uVar.values.count, id: \.self) { valueIndex in
-                    VStack {
-                        Text(String(format: "%.2f", uVar.values[valueIndex]))
-                            .fixedSize()
-                        VerticalSlider(value: Binding(
-                            get: { Double(uVar.values[valueIndex]) },
-                            set: { newValue in
-                                uVar.values[valueIndex] = Float(newValue)
-                                viewModel.valueUpdated()
-                            }),
-                                       range: Double(uVar.range.min)...Double(uVar.range.max)
-                        )
-                        .frame(height: 300) // Set the height of the custom slider
+            Spacer()
+            switch uVar.style {
+            case .vSlider:
+                VStack {
+                    HStack {
+                        ForEach(0..<uVar.values.count, id: \.self) { valueIndex in
+                            VStack {
+                                Text(String(format: "%.2f", uVar.values[valueIndex]))
+                                    .fixedSize()
+                                VerticalSlider(value: Binding(
+                                    get: { Double(uVar.values[valueIndex]) },
+                                    set: { newValue in
+                                        uVar.values[valueIndex] = Float(newValue)
+                                        viewModel.valueUpdated()
+                                    }),
+                                               range: Double(uVar.range.min)...Double(uVar.range.max)
+                                )
+                                .frame(height: 300) // Set the height of the custom slider
+                            }
+                        }
                     }
+                    Text(uVar.name)
                 }
+                .padding()
+                .background(Color.black.opacity(0.5))
+                .border(Color.gray, width: 1)
+            case .toggle:
+                VStack {
+                    ToggleButton(value: Binding(
+                        get: { Double(uVar.values[0]) },
+                        set: { newValue in
+                            uVar.values[0] = Float(newValue)
+                            viewModel.valueUpdated()
+                        }),
+                                 range: Double(uVar.range.min)...Double(uVar.range.max)
+                    )
+                    .frame(height: 40)
+                    Text(uVar.name)
+                }
+                .padding()
+                .background(Color.black.opacity(0.5))
+                .border(Color.gray, width: 1)
             }
-            Text(uVar.name)
         }
-        .padding()
-        .background(Color.black.opacity(0.5))
-        .border(Color.gray, width: 1)
     }
 }

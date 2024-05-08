@@ -10,9 +10,14 @@ import MetalKit
 import AppKit
 import SwiftOSC
 
+enum UniformStyle {
+    case vSlider, toggle
+}
+
 struct UniformVariable {
     let name: String
     let type: String
+    let style: UniformStyle
     var values: [Float]
     let range: (min: Float, max: Float)
 }
@@ -74,7 +79,7 @@ class UniformManager: ObservableObject {
     }
 
     // Add a new uniform with the given name and type, returning its new index
-    private func setIndex(name: String, type: String, min: Float, max: Float ) -> Int
+    private func setIndex(name: String, type: String, style: UniformStyle, min: Float, max: Float ) -> Int
     {
         if debug { print("UniformManager: setIndex(\(name), \(type))") }
         dirty = true
@@ -92,7 +97,7 @@ class UniformManager: ObservableObject {
             print("UniformManager: setIndex() - Bad data type: \(type)")
             return -1
         }
-        let uVar = UniformVariable(name: name, type:type, values: values, range: (min:min, max:max))
+        let uVar = UniformVariable(name: name, type:type, style: style, values: values, range: (min:min, max:max))
         uniformVariables.append(uVar)
         let index = uniformVariables.count-1
         parameterMap[name] = index
@@ -123,18 +128,29 @@ class UniformManager: ObservableObject {
         let endStructRegex = /\s*\}\;/
         let metadataRegex = /^\s*(float\d?)\s+(\w+)/
         let rangeRegex = /.*\/\/\s+@range[\s:]+(-?\d+.?\d*)\s+\.\.\s+(-?\d+.?\d*)/
+        let toggleRegex = /.*@toggle.*/
         var index = 0
         var insideStruct = false
         for line in lines {
             if( insideStruct ) {
                 if let firstMatch = line.firstMatch(of: metadataRegex) {
+                    let name = String(firstMatch.2)
+                    let type = String(firstMatch.1)
                     var min:Float=0.0, max:Float=1.0
+                    var style: UniformStyle = .vSlider
                     if let secondMatch = line.firstMatch(of: rangeRegex) {
                         if let _min = Float(secondMatch.1) { min = _min }
                         if let _max = Float(secondMatch.2) { max = _max }
                         print("Found range \(min) .. \(max)")
                     }
-                    index = setIndex(name: String(firstMatch.2), type: String(firstMatch.1), min: min, max: max)
+                    if (line.firstMatch(of: toggleRegex) != nil) {
+                        if type == "float" {
+                            style = .toggle
+                        } else {
+                            print("WARNING: Uniform \(name) can't be a toggle.  Only float types can be toggles.")
+                        }
+                    }
+                    index = setIndex(name: name, type: type, style: style, min: min, max: max)
                 }
                 if( line.firstMatch(of: endStructRegex) != nil ) {
                     break
