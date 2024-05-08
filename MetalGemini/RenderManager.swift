@@ -21,7 +21,7 @@ class RenderManager: ObservableObject {
     @Published var uniformOverlayVisible: Bool = false
 
     public private(set) var size: CGSize = CGSize(width:0,height:0)
-    private var mtkVC: MetalView.Coordinator?
+    var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
     var uniformManager: UniformManager!
     private var textureManager: TextureManager!

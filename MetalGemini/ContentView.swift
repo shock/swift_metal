@@ -47,14 +47,12 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(!renderMgr.uniformOverlayVisible)  // Allows events to pass through
                         .zIndex(1)
-                    if false {
-                        UniformOverlayUI(viewModel: renderMgr.uniformManager)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .frame(height: 300) // Configurable
-                            .offset(x: 0, y: renderMgr.uniformOverlayVisible ? 0 : 20000)  // Moves the view offscreen to keep its scroll position
-                            .opacity(0.8)
-                            .zIndex(2)
-                    }
+                    UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(height: 300) // Configurable
+                        .offset(x: 0, y: renderMgr.uniformOverlayVisible ? 0 : 20000)  // Moves the view offscreen to keep its scroll position
+                        .opacity(0.8)
+                        .zIndex(2)
                 }
             } else {
                 ScrollView {

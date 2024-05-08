@@ -101,4 +101,31 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         NSApplication.shared.terminate(self)
     }
 
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        print("Window will enter full-screen mode.")
+        // Perform any necessary configurations before the window enters full-screen
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        print("Window has entered full-screen mode.")
+        if let window = window {
+            let size = window.frame.size
+            if let renderMgr = renderMgr {
+                renderMgr.mtkVC?.updateViewportSize(size)
+
+            }
+        }
+        // Adjust any settings or perform actions after the window is in full-screen
+    }
+
+    func windowWillExitFullScreen(_ notification: Notification) {
+        print("Window will exit full-screen mode.")
+        // Prepare your application for the window exiting full-screen
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        print("Window has exited full-screen mode.")
+        // Restore any settings or clean up after exiting full-screen
+    }
+
 }
