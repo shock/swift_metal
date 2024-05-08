@@ -181,6 +181,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         fileMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(fileMenuItem)
 
+        // Edit Menu
+        let editMenu = NSMenu(title: "Edit")
+        let copyMenuItem = NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(copyMenuItem)
+        let editMenuItem = NSMenuItem()
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+
         let viewMenu = NSMenu(title: "View")
         // Add items to your file menu...
         let viewMenuItem = NSMenuItem()
@@ -189,9 +197,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         vsyncItem.state = vsyncEnabled ? .on : .off
         vsyncItem.tag = 1001  // Example unique tag
         viewMenu.addItem(vsyncItem)
-        let toggleUniformOverlay = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
+        let toggleUniformOverlay = NSMenuItem(title: "Uniforms Overlay", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
         viewMenu.addItem(toggleUniformOverlay)
-        let toggleUniformWindow = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformWindow), keyEquivalent: "i")
+        let toggleUniformWindow = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformWindow), keyEquivalent: "p")
         viewMenu.addItem(toggleUniformWindow)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)
