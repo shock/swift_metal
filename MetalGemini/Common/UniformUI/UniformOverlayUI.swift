@@ -19,7 +19,11 @@ struct UniformOverlayUI: View {
                     UniformControlView(viewModel: viewModel, variableIndex: 0)
                     LazyHStack {
                         ForEach(1..<viewModel.uniformVariables.count, id: \.self) { index in
-                            UniformControlView(viewModel: viewModel, variableIndex: index)
+                            if index < viewModel.uniformVariables.count {
+                                UniformControlView(viewModel: viewModel, variableIndex: index)
+                            } else {
+                                Text("Shouldn't be here")
+                            }
                         }
                     }
                 }
