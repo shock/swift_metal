@@ -89,16 +89,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         sender.state = renderMgr.uniformOverlayVisible ? .on : .off
     }
 
+//    @objc func toggleUniformWindow(sender: NSMenuItem) {
+//        if let window = uniformWindowController?.window, window.isVisible {
+//            window.close()  // Closes the auxiliary window
+//            sender.state = .off
+//        } else {
+//            // Lazily initializes and shows the auxiliary window
+//            let overlayView = UniformsView(renderMgr: renderMgr)
+//            uniformWindowController = UniformWindowController(contentView: overlayView)
+//            uniformWindowController?.showWindow(self)
+//            sender.state = .on
+//        }
+//    }
+    
     @objc func toggleUniformWindow(sender: NSMenuItem) {
-        if let window = uniformWindowController?.window, window.isVisible {
-            window.close()  // Closes the auxiliary window
-            sender.state = .off
-        } else {
-            // Lazily initializes and shows the auxiliary window
+        if uniformWindowController == nil {
+            // Lazily initializes the window only once
             let overlayView = UniformsView(renderMgr: renderMgr)
             uniformWindowController = UniformWindowController(contentView: overlayView)
-            uniformWindowController?.showWindow(self)
-            sender.state = .on
+        }
+
+        // Toggle visibility of the window
+        if let window = uniformWindowController?.window {
+            if window.isVisible {
+                window.orderOut(nil)  // Hide the window
+                sender.state = .off
+            } else {
+                window.makeKeyAndOrderFront(nil)  // Show the window
+                sender.state = .on
+            }
         }
     }
 
