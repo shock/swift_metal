@@ -27,6 +27,7 @@
 		B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE4B2BB72502002F55B3 /* Extensions.swift */; };
 		B5C6BFBF2BE19D630016C9F2 /* TextureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */; };
 		B5CC5E502BEBEA90004C918C /* ToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CC5E4F2BEBEA90004C918C /* ToggleButton.swift */; };
+		B5CC5E522BEC16F4004C918C /* ScrollableArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CC5E512BEC16F4004C918C /* ScrollableArea.swift */; };
 		B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */; };
 		B5E711AE2BB462F80092172A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AD2BB462F80092172A /* ContentView.swift */; };
 		B5E711B02BB462FA0092172A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E711AF2BB462FA0092172A /* Assets.xcassets */; };
@@ -65,6 +66,7 @@
 		B5B3CE4E2BB85EB9002F55B3 /* TestShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TestShaders.metal; sourceTree = "<group>"; };
 		B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureManager.swift; sourceTree = "<group>"; };
 		B5CC5E4F2BEBEA90004C918C /* ToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleButton.swift; sourceTree = "<group>"; };
+		B5CC5E512BEC16F4004C918C /* ScrollableArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollableArea.swift; sourceTree = "<group>"; };
 		B5E711A82BB462F80092172A /* MetalGemini.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalGemini.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalGeminiApp.swift; sourceTree = "<group>"; };
 		B5E711AD2BB462F80092172A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 				B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */,
 				B5B287032BE9861000FECB38 /* VerticalSlider.swift */,
 				B5CC5E4F2BEBEA90004C918C /* ToggleButton.swift */,
+				B5CC5E512BEC16F4004C918C /* ScrollableArea.swift */,
 			);
 			path = UniformUI;
 			sourceTree = "<group>";
@@ -329,6 +332,7 @@
 				B5CC5E502BEBEA90004C918C /* ToggleButton.swift in Sources */,
 				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
 				B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */,
+				B5CC5E522BEC16F4004C918C /* ScrollableArea.swift in Sources */,
 				B5B287022BE979A900FECB38 /* UniformOverlayUI.swift in Sources */,
 				B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */,
 				B5ED373E2BDD283700A04963 /* ThreadSafeFlag.swift in Sources */,

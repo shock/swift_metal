@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import EventKit // Ensure this is correctly imported if necessary for custom scroll handling
 
 struct VerticalSlider: View {
     @Binding var value: Double
@@ -26,17 +27,39 @@ struct VerticalSlider: View {
                 Rectangle() // Invisible Interactive Layer
                     .fill(Color.clear)
                     .contentShape(Rectangle()) // Ensure the entire area is interactive
+
+                ScrollableArea { deltaY in
+                    let adjustment = deltaY / 1000 // Adjust this scale factor as necessary
+                    let newValue = value - adjustment * (range.upperBound - range.lowerBound)
+                    value = newValue.clamped(to: range)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity) // Make ScrollableArea cover the entire ZStack
+
             }
 //            .cornerRadius(6)
             .gesture(DragGesture(minimumDistance: 0).onChanged { gesture in
-                let y = gesture.location.y
-                // Convert y position to a value in the range
-                let sliderValue = Double(geometry.size.height - y) / Double(geometry.size.height) * (range.upperBound - range.lowerBound) + range.lowerBound
-                value = sliderValue.clamped(to: range)
-//                print("Gesture y: \(y), Value: \(value)") // Debug output
+                updateValue(from: gesture.location.y, in: geometry.size.height)
             })
+            .onHover { inside in
+                if inside {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+//            .scrollWheel { event in
+//                let delta = event.scrollingDeltaY
+//                let adjustment = delta / Double(geometry.size.height) * (range.upperBound - range.lowerBound)
+//                value = (value - adjustment).clamped(to: range)
+//            }
         }
         .frame(width: 40) // Control the width of the slider
         .clipped()
     }
+
+    private func updateValue(from yPos: CGFloat, in height: CGFloat) {
+        let sliderValue = Double(height - yPos) / Double(height) * (range.upperBound - range.lowerBound) + range.lowerBound
+        value = sliderValue.clamped(to: range)
+    }
+
 }

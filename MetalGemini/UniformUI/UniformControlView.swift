@@ -21,7 +21,7 @@ struct UniformControlView: View {
                     HStack {
                         ForEach(0..<uVar.values.count, id: \.self) { valueIndex in
                             VStack {
-                                Text(String(format: "%.2f", uVar.values[valueIndex]))
+                                Text(String(format: "%.3f", uVar.values[valueIndex]))
                                     .fixedSize()
                                 VerticalSlider(value: Binding(
                                     get: { Double(uVar.values[valueIndex]) },
