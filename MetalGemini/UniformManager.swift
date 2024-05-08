@@ -59,7 +59,7 @@ class UniformManager: ObservableObject {
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
     private func resetMapping() {
         parameterMap.removeAll()
-        uniformVariables.removeAll()
+        stagingUniformVariables.removeAll()
 //        indexMap.removeAll()
         dirty = true
     }
@@ -84,8 +84,8 @@ class UniformManager: ObservableObject {
             return -1
         }
         let uVar = UniformVariable(name: name, type:type, values: values, range: (min:min, max:max))
-        uniformVariables.append(uVar)
-        let index = uniformVariables.count-1
+        stagingUniformVariables.append(uVar)
+        let index = stagingUniformVariables.count-1
         parameterMap[name] = index
         return index
     }
@@ -141,9 +141,10 @@ class UniformManager: ObservableObject {
         if( debug ) { printUniforms() }
         uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
-
+        
+        uniformVariables = stagingUniformVariables
         loadUniformsFromFile()
-        print("UniformManager: setupUniformsFromShader() finished")
+        print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms")
 //        defer { semaphore.signal() }
         if buffer == nil {
             throw "Unable to create metal buffer"
