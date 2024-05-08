@@ -24,7 +24,6 @@ class UniformManager: ObservableObject {
 //    var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
 //    var float4dict = Float4Dictionary() // Dictionary to store uniform values
     @Published var uniformVariables: [UniformVariable] = []
-    var stagingUniformVariables: [UniformVariable] = []
     var dirty = true // Flag to indicate if the buffer needs updating
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
@@ -69,7 +68,7 @@ class UniformManager: ObservableObject {
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
     private func resetMapping() {
         parameterMap.removeAll()
-        stagingUniformVariables.removeAll()
+        uniformVariables.removeAll()
 //        indexMap.removeAll()
         dirty = true
     }
@@ -94,8 +93,8 @@ class UniformManager: ObservableObject {
             return -1
         }
         let uVar = UniformVariable(name: name, type:type, values: values, range: (min:min, max:max))
-        stagingUniformVariables.append(uVar)
-        let index = stagingUniformVariables.count-1
+        uniformVariables.append(uVar)
+        let index = uniformVariables.count-1
         parameterMap[name] = index
         return index
     }
@@ -152,7 +151,6 @@ class UniformManager: ObservableObject {
         uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
         
-        uniformVariables = stagingUniformVariables
         loadUniformsFromFile()
         print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms")
 //        defer { semaphore.signal() }
