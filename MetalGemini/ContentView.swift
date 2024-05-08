@@ -37,7 +37,7 @@ struct ContentView: View {
                         .zIndex(0)
                     KeyboardMouseViewRepresentable( keyboardDelegate: renderMgr, mouseDelegate: renderMgr )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .allowsHitTesting(!renderMgr.uniformOverlayVisible)  // Allows events to pass through
+                        .allowsHitTesting(false)  // Allows events to pass through
                         .zIndex(1)
                     UniformOverlayUI(viewModel: renderMgr.uniformManager)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
