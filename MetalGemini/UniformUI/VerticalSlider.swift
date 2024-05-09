@@ -14,6 +14,7 @@ struct VerticalSlider: View {
     var range: ClosedRange<Double>
     @State var lastValue: Double = 0
     @State var lastClickTime = Date()
+    @State var secondClick = false
     @State var clickDebouncer = Debouncer(delay: 0.25, queueLabel: "net.wdoughty.metaltoy.uniclick")
 
     var body: some View {
@@ -44,22 +45,33 @@ struct VerticalSlider: View {
                         if Date().timeIntervalSince(lastClickTime) < 0.25 { // double click/tap if less than 250 ms
                             clickDebouncer.cancelPending()
                             value = (range.upperBound - range.lowerBound) / 2 + range.lowerBound // set value to midway point
+                            secondClick = true
                         } else {
-                            clickDebouncer.debounce {
-                                DispatchQueue.main.async {
-                                    self.updateValue(from: gesture.location.y, in: geometry.size.height)
-                                    lastValue = value
-                                }
-                            }
+                            secondClick = false
                         }
-                        lastClickTime = Date()
                     } else {
                         clickDebouncer.cancelPending()
                         incrementValue(change: gesture.translation.height, in: geometry.size.height)
                     }
                 }
                 .onEnded { gesture in
-                    // commit Undo action here
+                    if gesture.translation.height == 0 { // click/tap - no drag
+                        if !secondClick {
+                            if Date().timeIntervalSince(lastClickTime) < 0.25 {
+                                clickDebouncer.debounce {
+                                    DispatchQueue.main.async {
+                                        self.updateValue(from: gesture.location.y, in: geometry.size.height)
+                                        lastValue = value
+                                    }
+                                }
+                            } else {
+                                self.updateValue(from: gesture.location.y, in: geometry.size.height)
+                            }
+                        }
+                        lastClickTime = Date()
+                    } else {
+                        // commit Undo for drag action here
+                    }
                 }
             )
         }
