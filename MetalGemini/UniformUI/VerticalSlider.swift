@@ -12,8 +12,11 @@ import EventKit // Ensure this is correctly imported if necessary for custom scr
 struct VerticalSlider: View {
     @Binding var value: Double
     var range: ClosedRange<Double>
+    @State var lastValue: Double = 0
+    @State var lastClickTime = Date()
 
     var body: some View {
+
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
                 Rectangle() // Slider Track
@@ -33,20 +36,31 @@ struct VerticalSlider: View {
 
             }
             .cornerRadius(2)
-            .gesture(DragGesture(minimumDistance: 1).onChanged { gesture in
-                print("gesture.startLocation.y \(gesture.startLocation.y)")
-                print("gesture.location.y \(gesture.location.y)")
-                updateValue(from: gesture.location.y, in: geometry.size.height)
-            })
-            .onTapGesture(count: 2) { location in
-                value = (range.upperBound - range.lowerBound) / 2 + range.lowerBound
-            }
-            .onTapGesture { location in
-                updateValue(from: location.y, in: geometry.size.height)
-            }
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { gesture in
+                    if gesture.translation.height == 0 { // click/tap - no drag
+                        lastValue = value
+                        if Date().timeIntervalSince(lastClickTime) < 0.25 { // double click/tap if less than 250 ms
+                            value = (range.upperBound - range.lowerBound) / 2 + range.lowerBound // set value to midway point
+                        }
+                        lastClickTime = Date()
+                    } else {
+                        incrementValue(change: gesture.translation.height, in: geometry.size.height)
+                    }
+                }
+                .onEnded { gesture in
+                    // commit Undo action here
+                }
+            )
         }
         .frame(width: 40) // Control the width of the slider
         .clipped()
+    }
+
+    private func incrementValue(change yDelta: CGFloat, in height: CGFloat ) {
+        let lastYpos = Double(height) - Double(lastValue - range.lowerBound) / (range.upperBound - range.lowerBound) * height
+        let newYpos = lastYpos + yDelta
+        updateValue(from: newYpos, in: height)
     }
 
     private func updateValue(from yPos: CGFloat, in height: CGFloat) {
