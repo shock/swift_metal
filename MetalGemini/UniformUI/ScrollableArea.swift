@@ -13,8 +13,11 @@ class ScrollableAreaView: NSView {
     var onScrollY: ((CGFloat) -> Void)?
 
     override func scrollWheel(with event: NSEvent) {
-        if event.scrollingDeltaY != 0 {
-            self.onScrollY?(event.scrollingDeltaY)
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags.contains(.shift) {
+            if event.scrollingDeltaY != 0 {
+                self.onScrollY?(event.scrollingDeltaY)
+            }
         } else {
             super.scrollWheel(with: event)
         }

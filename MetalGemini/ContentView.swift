@@ -27,10 +27,10 @@ struct ContentView: View {
     @State private var metalView: MetalView?
 
     var body: some View {
-        VStack{
+        VStack {
             if renderMgr.shaderError == nil {
 
-                ZStack{
+                ZStack {
                     metalView?
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
