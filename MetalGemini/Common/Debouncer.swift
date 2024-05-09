@@ -40,4 +40,10 @@ class Debouncer {
         // Schedule the new work item to execute after the specified delay.
         queue.asyncAfter(deadline: .now() + delay, execute: item)
     }
+    
+    /// Cancels pending action, if any
+    func cancelPending() {
+        workItem?.cancel()
+        workItem = nil
+    }
 }

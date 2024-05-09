@@ -14,6 +14,7 @@ struct VerticalSlider: View {
     var range: ClosedRange<Double>
     @State var lastValue: Double = 0
     @State var lastClickTime = Date()
+    @State var clickDebouncer = Debouncer(delay: 0.25, queueLabel: "net.wdoughty.metaltoy.uniclick")
 
     var body: some View {
 
@@ -41,10 +42,19 @@ struct VerticalSlider: View {
                     if gesture.translation.height == 0 { // click/tap - no drag
                         lastValue = value
                         if Date().timeIntervalSince(lastClickTime) < 0.25 { // double click/tap if less than 250 ms
+                            clickDebouncer.cancelPending()
                             value = (range.upperBound - range.lowerBound) / 2 + range.lowerBound // set value to midway point
+                        } else {
+                            clickDebouncer.debounce {
+                                DispatchQueue.main.async {
+                                    self.updateValue(from: gesture.location.y, in: geometry.size.height)
+                                    lastValue = value
+                                }
+                            }
                         }
                         lastClickTime = Date()
                     } else {
+                        clickDebouncer.cancelPending()
                         incrementValue(change: gesture.translation.height, in: geometry.size.height)
                     }
                 }
