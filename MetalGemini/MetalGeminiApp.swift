@@ -22,9 +22,11 @@ struct MetalGeminiApp: App {
 }
 
 // Separate AppDelegate class
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var windowController: CustomWindowController! // Store window controller reference
     var uniformWindowController: UniformWindowController?
+    // List to hold multiple uniform window controllers
+    var uniformWindowControllers: [UniformWindowController] = []
     var mainMenu: NSMenu! // Store the main menu
     var renderMgr = RenderManager() // Create the ViewModel instance here
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
@@ -86,24 +88,68 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         sender.state = renderMgr.uniformOverlayVisible ? .on : .off
     }
 
-    @objc func toggleUniformWindow(sender: NSMenuItem) {
-        if uniformWindowController == nil {
-            // Lazily initializes the window only once
-            let overlayView = UniformsView(renderMgr: renderMgr)
-            uniformWindowController = UniformWindowController(contentView: overlayView)
-        }
+    @objc func toggleUniformWindows(sender: NSMenuItem) {
+//        if uniformWindowController == nil {
+//            // Lazily initializes the window only once
+//            let overlayView = UniformsView(renderMgr: renderMgr)
+//            uniformWindowController = UniformWindowController(contentView: overlayView)
+//        }
+//
+//        // Toggle visibility of the window
+//        if let window = uniformWindowController?.window {
+//            if window.isVisible {
+//                window.orderOut(nil)  // Hide the window
+//                sender.state = .off
+//            } else {
+//                window.makeKeyAndOrderFront(nil)  // Show the window
+//                sender.state = .on
+//            }
+//        }
+    }
 
-        // Toggle visibility of the window
-        if let window = uniformWindowController?.window {
-            if window.isVisible {
-                window.orderOut(nil)  // Hide the window
-                sender.state = .off
-            } else {
-                window.makeKeyAndOrderFront(nil)  // Show the window
-                sender.state = .on
+    @objc func openUniformWindow(sender: NSMenuItem) {
+        let overlayView = UniformsView(renderMgr: renderMgr)
+        let newWindowController = UniformWindowController(
+            contentView: overlayView,
+            windowId: uniformWindowControllers.count,
+            windowGroup: self
+        )
+        uniformWindowControllers.append(newWindowController)
+        newWindowController.window?.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        if let window = notification.object as? NSWindow {
+            // Remove the window controller from the list when window closes
+            uniformWindowControllers.removeAll { $0.window === window }
+            for (index, wc) in uniformWindowControllers.enumerated() {
+                wc.setWindowId(index)
             }
         }
     }
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        if let window = notification.object as? NSWindow {
+            // Move the window controller for the active window to the end of the list
+            let condition: (UniformWindowController) -> Bool = { $0.window == window }
+
+            // Find the index of the element that matches the condition
+            if let index = uniformWindowControllers.firstIndex(where: condition) {
+                // Retrieve the element
+                let element = uniformWindowControllers[index]
+
+                // Remove the element from the array
+                uniformWindowControllers.remove(at: index)
+                uniformWindowControllers.append(element)
+                for (index, wc) in uniformWindowControllers.enumerated() {
+                    wc.setWindowId(index)
+                }
+            } else {
+                print("No element found matching the condition")
+            }
+        }
+    }
+
 
     @objc func openFile() {
         renderMgr.openFile()
@@ -139,13 +185,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController.window?.setContentSize(NSSize(width: width, height: height))
 //        windowController.window?.center()
     }
-    
+
     @objc func updateRenderFrame(notification: Notification) {
         DispatchQueue.main.async {
             self.renderMgr.updateFrame()
         }
     }
- 
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(self, selector: #selector(handleMenuStateChange(notification:)), name: .menuStateDidChange, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateRenderFrame(notification:)), name: .updateRenderFrame, object: nil)
@@ -199,8 +245,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         viewMenu.addItem(vsyncItem)
         let toggleUniformOverlay = NSMenuItem(title: "Uniforms Overlay", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
         viewMenu.addItem(toggleUniformOverlay)
-        let toggleUniformWindow = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformWindow), keyEquivalent: "p")
-        viewMenu.addItem(toggleUniformWindow)
+//        let toggleUniformWindow = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformWindow), keyEquivalent: "p")
+//        viewMenu.addItem(toggleUniformWindow)
+        let openUniformWindowItem = NSMenuItem(title: "Show Uniforms", action: #selector(openUniformWindow), keyEquivalent: "p")
+        viewMenu.addItem(openUniformWindowItem)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)
 
@@ -208,9 +256,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add items to your file menu...
         let windowMenuItem = NSMenuItem()
         windowMenuItem.submenu = windowMenu
-        newItem = NSMenuItem(title: "Resize Window", action: #selector(promptForWindowSize), keyEquivalent: "r")
+        newItem = NSMenuItem(title: "Resize Render Window", action: #selector(promptForWindowSize), keyEquivalent: "r")
         windowMenu.addItem(newItem)
         windowMenu.addItem(NSMenuItem.separator()) // Add a separator
+        let closeMenuItem = NSMenuItem(title: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(closeMenuItem)
+        windowMenu.addItem(NSMenuItem.separator())
+
+        // If you have specific settings for your menu item like this, make sure it's set correctly
+        closeMenuItem.target = nil  // Target is nil so that it uses the responder chain
         mainMenu.addItem(windowMenuItem)
 
         NSApp.windowsMenu = NSMenu(title: "Window") // Add a default Window menu

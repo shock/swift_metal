@@ -61,6 +61,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
     override func windowDidLoad() {
         super.windowDidLoad()
+        self.window?.delegate = self  // Ensure this controller is the delegate
     }
 
     private func setupWindowProperties() {
@@ -84,6 +85,14 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
             let frame = NSRectFromString(frameString)
             window?.setFrame(frame, display: true)
         }
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Prevent the main window from closing with CMD-W
+        if sender == self.window {
+            return false
+        }
+        return true
     }
 
     func windowWillClose(_ notification: Notification) {
