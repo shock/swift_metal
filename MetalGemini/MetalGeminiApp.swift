@@ -89,22 +89,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func toggleUniformWindows(sender: NSMenuItem) {
-//        if uniformWindowController == nil {
-//            // Lazily initializes the window only once
-//            let overlayView = UniformsView(renderMgr: renderMgr)
-//            uniformWindowController = UniformWindowController(contentView: overlayView)
-//        }
-//
-//        // Toggle visibility of the window
-//        if let window = uniformWindowController?.window {
-//            if window.isVisible {
-//                window.orderOut(nil)  // Hide the window
-//                sender.state = .off
-//            } else {
-//                window.makeKeyAndOrderFront(nil)  // Show the window
-//                sender.state = .on
-//            }
-//        }
+        for wc in uniformWindowControllers {
+            // Toggle visibility of the window
+            if let window = wc.window {
+                if window.isVisible {
+                    window.orderOut(nil)  // Hide the window
+                    sender.state = .off
+                } else {
+                    window.makeKeyAndOrderFront(nil)  // Show the window
+                    sender.state = .on
+                }
+            }
+        }
     }
 
     @objc func openUniformWindow(sender: NSMenuItem) {
@@ -245,9 +241,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         viewMenu.addItem(vsyncItem)
         let toggleUniformOverlay = NSMenuItem(title: "Uniforms Overlay", action: #selector(toggleUniformOverlay), keyEquivalent: "u")
         viewMenu.addItem(toggleUniformOverlay)
-//        let toggleUniformWindow = NSMenuItem(title: "Show Uniforms", action: #selector(toggleUniformWindow), keyEquivalent: "p")
-//        viewMenu.addItem(toggleUniformWindow)
-        let openUniformWindowItem = NSMenuItem(title: "Show Uniforms", action: #selector(openUniformWindow), keyEquivalent: "p")
+        let toggleUniformWindows = NSMenuItem(title: "Toggle Uniform Windows", action: #selector(toggleUniformWindows), keyEquivalent: "/")
+        viewMenu.addItem(toggleUniformWindows)
+        let openUniformWindowItem = NSMenuItem(title: "Show Uniforms", action: #selector(openUniformWindow), keyEquivalent: "n")
         viewMenu.addItem(openUniformWindowItem)
         viewMenu.addItem(NSMenuItem.separator()) // Add a separator
         mainMenu.addItem(viewMenuItem)

@@ -16,7 +16,7 @@ class ClickThroughWindow: NSWindow {
             if !self.isKeyWindow {
                 self.makeKeyAndOrderFront(self)
                 let localPoint = self.convertPoint(fromScreen: event.locationInWindow)
-                if let hitView = self.contentView?.hitTest(localPoint) {
+                if let _ = self.contentView?.hitTest(localPoint) {
                     super.sendEvent(event)  // Ensure the event is processed by the target view
                 }
                 return
