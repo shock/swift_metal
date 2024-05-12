@@ -18,6 +18,7 @@ struct UniformVariable {
     let name: String
     let type: String
     let style: UniformStyle
+    var active: Bool
     var values: [Float]
     let range: (min: Float, max: Float)
 }
@@ -26,9 +27,8 @@ struct UniformVariable {
 class UniformManager: ObservableObject {
     var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
-//    var indexMap: [(String,String)] = [] // Tuple storing uniform names and their types
-//    var float4dict = Float4Dictionary() // Dictionary to store uniform values
-    @Published var uniformVariables: [UniformVariable] = []
+    @Published var activeUniforms: [UniformVariable] = []
+    var uniformVariables: [UniformVariable] = []
     var dirty = true // Flag to indicate if the buffer needs updating
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     var debug = false // Debug flag to enable logging
@@ -39,14 +39,12 @@ class UniformManager: ObservableObject {
     private var updateBufferDebouncer = Debouncer(delay: 0.005, queueLabel: "net.wdoughty.metaltoy.mapToBuffer") // Debouncer for updating buffer
     private var projectDirDelegate: ShaderProjectDirAccess!
 
-    func updateValue(index: Int, valueIndex: Int, newValue: Float) {
-        guard newValue >= uniformVariables[index].range.min &&
-              newValue <= uniformVariables[index].range.max else { return }
-        uniformVariables[index].values[valueIndex] = newValue
-        valueUpdated()
-    }
+    func valueUpdated(name: String, valueIndex: Int, value: Float) {
+        guard let index = parameterMap[name] else { return }
+        let uniform = uniformVariables[index]
+        guard uniform.values.count > valueIndex else { return }
+        uniformVariables[index].values[valueIndex] = value
 
-    func valueUpdated() {
         dirty = true
         updateBufferDebouncer.debounce { [weak self] in
             self?.triggerRenderRefresh()
@@ -97,13 +95,13 @@ class UniformManager: ObservableObject {
             print("UniformManager: setIndex() - Bad data type: \(type)")
             return -1
         }
-        let uVar = UniformVariable(name: name, type:type, style: style, values: values, range: (min:min, max:max))
+        let uVar = UniformVariable(name: name, type:type, style: style, active: false, values: values, range: (min:min, max:max))
+        let index = uniformVariables.count
         uniformVariables.append(uVar)
-        let index = uniformVariables.count-1
         parameterMap[name] = index
         return index
     }
-    
+
     // parses the shader file to look for a struct tagged
     // with @uniform, which will define which uniforms
     // are managed by the application and sent to the fragment
@@ -129,7 +127,7 @@ class UniformManager: ObservableObject {
         let metadataRegex = /^\s*(float\d?)\s+(\w+)/
         let rangeRegex = /.*\/\/\s+@range[\s:]+(-?\d+.?\d*)\s+\.\.\s+(-?\d+.?\d*)/
         let toggleRegex = /.*@toggle.*/
-        var index = 0
+//        var index = 0
         var insideStruct = false
         for line in lines {
             if( insideStruct ) {
@@ -150,7 +148,7 @@ class UniformManager: ObservableObject {
                             print("WARNING: Uniform \(name) can't be a toggle.  Only float types can be toggles.")
                         }
                     }
-                    index = setIndex(name: name, type: type, style: style, min: min, max: max)
+                    _ = setIndex(name: name, type: type, style: style, min: min, max: max)
                 }
                 if( line.firstMatch(of: endStructRegex) != nil ) {
                     break
@@ -158,7 +156,39 @@ class UniformManager: ObservableObject {
             }
             if( line.firstMatch(of: structRegex) != nil ) { insideStruct = true }
         }
-        let numUniforms = index + 1
+
+        insideStruct = false
+        for line in lines {
+            if( line.firstMatch(of: structRegex) != nil ) { insideStruct = true }
+            if insideStruct == true {
+                if( line.firstMatch(of: endStructRegex) != nil ) {
+                    insideStruct = false
+                }
+            } else {
+
+                for i in uniformVariables.indices {
+                    do {
+                        let uv = uniformVariables[i]
+                        let regexPattern = "\\b\(uv.name)\\b"
+                        let uvRegex = try NSRegularExpression(pattern: regexPattern, options: [])
+                        let matches = uvRegex.matches(in: line, options: [], range: NSRange(location: 0, length: line.utf16.count))
+
+                        if !matches.isEmpty {
+                            print("\(uv.name) found!")
+                            uniformVariables[i].active = true
+                        }
+                    } catch {
+                        print("error creating regex: \(error)")
+                    }
+
+                }
+            }
+
+        }
+        activeUniforms = uniformVariables.filter {
+            $0.active == true
+        }
+        let numUniforms = uniformVariables.count
         let length = MemoryLayout<SIMD4<Float>>.size*numUniforms
         buffer = metalDevice.makeBuffer(length: length, options: .storageModeShared)
         dirty = true
@@ -166,15 +196,15 @@ class UniformManager: ObservableObject {
         if( debug ) { printUniforms() }
         uniformsTxtURL = srcURL.deletingPathExtension().appendingPathExtension("uniforms").appendingPathExtension("txt")
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
-        
+
         loadUniformsFromFile()
-        print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms")
+        print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms, \(activeUniforms.count) active")
 //        defer { semaphore.signal() }
         if buffer == nil {
             throw "Unable to create metal buffer"
         }
     }
-    
+
 //    // Add to a float uniform value by name, optionally suppressing the file save operation
 //    func incrementFloatUniform( _ name: String, increment: Float, min: Float, max: Float, suppressSave:Bool = false, updateBuffer:Bool = true)
 //    {
@@ -188,7 +218,7 @@ class UniformManager: ObservableObject {
 //        let values:[Float] = [value]
 //        setUniformTuple(name, values: values, suppressSave: suppressSave, updateBuffer: updateBuffer)
 //    }
-    
+
 //    func getUniformTuple(_ name: String) -> [Float] {
 //        let index = parameterMap[name]!
 //        let (_,type) = indexMap[index]
@@ -196,11 +226,11 @@ class UniformManager: ObservableObject {
 //        return tuple
 //    }
 //
-    
+
     func triggerRenderRefresh() {
         NotificationCenter.default.post(name: .updateRenderFrame, object: nil, userInfo: [:])
     }
-    
+
     private func truncateValues( index: Int, values: [Float] ) -> [Float] {
         let uVar = uniformVariables[index]
         let type = uVar.type
@@ -231,6 +261,12 @@ class UniformManager: ObservableObject {
         if !suppressSave { semaphore.wait() }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
         uniformVariables[index].values = values
+        let condition: (UniformVariable) -> Bool = { $0.name == name }
+
+        // Find the index of the element that matches the condition
+        if let index = activeUniforms.firstIndex(where: condition) {
+            activeUniforms[index].values = values
+        }
         dirty = true
         if( !suppressSave ) {
             saveDebouncer.debounce { [weak self] in

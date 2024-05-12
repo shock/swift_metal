@@ -27,7 +27,7 @@ struct UniformControlView: View {
                                     get: { Double(uVar.values[valueIndex]) },
                                     set: { newValue in
                                         uVar.values[valueIndex] = Float(newValue)
-                                        viewModel.valueUpdated()
+                                        viewModel.valueUpdated(name: uVar.name, valueIndex: valueIndex, value: Float(newValue))
                                     }),
                                                range: Double(uVar.range.min)...Double(uVar.range.max)
                                 )
@@ -46,7 +46,7 @@ struct UniformControlView: View {
                         get: { Double(uVar.values[0]) },
                         set: { newValue in
                             uVar.values[0] = Float(newValue)
-                            viewModel.valueUpdated()
+                            viewModel.valueUpdated(name: uVar.name, valueIndex: 0, value: Float(newValue))
                         }),
                                  range: Double(uVar.range.min)...Double(uVar.range.max)
                     )

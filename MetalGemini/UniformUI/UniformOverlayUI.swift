@@ -13,14 +13,14 @@ struct UniformOverlayUI: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            if viewModel.uniformVariables.count > 0 {
+            if viewModel.activeUniforms.count > 0 {
                 HStack {
                     // since lazy doesn't establish geometry we have to establish it with one non-lazy view first
-                    UniformControlView(uVar: $viewModel.uniformVariables[0], viewModel: viewModel)
+                    UniformControlView(uVar: $viewModel.activeUniforms[0], viewModel: viewModel)
                     LazyHStack {
-                        ForEach(1..<viewModel.uniformVariables.count, id: \.self) { index in
-                            if index < viewModel.uniformVariables.count {
-                                UniformControlView(uVar: $viewModel.uniformVariables[index], viewModel: viewModel)
+                        ForEach(1..<viewModel.activeUniforms.count, id: \.self) { index in
+                            if index < viewModel.activeUniforms.count {
+                                UniformControlView(uVar: $viewModel.activeUniforms[index], viewModel: viewModel)
                             } else {
                                 Text("Shouldn't be here")
                             }
