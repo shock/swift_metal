@@ -55,8 +55,21 @@ class UniformWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
+    private func updateBackgroundColor() {
+        if window?.isKeyWindow ?? false {
+            window?.backgroundColor = NSColor.black.blended(withFraction: 0.1   , of: NSColor.white) // Color when window is key
+        } else {
+            window?.backgroundColor = NSColor.black.withAlphaComponent(0.9) // Color when window is not key
+        }
+    }
+
     func windowDidBecomeKey(_ notification: Notification) {
         windowGroup.windowDidBecomeKey?(notification)
+        updateBackgroundColor()
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        updateBackgroundColor()
     }
 
     func windowWillClose(_ notification: Notification) {
