@@ -29,8 +29,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var uniformWindowControllers: [UniformWindowController] = []
     var mainMenu: NSMenu! // Store the main menu
     var renderMgr = RenderManager() // Create the ViewModel instance here
+    var globalKeyboardEventHandler: GlobalKeyboardEventHandler
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
     private var oscServer: OSCServerManager!
+
+    override init() {
+        self.globalKeyboardEventHandler = GlobalKeyboardEventHandler(keyboardDelegate: renderMgr)
+        super.init()
+    }
 
     func setupOSCServer() {
         oscServer.startServer()
@@ -104,7 +110,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func openUniformWindow(sender: NSMenuItem) {
-        let overlayView = UniformsView(renderMgr: renderMgr)
+        let overlayView = UniformsView(viewModel: renderMgr.uniformManager).environmentObject(globalKeyboardEventHandler)
         let newWindowController = UniformWindowController(
             contentView: overlayView,
             windowId: uniformWindowControllers.count,
@@ -191,7 +197,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(self, selector: #selector(handleMenuStateChange(notification:)), name: .menuStateDidChange, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateRenderFrame(notification:)), name: .updateRenderFrame, object: nil)
-        windowController = CustomWindowController(rootView: ContentView(renderMgr: renderMgr))
+        let contentView = ContentView(renderMgr: renderMgr).environmentObject(globalKeyboardEventHandler)
+        windowController = CustomWindowController(rootView: contentView)
         windowController.showWindow(self)
         oscServer = OSCServerManager(delegate: self)
         setupOSCServer()

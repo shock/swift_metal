@@ -10,30 +10,18 @@ import SwiftUI
 
 struct UniformsView: View {
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
-    @ObservedObject var renderMgr: RenderManager
+    @ObservedObject var viewModel: UniformManager
 
     var body: some View {
         VStack{
             ZStack{
-                KeyboardMouseViewRepresentable( keyboardDelegate: renderMgr, mouseDelegate: renderMgr )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(false)  // Allows events to pass through
-                    .zIndex(1)
-                UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                UniformOverlayUI(viewModel: viewModel)
                     .frame(height: 300) // Configurable
                     .opacity(0.8)
                     .zIndex(2)
             }
-        }
-        .onAppear {
-        }
-        .onChange(of: renderMgr.frameCount) {
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
 }
-
-#Preview {
-    UniformsView(renderMgr: RenderManager())
-}
-

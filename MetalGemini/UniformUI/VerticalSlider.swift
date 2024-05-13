@@ -10,6 +10,7 @@ import SwiftUI
 import EventKit // Ensure this is correctly imported if necessary for custom scroll handling
 
 struct VerticalSlider: View {
+    @EnvironmentObject var keyboardHandler: GlobalKeyboardEventHandler
     @Binding var value: Double
     var range: ClosedRange<Double>
     @State var lastValue: Double = 0
@@ -29,9 +30,11 @@ struct VerticalSlider: View {
                         value = newValue
                     }
                     isTextFieldFocused = false // Ensure focus is moved away when committing
+                    keyboardHandler.resumeHandling()
                     isEditing = false
                 })
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(PlainTextFieldStyle())
+//                .textFieldStyle(RoundedBorderTextFieldStyle())
                 //                .keyboardType(.decimalPad)
                 .onAppear {
                     textValue = String(format: "%.3f", value)
@@ -40,12 +43,18 @@ struct VerticalSlider: View {
                 .onDisappear() {
                     isTextFieldFocused = false
                 }
-//                    .frame(width: geometry.size.width)
                 .focusable()
                 .focused($isTextFieldFocused)
+                .onChange(of: isTextFieldFocused) {
+                    if isTextFieldFocused {
+                        keyboardHandler.suspendHandling()
+                    }
+                }
+                .fixedSize()
                 .onKeyPress(action: { keyPress in
                     if keyPress.key.character == "\u{1B}" { // escape key
                         isTextFieldFocused = false // Ensure focus is moved away when committing
+                        keyboardHandler.resumeHandling()
                         isEditing = false
                         return .handled
                     }

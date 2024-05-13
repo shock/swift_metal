@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 
 struct UniformOverlayUI: View {
+    @EnvironmentObject var keyboardHandler: GlobalKeyboardEventHandler
     @ObservedObject var viewModel: UniformManager
 
     var body: some View {
@@ -29,6 +30,9 @@ struct UniformOverlayUI: View {
                 }
                 .padding(1)
             }
+        }
+        .onAppear() {
+            keyboardHandler.resumeHandling()
         }
         .background(Color.clear)
         .padding()

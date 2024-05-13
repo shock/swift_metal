@@ -15,7 +15,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private var cancellables: Set<AnyCancellable> = []
     private var keyboardMouseView: KeyboardMouseView!
 
-    convenience init(rootView: ContentView) {
+    convenience init<Content: View>(rootView: Content) {
         let hostingController = NSHostingController(rootView: rootView)
         hostingController.view.frame = NSRect(origin: .zero, size: NSSize(width: 600, height: 450)) // Set the frame size
         let window = ClickThroughWindow(contentViewController: hostingController)

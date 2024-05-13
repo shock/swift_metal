@@ -10,11 +10,11 @@ import Cocoa
 import SwiftUI
 
 class UniformWindowController: NSWindowController, NSWindowDelegate {
-    var contentView: UniformsView
+    var contentView: any View
     var windowGroup: NSWindowDelegate
     private var windowId: Int = 0
 
-    init(contentView: UniformsView, windowId: Int, windowGroup: NSWindowDelegate ) {
+    init<Content: View>(contentView: Content, windowId: Int, windowGroup: NSWindowDelegate ) {
         self.contentView = contentView
         let hostingController = NSHostingController(rootView: contentView)
         let window = ClickThroughWindow(contentViewController: hostingController)

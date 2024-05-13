@@ -23,6 +23,7 @@ extension EnvironmentValues {
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
     @Environment(\.appMenu) var appMenu // Property for holding menu reference
+    @EnvironmentObject var keyboardHandler: GlobalKeyboardEventHandler
     @ObservedObject var renderMgr: RenderManager
     @State private var metalView: MetalView?
 
@@ -35,10 +36,12 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
                         .zIndex(0)
-                    KeyboardMouseViewRepresentable( keyboardDelegate: renderMgr, mouseDelegate: renderMgr )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .allowsHitTesting(false)  // Allows events to pass through
-                        .zIndex(1)
+                  
+//                    KeyboardMouseViewRepresentable( keyboardDelegate: renderMgr, mouseDelegate: renderMgr )
+//                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+//                        .allowsHitTesting(false)  // Allows events to pass through
+//                        .zIndex(1)
+
                     UniformOverlayUI(viewModel: renderMgr.uniformManager)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .frame(height: 300) // Configurable

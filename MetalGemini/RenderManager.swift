@@ -230,11 +230,11 @@ class RenderManager: ObservableObject {
 }
 
 extension RenderManager: KeyboardEventsDelegate {
-    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) { }
+    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
 
-    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) { }
+    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
 
-    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
+    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? {
         //        if event.isARepeat { return }
 
         let keyCode = event.keyCode
@@ -255,8 +255,9 @@ extension RenderManager: KeyboardEventsDelegate {
             fforward()
             updateFrame()
         default:
-            break // Do nothing for other key codes
+            return event
         }
+        return nil
     }
 
     func shutDown() {

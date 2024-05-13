@@ -10,9 +10,9 @@ import Cocoa
 import SwiftUI
 
 protocol KeyboardEventsDelegate: AnyObject {
-    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
+    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
+    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
 }
 
 protocol MouseEventsDelegate: AnyObject {
@@ -35,7 +35,7 @@ class KeyboardMouseView: NSView {
     weak var keyboardDelegate: KeyboardEventsDelegate?
     weak var mouseDelegate: MouseEventsDelegate?
     var lastCursorPosition = NSPoint()
-    let debug = false
+    let debug = true
     override var acceptsFirstResponder: Bool { return true }
 
     override func keyDown(with event: NSEvent) {
