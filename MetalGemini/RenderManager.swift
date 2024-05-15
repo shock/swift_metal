@@ -25,6 +25,7 @@ class RenderManager: ObservableObject {
         }
     }
 
+    var undoManager = UndoManager()
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
@@ -195,6 +196,7 @@ class RenderManager: ObservableObject {
                     resourceMgr.setUniformBuffer(uniformManager.getBuffer())
                     resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: self.size)
                     resourceMgr.swapCurrentResources()
+                    self.undoManager.removeAllActions()
                 } catch {
                     shaderError = error.localizedDescription
                 }

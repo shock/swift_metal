@@ -29,12 +29,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     var uniformWindowControllers: [UniformWindowController] = []
     var mainMenu: NSMenu! // Store the main menu
     var renderMgr = RenderManager() // Create the ViewModel instance here
-    var undoManager = UndoManager()
     var globalKeyboardEventHandler: GlobalKeyboardEventHandler
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
     private var oscServer: OSCServerManager!
     let MENU_UNDO=1101
     let MENU_REDO=1102
+
+    var undoManager: UndoManager {
+        get {
+            renderMgr.undoManager
+        }
+    }
+
     override init() {
         self.globalKeyboardEventHandler = GlobalKeyboardEventHandler(keyboardDelegate: renderMgr)
         super.init()
