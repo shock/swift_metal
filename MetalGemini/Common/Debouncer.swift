@@ -46,4 +46,9 @@ class Debouncer {
         workItem?.cancel()
         workItem = nil
     }
+    
+    /// Returns `true` if `workitem` is pending
+    func isPending() -> Bool {
+        return workItem != nil
+    }
 }
