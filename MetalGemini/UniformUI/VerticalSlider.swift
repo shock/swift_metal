@@ -77,6 +77,10 @@ struct VerticalSlider: View {
                         let adjustment = deltaY / 7000 // Adjust this scale factor as necessary
                         let newValue = value - Float(adjustment) * (range.upperBound - range.lowerBound)
                         value = newValue.clamped(to: range)
+                    }, onScrollStart: {
+                        lastValue = value // save current value for undo
+                    }, onScrollStop: {
+                        commitUndo(value, lastValue: lastValue)
                     })
                     .frame(maxWidth: .infinity, maxHeight: .infinity) // Make ScrollableArea cover the entire ZStack
 
@@ -144,7 +148,7 @@ struct VerticalSlider: View {
 
     private func commitUndo(_ newValue: Float, lastValue: Float? = nil) {
         let formattedValue = String(format: "%.3f", newValue)
-        let msg = "Change value to \(formattedValue)"
+        let msg = "Set Slider to \(formattedValue)"
         sliderUndoManager.commitUndo(newValue, lastValue: lastValue, msg: msg)
     }
 

@@ -42,7 +42,7 @@ class ValueUndoWrapper<Value: Equatable>: ObservableObject {
     func commitUndo(_ newValue: Value, lastValue: Value? = nil, msg: String = "Change Value") {
         let lastValue = lastValue ?? self.value
         undoManager?.registerUndo(withTarget: self, handler: { (target) in
-            target.commitUndo(lastValue)
+            target.commitUndo(lastValue, msg: msg)
             target.valueUpdated = true // notify the View that the value has changed
         })
         undoManager?.setActionName(msg)
