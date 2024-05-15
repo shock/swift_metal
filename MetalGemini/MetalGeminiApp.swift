@@ -22,17 +22,19 @@ struct MetalGeminiApp: App {
 }
 
 // Separate AppDelegate class
-class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     var windowController: CustomWindowController! // Store window controller reference
     var uniformWindowController: UniformWindowController?
     // List to hold multiple uniform window controllers
     var uniformWindowControllers: [UniformWindowController] = []
     var mainMenu: NSMenu! // Store the main menu
     var renderMgr = RenderManager() // Create the ViewModel instance here
+    var undoManager = UndoManager()
     var globalKeyboardEventHandler: GlobalKeyboardEventHandler
     var resizeWindow: ((CGFloat, CGFloat) -> Void)?
     private var oscServer: OSCServerManager!
-
+    let MENU_UNDO=1101
+    let MENU_REDO=1102
     override init() {
         self.globalKeyboardEventHandler = GlobalKeyboardEventHandler(keyboardDelegate: renderMgr)
         super.init()
@@ -110,7 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func openUniformWindow(sender: NSMenuItem) {
-        let overlayView = UniformsView(viewModel: renderMgr.uniformManager).environmentObject(globalKeyboardEventHandler)
+        let overlayView = UniformsView(viewModel: renderMgr.uniformManager).environmentObject(globalKeyboardEventHandler).environment(\.undoManager, undoManager)
         let newWindowController = UniformWindowController(
             contentView: overlayView,
             windowId: uniformWindowControllers.count,
@@ -197,7 +199,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationCenter.default.addObserver(self, selector: #selector(handleMenuStateChange(notification:)), name: .menuStateDidChange, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateRenderFrame(notification:)), name: .updateRenderFrame, object: nil)
-        let contentView = ContentView(renderMgr: renderMgr).environmentObject(globalKeyboardEventHandler)
+        let contentView = ContentView(renderMgr: renderMgr).environmentObject(globalKeyboardEventHandler).environment(\.undoManager, undoManager)
         windowController = CustomWindowController(rootView: contentView)
         windowController.showWindow(self)
         oscServer = OSCServerManager(delegate: self)
@@ -236,9 +238,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let editMenu = NSMenu(title: "Edit")
         let copyMenuItem = NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         editMenu.addItem(copyMenuItem)
+        editMenu.addItem(NSMenuItem.separator()) // Add a separator
+        // Edit Menu for Undo and Redo
+        let undoMenuItem = NSMenuItem(title: "Undo", action: #selector(undoAction), keyEquivalent: "z")
+        undoMenuItem.target = self
+        undoMenuItem.tag = MENU_UNDO
+        let redoMenuItem = NSMenuItem(title: "Redo", action: #selector(redoAction), keyEquivalent: "Z")
+        redoMenuItem.keyEquivalentModifierMask = [.command, .shift]
+        redoMenuItem.tag = MENU_REDO
+        redoMenuItem.target = self
+
+        editMenu.addItem(undoMenuItem)
+        editMenu.addItem(redoMenuItem)
         let editMenuItem = NSMenuItem()
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
+
 
         let viewMenu = NSMenu(title: "View")
         // Add items to your file menu...
@@ -274,7 +289,49 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         // Set the main menu
         NSApplication.shared.mainMenu = mainMenu
+        mainMenu.autoenablesItems = true
+        mainMenu.delegate = self
         updateMenuState()
+        updateMenuTitles()
+    }
+
+    @objc func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(undoAction):
+            menuItem.title = undoManager.canUndo ? "Undo \(undoManager.undoActionName)" : "Undo"
+            return undoManager.canUndo
+        case #selector(redoAction):
+            menuItem.title = undoManager.canRedo ? "Redo \(undoManager.redoActionName)" : "Redo"
+            return undoManager.canRedo
+        default:
+            return true  // Enable other menu items by default
+        }
+    }
+
+    @objc func undoAction() {
+        if undoManager.canUndo {
+            undoManager.undo()
+        }
+        updateMenuTitles()
+    }
+
+    @objc func redoAction() {
+        if undoManager.canRedo {
+            undoManager.redo()
+        }
+        updateMenuTitles()
+    }
+
+    private func updateMenuTitles() {
+        let undoMenuItem = findMenuItem(byTag: MENU_UNDO, in: NSApplication.shared.mainMenu!)
+        let redoMenuItem = findMenuItem(byTag: MENU_REDO, in: NSApplication.shared.mainMenu!)
+
+        undoMenuItem?.title = undoManager.canUndo ? "Undo \(undoManager.undoActionName)" : "Undo"
+        redoMenuItem?.title = undoManager.canRedo ? "Redo \(undoManager.redoActionName)" : "Redo"
+
+        // Disable menu items if no undo/redo actions are available
+        undoMenuItem?.isEnabled = undoManager.canUndo
+        redoMenuItem?.isEnabled = undoManager.canRedo
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

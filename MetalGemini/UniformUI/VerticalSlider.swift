@@ -9,14 +9,51 @@ import Foundation
 import SwiftUI
 import EventKit // Ensure this is correctly imported if necessary for custom scroll handling
 
+class SliderUndoManager: ObservableObject {
+    @Published var valueUpdated: Bool = false
+    private var value: Float
+    private var lastValue: Float = 0
+    var undoManager: UndoManager?
+
+    init(initialValue: Float, undoManager: UndoManager?) {
+        self.value = initialValue
+        self.undoManager = undoManager
+    }
+
+    func commitUndo(_ newValue: Float, lastValue: Float? = nil) {
+        let lastValue = lastValue ?? self.value
+        undoManager?.registerUndo(withTarget: self, handler: { (target) in
+            target.commitUndo(lastValue)
+            target.valueUpdated = true
+        })
+        let formattedValue = String(format: "%.3f", newValue)
+        undoManager?.setActionName("change value to \(formattedValue)")
+        self.lastValue = self.value
+        self.value = newValue
+    }
+
+    func getValue() -> Float {
+        valueUpdated = false
+        return value
+    }
+
+    func setValue(_ newValue: Float) {
+        value = newValue
+    }
+}
+
+let DoubleClickTime = 0.25
+
 struct VerticalSlider: View {
     @EnvironmentObject var keyboardHandler: GlobalKeyboardEventHandler
-    @Binding var value: Double
-    var range: ClosedRange<Double>
-    @State var lastValue: Double = 0
+    @Environment(\.undoManager) private var undoManager
+    @Binding var value: Float
+    var range: ClosedRange<Float>
+    @State var lastValue: Float = 0
+    @StateObject var sliderUndoManager = SliderUndoManager(initialValue: 0, undoManager: nil)
     @State var lastClickTime = Date()
     @State var secondClick = false
-    @State var clickDebouncer = Debouncer(delay: 0.25, queueLabel: "net.wdoughty.metaltoy.uniclick")
+    @State var clickDebouncer = Debouncer(delay: DoubleClickTime, queueLabel: "net.wdoughty.metaltoy.uniclick")
     @State private var isEditing = false
     @State private var textValue: String = ""
     @FocusState private var isTextFieldFocused: Bool
@@ -25,19 +62,10 @@ struct VerticalSlider: View {
 
         VStack {
             if isEditing {
-                TextField("", text: $textValue, onCommit: {
-                    if let newValue = Double(textValue), range.contains(newValue) {
-                        value = newValue
-                    }
-                    isTextFieldFocused = false // Ensure focus is moved away when committing
-                    keyboardHandler.resumeHandling()
-                    isEditing = false
-                })
+                TextField("", text: $textValue, onCommit: commitText)
                 .textFieldStyle(PlainTextFieldStyle())
-//                .textFieldStyle(RoundedBorderTextFieldStyle())
-                //                .keyboardType(.decimalPad)
                 .onAppear {
-                    textValue = String(format: "%.3f", value)
+                    textValue = String(format: "%.4f", value)
                     isTextFieldFocused = true
                 }
                 .onDisappear() {
@@ -67,33 +95,35 @@ struct VerticalSlider: View {
                         isEditing = true
                     }
             }
-                
+
             GeometryReader { geometry in
                 ZStack(alignment: .bottom) {
                     Rectangle() // Slider Track
                         .fill(Color.white.opacity(0.25))
                         .frame(width: 40)
-                    
+
                     Rectangle() // Slider Thumb
                         .fill(Color.init(red: 0, green: 0.55, blue: 1.0).opacity(0.7))
                         .frame(width: 40, height: max(0,CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * geometry.size.height))
-                    
+
                     ScrollableArea { deltaY in
                         let adjustment = deltaY / 7000 // Adjust this scale factor as necessary
-                        let newValue = value - adjustment * (range.upperBound - range.lowerBound)
+                        let newValue = value - Float(adjustment) * (range.upperBound - range.lowerBound)
                         value = newValue.clamped(to: range)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity) // Make ScrollableArea cover the entire ZStack
-                    
+
                 }
                 .cornerRadius(2)
                 .gesture(DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         if gesture.translation.height == 0 { // click/tap - no drag
-                            lastValue = value
-                            if Date().timeIntervalSince(lastClickTime) < 0.25 { // double click/tap if less than 250 ms
-                                clickDebouncer.cancelPending()
+                            lastValue = value // record the value before actual drag movement, for undo later
+                            if Date().timeIntervalSince(lastClickTime) < DoubleClickTime { // double click/tap occurred
+                                clickDebouncer.cancelPending() // cancel pending single-click action
                                 value = (range.upperBound - range.lowerBound) / 2 + range.lowerBound // set value to midway point
+                                // update immediatelly - capture UNDO here)
+                                sliderUndoManager.commitUndo(value)
                                 secondClick = true
                             } else {
                                 secondClick = false
@@ -103,23 +133,27 @@ struct VerticalSlider: View {
                             incrementValue(change: gesture.translation.height, in: geometry.size.height)
                         }
                     }
-                    .onEnded { gesture in
+                    .onEnded { gesture in  // user has let up on mouse button or touch screen
                         if gesture.translation.height == 0 { // click/tap - no drag
                             if !secondClick {
-                                if Date().timeIntervalSince(lastClickTime) < 0.25 {
-                                    clickDebouncer.debounce {
+                                if Date().timeIntervalSince(lastClickTime) < DoubleClickTime {
+                                    clickDebouncer.debounce { // schedule single click action
                                         DispatchQueue.main.async {
                                             self.updateValue(from: gesture.location.y, in: geometry.size.height)
-                                            lastValue = value
+                                            // update value right away (capture UNDO here)
+                                            sliderUndoManager.commitUndo(value)
                                         }
                                     }
                                 } else {
                                     self.updateValue(from: gesture.location.y, in: geometry.size.height)
+                                    // update value right away (capture UNDO here)
+                                    sliderUndoManager.commitUndo(value)
                                 }
                             }
-                            lastClickTime = Date()
+                            lastClickTime = Date() // start the double click timer on gesture end
                         } else {
-                            // commit Undo for drag action here
+                            // capture UNDO for drag action here, using the captured value before drag started
+                            sliderUndoManager.commitUndo(value, lastValue: lastValue)
                         }
                     }
                 )
@@ -127,17 +161,42 @@ struct VerticalSlider: View {
             .frame(width: 40) // Control the width of the slider
         }
         .clipped()
+        .onAppear {
+            sliderUndoManager.undoManager = undoManager
+        }
+        .onChange(of: sliderUndoManager.valueUpdated) {
+            if sliderUndoManager.valueUpdated {
+                value = sliderUndoManager.getValue()
+            }
+        }
+        .onChange(of: value) {
+            sliderUndoManager.setValue(value)
+        }
+
+    }
+
+    private func commitText() {
+        lastValue = value
+        if let newValue = Float(textValue), range.contains(newValue) {
+            value = newValue
+            sliderUndoManager.commitUndo(value)
+            // capture UNDO action here
+        }
+        isTextFieldFocused = false // Ensure focus is moved away when committing
+        keyboardHandler.resumeHandling()
+        isEditing = false
     }
 
     private func incrementValue(change yDelta: CGFloat, in height: CGFloat ) {
-        let lastYpos = Double(height) - Double(lastValue - range.lowerBound) / (range.upperBound - range.lowerBound) * height
-        let newYpos = lastYpos + yDelta
+        let lastYpos = Float(height) - Float(lastValue - range.lowerBound) / (range.upperBound - range.lowerBound) * Float(height)
+        let newYpos = CGFloat(lastYpos) + yDelta
         updateValue(from: newYpos, in: height)
     }
 
     private func updateValue(from yPos: CGFloat, in height: CGFloat) {
-        let sliderValue = Double(height - yPos) / Double(height) * (range.upperBound - range.lowerBound) + range.lowerBound
-        value = sliderValue.clamped(to: range)
+        let sliderValue = Float(height - yPos) / Float(height) * (range.upperBound - range.lowerBound) + range.lowerBound
+        let newValue = sliderValue.clamped(to: range)
+        value = newValue
     }
 
 }

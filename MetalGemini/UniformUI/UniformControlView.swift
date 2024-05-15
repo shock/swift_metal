@@ -21,12 +21,12 @@ struct UniformControlView: View {
                     HStack {
                         ForEach(0..<uVar.values.count, id: \.self) { valueIndex in
                             VerticalSlider(value: Binding(
-                                get: { Double(uVar.values[valueIndex]) },
+                                get: { Float(uVar.values[valueIndex]) },
                                 set: { newValue in
                                     uVar.values[valueIndex] = Float(newValue)
                                     viewModel.valueUpdated(name: uVar.name, valueIndex: valueIndex, value: Float(newValue))
                                 }),
-                                           range: Double(uVar.range.min)...Double(uVar.range.max)
+                                           range: Float(uVar.range.min)...Float(uVar.range.max)
                             )
                             .frame(height: 300) // Set the height of the custom slider
                         }

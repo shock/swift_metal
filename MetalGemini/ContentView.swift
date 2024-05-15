@@ -20,9 +20,21 @@ extension EnvironmentValues {
     }
 }
 
+private struct UndoManagerKey: EnvironmentKey {
+    static let defaultValue: UndoManager? = nil
+}
+
+extension EnvironmentValues {
+    var undoManager: UndoManager? {
+        get { self[UndoManagerKey.self] }
+        set { self[UndoManagerKey.self] = newValue }
+    }
+}
+
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
-    @Environment(\.appMenu) var appMenu // Property for holding menu reference
+    @Environment(\.appMenu) private var appMenu // Property for holding menu reference
+    @Environment(\.undoManager) private var undoManager
     @EnvironmentObject var keyboardHandler: GlobalKeyboardEventHandler
     @ObservedObject var renderMgr: RenderManager
     @State private var metalView: MetalView?
