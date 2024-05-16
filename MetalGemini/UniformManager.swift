@@ -304,22 +304,23 @@ class UniformManager: ObservableObject {
                 if !debouncer.isPending() {
                     debouncer.store = uVar.values
                 }
+                let lastValues = debouncer.store ?? uVar.values
                 debouncer.debounce { [weak self] in
                     guard let self = self else { return }
-                    print("-> inside debounce closure")
-                    let lastValues = debouncer.store ?? uVar.values
+                    print("-> inside debounce closure - lastValues: \(lastValues)")
                     undoManager.registerUndo(withTarget: self, handler: { target in
                         print("-> -> inside registerUndo closure - isUndo = \(isUndo) - lastValues: \(lastValues)")
                         target.setUniformTuple(name, values: lastValues, updateBuffer: true, isUndo: !isUndo)
                     })
                     undoManager.setActionName("Update uniform '\(name)'")
-//                    clearDebouncer(name)
+                    clearDebouncer(name)
                 }
             } else {
-                print("* isUndo")
+                let lastValues = uVar.values
+                print("* isUndo -> about to registerUndo with lastValues: \(lastValues)")
                 undoManager.registerUndo(withTarget: self, handler: { target in
-                    print("-> -> XX inside registerUndo closure - isUndo = \(isUndo)")
-                    target.setUniformTuple(name, values: uVar.values, updateBuffer: true, isUndo: !isUndo)
+                    print("8O -> XX inside registerUndo closure - isUndo = \(isUndo)")
+                    target.setUniformTuple(name, values: lastValues, updateBuffer: true, isUndo: !isUndo)
                 })
                 undoManager.setActionName("Update uniform '\(name)'")
             }
