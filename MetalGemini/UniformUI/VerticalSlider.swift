@@ -74,15 +74,11 @@ struct VerticalSlider: View {
                         .fill(Color.init(red: 0, green: 0.55, blue: 1.0).opacity(0.7))
                         .frame(width: 40, height: max(0,CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * geometry.size.height))
 
-                    ScrollableArea(onScrollY: { deltaY in
+                    ScrollableArea { deltaY in
                         let adjustment = deltaY / 7000 // Adjust this scale factor as necessary
                         let newValue = value - Float(adjustment) * (range.upperBound - range.lowerBound)
                         value = newValue.clamped(to: range)
-                    }, onScrollStart: {
-                        lastValue = value // save current value for undo
-                    }, onScrollStop: {
-                        commitUndo(value, lastValue: lastValue)
-                    })
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity) // Make ScrollableArea cover the entire ZStack
 
                 }
@@ -94,38 +90,32 @@ struct VerticalSlider: View {
                             if Date().timeIntervalSince(lastClickTime) < DoubleClickTime { // double click/tap occurred
                                 clickDebouncer.cancelPending() // cancel pending single-click action
                                 value = (range.upperBound - range.lowerBound) / 2 + range.lowerBound // set value to midway point
-                                // update immediatelly - capture UNDO here)
-                                commitUndo(value)
                                 secondClick = true
                             } else {
                                 secondClick = false
                             }
+                            lastClickTime = Date() // start the double click timer
                         } else {
+                            // we're dragging, not clicking
                             clickDebouncer.cancelPending()
                             incrementValue(change: gesture.translation.height, in: geometry.size.height)
                         }
                     }
                     .onEnded { gesture in  // user has let up on mouse button or touch screen
-                        if gesture.translation.height == 0 { // click/tap - no drag
+                        // we only care about clicks in this case, not drags
+                        if gesture.translation.height == 0 { // gesture was a click/tap - no drag
                             if !secondClick {
                                 if Date().timeIntervalSince(lastClickTime) < DoubleClickTime {
                                     clickDebouncer.debounce { // schedule single click action
                                         DispatchQueue.main.async {
                                             self.updateValue(from: gesture.location.y, in: geometry.size.height)
-                                            // update value right away (capture UNDO here)
-                                            commitUndo(value)
                                         }
                                     }
                                 } else {
+                                    // update right away since the double-click timer has elapsed
                                     self.updateValue(from: gesture.location.y, in: geometry.size.height)
-                                    // update value right away (capture UNDO here)
-                                    commitUndo(value)
                                 }
                             }
-                            lastClickTime = Date() // start the double click timer on gesture end
-                        } else {
-                            // capture UNDO for drag action here, using the captured value before drag started
-                            commitUndo(value, lastValue: lastValue)
                         }
                     }
                 )
@@ -147,19 +137,10 @@ struct VerticalSlider: View {
 
     }
 
-    private func commitUndo(_ newValue: Float, lastValue: Float? = nil) {
-        return
-        let formattedValue = String(format: "%.3f", newValue)
-        let msg = "Set Slider to \(formattedValue)"
-        sliderUndoManager.commitUndo(newValue, lastValue: lastValue, msg: msg)
-    }
-
     private func commitText() {
         lastValue = value
         if let newValue = Float(textValue), range.contains(newValue) {
             value = newValue
-            commitUndo(value)
-            // capture UNDO action here
         }
         isTextFieldFocused = false // Ensure focus is moved away when committing
         keyboardHandler.resumeHandling()
