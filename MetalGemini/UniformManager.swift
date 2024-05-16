@@ -119,6 +119,7 @@ class UniformManager: ObservableObject {
         if !suppressSave { semaphore.signal() }
     }
 
+    // MARK: setUniformTuple
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false, isUndo: Bool = false)
     {
@@ -128,7 +129,10 @@ class UniformManager: ObservableObject {
         }
         let values = truncateValues(index: index, values: values)
         if debug { print("\nUniformManager: setUniformTuple(\(name), \(values)") }
-
+        if uniformVariables[index].values == values {
+            if debug { print("current values match new values. Skipping setUniformTuple") }
+            return
+        }
         if !suppressSave {
             var undoData = getUndoData(name)
             let timer = undoData.timer
@@ -158,6 +162,10 @@ class UniformManager: ObservableObject {
         let currentValues = uniformVariables[index].values
         var undoData = getUndoData(name)
         let oldValues = undoData.oldValues
+        if currentValues == oldValues {
+            if debug { print("old values match current values. Skipping undo") }
+            return
+        }
         if debug { print("UniformManager::registerUndo \(name), oldValues: \(oldValues) currentValues: \(currentValues)") }
         undoManager.registerUndo(withTarget: self) { target in
             if self.debug { print("Inside registerUndo closure: \(name), oldValues: \(oldValues) currentValues: \(currentValues)") }
