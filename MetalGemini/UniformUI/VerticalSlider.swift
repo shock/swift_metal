@@ -30,31 +30,32 @@ struct VerticalSlider: View {
         VStack {
             if isEditing {
                 TextField("", text: $textValue, onCommit: commitText)
-                .textFieldStyle(PlainTextFieldStyle())
-                .onAppear {
-                    textValue = String(format: "%.4f", value)
-                    isTextFieldFocused = true
-                }
-                .onDisappear() {
-                    isTextFieldFocused = false
-                }
-                .focusable()
-                .focused($isTextFieldFocused)
-                .onChange(of: isTextFieldFocused) {
-                    if isTextFieldFocused {
-                        keyboardHandler.suspendHandling()
+                    .background(Color.gray.opacity(0.5))
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .onAppear {
+                        textValue = String(format: "%.4f", value)
+                        isTextFieldFocused = true
                     }
-                }
-                .fixedSize()
-                .onKeyPress(action: { keyPress in
-                    if keyPress.key.character == "\u{1B}" { // escape key
-                        isTextFieldFocused = false // Ensure focus is moved away when committing
-                        keyboardHandler.resumeHandling()
-                        isEditing = false
-                        return .handled
+                    .onDisappear() {
+                        isTextFieldFocused = false
                     }
-                    return .ignored
-                })
+                    .focusable()
+                    .focused($isTextFieldFocused)
+                    .onChange(of: isTextFieldFocused) {
+                        if isTextFieldFocused {
+                            keyboardHandler.suspendHandling()
+                        }
+                    }
+                    .fixedSize()
+                    .onKeyPress(action: { keyPress in
+                        if keyPress.key.character == "\u{1B}" { // escape key
+                            isTextFieldFocused = false // Ensure focus is moved away when committing
+                            keyboardHandler.resumeHandling()
+                            isEditing = false
+                            return .handled
+                        }
+                        return .ignored
+                    })
             } else {
                 Text(String(format: "%.3f", value))
                     .fixedSize()
