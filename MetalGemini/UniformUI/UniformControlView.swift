@@ -24,7 +24,8 @@ struct UniformControlView: View {
                                 get: { Float(uVar.values[valueIndex]) },
                                 set: { newValue in
                                     uVar.values[valueIndex] = Float(newValue)
-                                    viewModel.valueUpdated(name: uVar.name, valueIndex: valueIndex, value: Float(newValue))
+//                                    viewModel.valueUpdated(name: uVar.name, valueIndex: valueIndex, value: Float(newValue))
+                                    viewModel.setUniformTuple(uVar.name, values: uVar.values, suppressSave: false, updateBuffer: true)
                                 }),
                                            range: Float(uVar.range.min)...Float(uVar.range.max)
                             )

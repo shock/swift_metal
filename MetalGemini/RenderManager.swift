@@ -39,7 +39,7 @@ class RenderManager: ObservableObject {
 
     init() {
         self.shaderManager = ShaderManager()
-        self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
+        self.uniformManager = UniformManager(projectDirDelegate: shaderManager, undoManager: undoManager)
         self.textureManager = TextureManager()
         self.resourceMgr = MetalResourceManager(projectDirDelegate: shaderManager)
     }

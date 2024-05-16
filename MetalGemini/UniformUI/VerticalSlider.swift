@@ -147,6 +147,7 @@ struct VerticalSlider: View {
     }
 
     private func commitUndo(_ newValue: Float, lastValue: Float? = nil) {
+        return
         let formattedValue = String(format: "%.3f", newValue)
         let msg = "Set Slider to \(formattedValue)"
         sliderUndoManager.commitUndo(newValue, lastValue: lastValue, msg: msg)

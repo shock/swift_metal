@@ -25,6 +25,7 @@ struct UniformVariable {
 
 // Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
 class UniformManager: ObservableObject {
+    var undoManager: UndoManager
     var metalDevice: MTLDevice!
     var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     @Published var activeUniforms: [UniformVariable] = []
@@ -59,8 +60,9 @@ class UniformManager: ObservableObject {
         return uniformVariables
     }
 
-    init(projectDirDelegate: ShaderProjectDirAccess) {
+    init(projectDirDelegate: ShaderProjectDirAccess, undoManager: UndoManager) {
         self.projectDirDelegate = projectDirDelegate
+        self.undoManager = undoManager
         if let metalDevice = MTLCreateSystemDefaultDevice() {
             self.metalDevice = metalDevice
         } else {
@@ -72,7 +74,6 @@ class UniformManager: ObservableObject {
     private func resetMapping() {
         parameterMap.removeAll()
         uniformVariables.removeAll()
-//        indexMap.removeAll()
         dirty = true
     }
 
@@ -127,7 +128,6 @@ class UniformManager: ObservableObject {
         let metadataRegex = /^\s*(float\d?)\s+(\w+)/
         let rangeRegex = /.*\/\/\s+@range[\s:]+(-?\d+.?\d*)\s+\.\.\s+(-?\d+.?\d*)/
         let toggleRegex = /.*@toggle.*/
-//        var index = 0
         var insideStruct = false
         for line in lines {
             if( insideStruct ) {
@@ -199,33 +199,10 @@ class UniformManager: ObservableObject {
 
         loadUniformsFromFile()
         print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms, \(activeUniforms.count) active")
-//        defer { semaphore.signal() }
         if buffer == nil {
             throw "Unable to create metal buffer"
         }
     }
-
-//    // Add to a float uniform value by name, optionally suppressing the file save operation
-//    func incrementFloatUniform( _ name: String, increment: Float, min: Float, max: Float, suppressSave:Bool = false, updateBuffer:Bool = true)
-//    {
-//        var value = float4dict.getAsFloat(name)
-//        value += increment
-//        value += -min
-//        value = value.truncatingRemainder(dividingBy: max-min)
-//        if value < 0 { value = max-min+value } // wrap around negative
-//        value -= -min
-//        print(value)
-//        let values:[Float] = [value]
-//        setUniformTuple(name, values: values, suppressSave: suppressSave, updateBuffer: updateBuffer)
-//    }
-
-//    func getUniformTuple(_ name: String) -> [Float] {
-//        let index = parameterMap[name]!
-//        let (_,type) = indexMap[index]
-//        var tuple = uniformVariables[index].values
-//        return tuple
-//    }
-//
 
     func triggerRenderRefresh() {
         NotificationCenter.default.post(name: .updateRenderFrame, object: nil, userInfo: [:])
@@ -250,6 +227,21 @@ class UniformManager: ObservableObject {
         }
     }
 
+    func getUniformVar(name: String) -> UniformVariable? {
+        let condition: (UniformVariable) -> Bool = { $0.name == name }
+
+        // Find the index of the element that matches the condition
+        if let index = uniformVariables.firstIndex(where: condition) {
+            return uniformVariables[index]
+        } else {
+            return nil
+        }
+    }
+
+    func getUniformVar(index: Int) -> UniformVariable? {
+        return uniformVariables[index]
+    }
+
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
     {
@@ -259,6 +251,13 @@ class UniformManager: ObservableObject {
         }
         let values = truncateValues(index: index, values: values)
         if !suppressSave { semaphore.wait() }
+        let uVar = uniformVariables[index]
+        if !suppressSave {
+            undoManager.registerUndo(withTarget: self, handler: { target in
+                target.setUniformTuple(name, values: uVar.values, updateBuffer: true)
+            })
+            undoManager.setActionName("Update uniform '\(name)'")
+        }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
         uniformVariables[index].values = values
         let condition: (UniformVariable) -> Bool = { $0.name == name }
@@ -424,7 +423,7 @@ extension UniformManager: OSCMessageDelegate {
     func handleOSCMessage(message: OSCMessage) {
         let oscRegex = /[\/\d]*?(\w+).*/
         if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
-            let name = firstMatch.1
+            let name = String(firstMatch.1)
             var tuple:[Float] = []
             for argument in message.arguments {
                 if let float = argument as? Float {
@@ -434,8 +433,7 @@ extension UniformManager: OSCMessageDelegate {
                 }
 
             }
-            self.setUniformTuple(String(name), values: tuple, updateBuffer: true)
-
+            self.setUniformTuple(name, values: tuple, updateBuffer: true)
         }
     }
 }

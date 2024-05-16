@@ -36,7 +36,6 @@ class ScrollableAreaView: NSView {
                 self.onScrollY?(event.scrollingDeltaY)
                 stopDebouncer.debounce { [weak self] in
                     self?.onScrollStop?()
-                    self?.lastScrollTime = Date() - 10
                 }
             }
         } else {
