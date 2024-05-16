@@ -31,15 +31,15 @@ class UniformManager: ObservableObject {
         var timer: Timer?
     }
     
-    var undoManager: UndoManager
-    var metalDevice: MTLDevice!
-    var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     @Published var activeUniforms: [UniformVariable] = []
-    var uniformVariables: [UniformVariable] = []
-    var dirty = true // Flag to indicate if the buffer needs updating
+    private var undoManager: UndoManager
+    private var metalDevice: MTLDevice!
+    private var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
+    private var uniformVariables: [UniformVariable] = []
+    private var dirty = true // Flag to indicate if the buffer needs updating
+    private var debug = true // Debug flag to enable logging
+    private var uniformsTxtURL: URL? // URL for the uniforms file
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
-    var debug = false // Debug flag to enable logging
-    var uniformsTxtURL: URL? // URL for the uniforms file
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
     private var saveDebouncer = Debouncer(delay: 0.5, queueLabel: "net.wdoughty.metaltoy.saveUniformsQueue") // Debouncer for saving operations
     private var updateBufferDebouncer = Debouncer(delay: 0.005, queueLabel: "net.wdoughty.metaltoy.mapToBuffer") // Debouncer for updating buffer
@@ -61,7 +61,7 @@ class UniformManager: ObservableObject {
         if let undoData = undoRecords[name] {
             return undoData
         } else {
-            print("creating undoData for \(name)")
+            if debug { print("creating undoData for \(name)") }
             let undoData = UndoData(oldValues: [], timer: nil)
             undoRecords[name] = undoData
             return undoData
@@ -96,7 +96,7 @@ class UniformManager: ObservableObject {
             print("ERROR: updateUniform - No uniform named: \(name)")
             return
         }
-        print("updateUniform: \(name) to \(values)")
+        if debug { print("updateUniform: \(name) to \(values)") }
         if !suppressSave { semaphore.wait() }
         let values = truncateValues(index: index, values: values)
         uniformVariables[index].values = values
@@ -134,14 +134,14 @@ class UniformManager: ObservableObject {
             let timer = undoData.timer
             if timer == nil {
                 undoData.oldValues = uniformVariables[index].values
-                print("setUniformTuple - timer is nil, setting oldValues: \(undoData.oldValues)")
+                if debug { print("setUniformTuple - timer is nil, setting oldValues: \(undoData.oldValues)") }
             } else {
-                print("setUniformTuple - timer is NOT nil - invalidating")
+                if debug { print("setUniformTuple - timer is NOT nil - invalidating") }
             }
             timer?.invalidate()
-            print("setting timer for \(UndoCommitDelay) seconds")
+            if debug { print("setting timer for \(UndoCommitDelay) seconds") }
             undoData.timer = Timer.scheduledTimer(withTimeInterval: UndoCommitDelay, repeats: false) { _ in
-                print("timer popped - calling UniformManager::registerUnfo(\(name))")
+                if self.debug { print("timer popped - calling UniformManager::registerUnfo(\(name))") }
                 self.registerUndo(name)
             }
             setUndoData(name, data: undoData)
@@ -158,9 +158,9 @@ class UniformManager: ObservableObject {
         let currentValues = uniformVariables[index].values
         var undoData = getUndoData(name)
         let oldValues = undoData.oldValues
-        print("UniformManager::registerUndo \(name), oldValues: \(oldValues) currentValues: \(currentValues)")
+        if debug { print("UniformManager::registerUndo \(name), oldValues: \(oldValues) currentValues: \(currentValues)") }
         undoManager.registerUndo(withTarget: self) { target in
-            print("Inside registerUndo closure: \(name), oldValues: \(oldValues) currentValues: \(currentValues)")
+            if self.debug { print("Inside registerUndo closure: \(name), oldValues: \(oldValues) currentValues: \(currentValues)") }
             self.updateUniform(name, values: oldValues, suppressSave: false, updateBuffer: true)
             self.registerRedo(name: name, previousValues: currentValues)
         }
@@ -172,9 +172,9 @@ class UniformManager: ObservableObject {
     }
 
     private func registerRedo(name: String, previousValues: [Float]) {
-        print("UniformManager::registerRedo \(name), previousValues: \(previousValues)")
+        if debug { print("UniformManager::registerRedo \(name), previousValues: \(previousValues)") }
         undoManager.registerUndo(withTarget: self) { target in
-            print("Inside registerUndo closure: \(name) previousValues: \(previousValues)")
+            if self.debug { print("Inside registerUndo closure: \(name) previousValues: \(previousValues)") }
             self.updateUniform(name, values: previousValues, suppressSave: false, updateBuffer: true)
             self.registerUndo(name)
         }
@@ -239,7 +239,7 @@ class UniformManager: ObservableObject {
     func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
         resetMapping()
 
-        print("UniformManager: setupUniformsFromShader() starting")
+        if debug { print("UniformManager: setupUniformsFromShader() starting") }
 
         let lines = shaderSource.components(separatedBy: "\n")
 
@@ -259,7 +259,7 @@ class UniformManager: ObservableObject {
                     if let secondMatch = line.firstMatch(of: rangeRegex) {
                         if let _min = Float(secondMatch.1) { min = _min }
                         if let _max = Float(secondMatch.2) { max = _max }
-                        print("Found range \(min) .. \(max)")
+                        if debug { print("Found range \(min) .. \(max)") }
                     }
                     if (line.firstMatch(of: toggleRegex) != nil) {
                         if type == "float" {
@@ -294,7 +294,6 @@ class UniformManager: ObservableObject {
                         let matches = uvRegex.matches(in: line, options: [], range: NSRange(location: 0, length: line.utf16.count))
 
                         if !matches.isEmpty {
-                            print("\(uv.name) found!")
                             uniformVariables[i].active = true
                         }
                     } catch {
@@ -317,7 +316,9 @@ class UniformManager: ObservableObject {
         uniformsTxtURL = URL(fileURLWithPath: uniformsTxtURL!.path)
 
         loadUniformsFromFile()
-        print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms, \(activeUniforms.count) active")
+        if debug {
+            print("UniformManager: setupUniformsFromShader() finished processing \(uniformVariables.count) uniforms, \(activeUniforms.count) active")
+        }
         if buffer == nil {
             throw "Unable to create metal buffer"
         }

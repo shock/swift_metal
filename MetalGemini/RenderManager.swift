@@ -25,18 +25,18 @@ class RenderManager: ObservableObject {
         }
     }
 
+    private(set) var size: CGSize = CGSize(width:0,height:0)
+    private(set) var startDate = Date()
+    private(set) var mtkVC: MetalView.Coordinator?
+    private(set) var uniformManager: UniformManager!
+    private(set) var renderSync = SerialRunner()
+    private(set) var resourceMgr: MetalResourceManager!
     private var lastMousePosition = CGPoint()
     private var undoManager: UndoManager
-    public private(set) var size: CGSize = CGSize(width:0,height:0)
-    var mtkVC: MetalView.Coordinator?
-    public private(set) var startDate = Date()
-    var uniformManager: UniformManager!
     private var textureManager: TextureManager!
     private var shaderManager: ShaderManager!
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-    public private(set) var renderSync = SerialRunner()
-    private(set) var resourceMgr: MetalResourceManager!
 
     init(undoManager: UndoManager) {
         self.undoManager = undoManager
