@@ -39,26 +39,27 @@ class UniformManager: ObservableObject {
     private var saveDebouncer = Debouncer(delay: 0.5, queueLabel: "net.wdoughty.metaltoy.saveUniformsQueue") // Debouncer for saving operations
     private var updateBufferDebouncer = Debouncer(delay: 0.005, queueLabel: "net.wdoughty.metaltoy.mapToBuffer") // Debouncer for updating buffer
     private var projectDirDelegate: ShaderProjectDirAccess!
+    private var undoDebouncers: [String:DebouncerType<[Float]>] = [:]
+    let UndoCommitDelay = 0.25 // seconds before committing undo
+//    func valueUpdated(name: String, valueIndex: Int, value: Float) {
+//        guard let index = parameterMap[name] else { return }
+//        let uniform = uniformVariables[index]
+//        guard uniform.values.count > valueIndex else { return }
+//        uniformVariables[index].values[valueIndex] = value
+//
+//        dirty = true
+//        updateBufferDebouncer.debounce { [weak self] in
+//            self?.triggerRenderRefresh()
+//            self?.mapUniformsToBuffer()
+//        }
+//        saveDebouncer.debounce { [weak self] in
+//            self?.saveUniformsToFile()
+//        }
+//    }
 
-    func valueUpdated(name: String, valueIndex: Int, value: Float) {
-        guard let index = parameterMap[name] else { return }
-        let uniform = uniformVariables[index]
-        guard uniform.values.count > valueIndex else { return }
-        uniformVariables[index].values[valueIndex] = value
-
-        dirty = true
-        updateBufferDebouncer.debounce { [weak self] in
-            self?.triggerRenderRefresh()
-            self?.mapUniformsToBuffer()
-        }
-        saveDebouncer.debounce { [weak self] in
-            self?.saveUniformsToFile()
-        }
-    }
-
-    func getCurrentValues() -> [UniformVariable] {
-        return uniformVariables
-    }
+//    func getCurrentValues() -> [UniformVariable] {
+//        return uniformVariables
+//    }
 
     init(projectDirDelegate: ShaderProjectDirAccess, undoManager: UndoManager) {
         self.projectDirDelegate = projectDirDelegate
@@ -68,6 +69,21 @@ class UniformManager: ObservableObject {
         } else {
             fatalError("Metal not supported on this computer.")
         }
+    }
+
+    private func getDebouncer(_ name: String ) -> DebouncerType<[Float]> {
+        if let debouncer = undoDebouncers[name] {
+            return debouncer
+        } else {
+            print("creating debouncer for \(name)")
+            let debouncer = DebouncerType<[Float]>(delay: UndoCommitDelay, queueLabel: "net.wdoughty.uniUndo.\(name)", debug: true)
+            undoDebouncers[name] = debouncer
+            return debouncer
+        }
+    }
+
+    private func clearDebouncer(_ name: String) {
+        undoDebouncers.removeValue(forKey: name)
     }
 
     // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
@@ -242,8 +258,24 @@ class UniformManager: ObservableObject {
         return uniformVariables[index]
     }
 
+    private func commitUndo(name: String, newValues: [Float], lastValues: [Float]? = nil) {
+        guard let uIndex = parameterMap[name] else { return }
+        let uVar = uniformVariables[uIndex]
+        let lastValues = lastValues ?? uVar.values
+        self.undoManager.registerUndo(withTarget: self, handler: { target in
+            target.commitUndo(name: name, newValues: lastValues)
+        })
+        undoManager.setActionName("Update uniform '\(uVar.name)'")
+        uniformVariables[uIndex].values = newValues
+        if let index = self.activeUniforms.firstIndex(where: { $0.name == name }) {
+            DispatchQueue.main.async {
+                self.activeUniforms[index].values = newValues
+            }
+        }
+    }
+
     // Set a uniform value from an array of floats, optionally suppressing the file save operation
-    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false)
+    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false, isUndo: Bool = false)
     {
         guard let index = parameterMap[name] else {
             print("No uniform named: \(name)")
@@ -253,10 +285,44 @@ class UniformManager: ObservableObject {
         if !suppressSave { semaphore.wait() }
         let uVar = uniformVariables[index]
         if !suppressSave {
-            undoManager.registerUndo(withTarget: self, handler: { target in
-                target.setUniformTuple(name, values: uVar.values, updateBuffer: true)
-            })
-            undoManager.setActionName("Update uniform '\(name)'")
+//            undoManager.registerUndo(withTarget: self, handler: { target in
+//                target.setUniformTuple(name, values: uVar.values, updateBuffer: true)
+//            })
+//            undoManager.setActionName("Update uniform '\(name)'")
+//            let debouncer = getDebouncer(name)
+//            if !debouncer.isPending() {
+//                debouncer.store = uVar.values
+//            }
+//            debouncer.debounce { [weak self] in
+//                guard let self = self else { return }
+//                self.commitUndo(name: name, newValues: values, lastValues: debouncer.store)
+//                clearDebouncer(name)
+//            }
+            if !isUndo {
+                print("Not isUndo")
+                let debouncer = getDebouncer(name)
+                if !debouncer.isPending() {
+                    debouncer.store = uVar.values
+                }
+                debouncer.debounce { [weak self] in
+                    guard let self = self else { return }
+                    print("-> inside debounce closure")
+                    let lastValues = debouncer.store ?? uVar.values
+                    undoManager.registerUndo(withTarget: self, handler: { target in
+                        print("-> -> inside registerUndo closure - isUndo = \(isUndo) - lastValues: \(lastValues)")
+                        target.setUniformTuple(name, values: lastValues, updateBuffer: true, isUndo: !isUndo)
+                    })
+                    undoManager.setActionName("Update uniform '\(name)'")
+//                    clearDebouncer(name)
+                }
+            } else {
+                print("* isUndo")
+                undoManager.registerUndo(withTarget: self, handler: { target in
+                    print("-> -> XX inside registerUndo closure - isUndo = \(isUndo)")
+                    target.setUniformTuple(name, values: uVar.values, updateBuffer: true, isUndo: !isUndo)
+                })
+                undoManager.setActionName("Update uniform '\(name)'")
+            }
         }
         if debug { print("UniformManager: setUniformTuple(\(name), \(values)") }
         uniformVariables[index].values = values

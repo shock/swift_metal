@@ -7,17 +7,21 @@
 
 import Foundation
 
-class Debouncer {
+class DebouncerType<Value: Equatable> {
     private let queue: DispatchQueue
     private var workItem: DispatchWorkItem?
     private let delay: TimeInterval
+    private var debug = false
+    var store: Value?
 
     /// Initializes a debouncer with a specified delay and an optional custom dispatch queue label.
     /// - Parameters:
     ///   - delay: The delay time interval for debouncing.
     ///   - queueLabel: An optional string to label the custom dispatch queue. If nil, the main queue is used.
-    init(delay: TimeInterval, queueLabel: String? = nil) {
+    init(delay: TimeInterval, queueLabel: String? = nil, store: Value? = nil, debug: Bool = false) {
         self.delay = delay
+        self.store = store
+        self.debug = debug
         // Create a dispatch queue with the given label or use the main queue if no label is provided.
         if let label = queueLabel {
             self.queue = DispatchQueue(label: label)
@@ -31,6 +35,7 @@ class Debouncer {
     /// - Parameter block: The closure to execute after the delay.
     func debounce(_ block: @escaping () -> Void) {
         // Cancel the current work item if it exists.
+        if debug && isPending() { print("workItem exists - cancelling") }
         workItem?.cancel()
 
         // Create a new work item and assign it to the variable.
@@ -55,3 +60,5 @@ class Debouncer {
         return workItem != nil
     }
 }
+
+typealias Debouncer = DebouncerType<Float>
