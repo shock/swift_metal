@@ -102,7 +102,3 @@ struct ContentView: View {
      }
 
 }
-
-#Preview {
-    ContentView(renderMgr: RenderManager())
-}

@@ -38,7 +38,7 @@ class UniformManager: ObservableObject {
     var uniformVariables: [UniformVariable] = []
     var dirty = true // Flag to indicate if the buffer needs updating
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
-    var debug = true // Debug flag to enable logging
+    var debug = false // Debug flag to enable logging
     var uniformsTxtURL: URL? // URL for the uniforms file
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
     private var saveDebouncer = Debouncer(delay: 0.5, queueLabel: "net.wdoughty.metaltoy.saveUniformsQueue") // Debouncer for saving operations
@@ -46,25 +46,6 @@ class UniformManager: ObservableObject {
     private var projectDirDelegate: ShaderProjectDirAccess!
     private var undoRecords: [String:UndoData] = [:]
     let UndoCommitDelay = 0.25 // seconds before committing undo
-//    func valueUpdated(name: String, valueIndex: Int, value: Float) {
-//        guard let index = parameterMap[name] else { return }
-//        let uniform = uniformVariables[index]
-//        guard uniform.values.count > valueIndex else { return }
-//        uniformVariables[index].values[valueIndex] = value
-//
-//        dirty = true
-//        updateBufferDebouncer.debounce { [weak self] in
-//            self?.triggerRenderRefresh()
-//            self?.mapUniformsToBuffer()
-//        }
-//        saveDebouncer.debounce { [weak self] in
-//            self?.saveUniformsToFile()
-//        }
-//    }
-
-//    func getCurrentValues() -> [UniformVariable] {
-//        return uniformVariables
-//    }
 
     init(projectDirDelegate: ShaderProjectDirAccess, undoManager: UndoManager) {
         self.projectDirDelegate = projectDirDelegate
@@ -91,10 +72,6 @@ class UniformManager: ObservableObject {
         undoRecords[name] = data
     }
 
-    private func clearUndoData(_ name: String) {
-        undoRecords.removeValue(forKey: name)
-    }
-
     private func truncateValues( index: Int, values: [Float] ) -> [Float] {
         let uVar = uniformVariables[index]
         let type = uVar.type
@@ -114,37 +91,9 @@ class UniformManager: ObservableObject {
         }
     }
 
-    func getUniformVar(name: String) -> UniformVariable? {
-        guard let index = parameterMap[name] else {
-            print("No uniform named: \(name)")
-            return nil
-        }
-        return uniformVariables[index]
-    }
-//
-//    func getUniformVar(index: Int) -> UniformVariable? {
-//        return uniformVariables[index]
-//    }
-//
-//    private func commitUndo(name: String, newValues: [Float], lastValues: [Float]? = nil) {
-//        guard let uIndex = parameterMap[name] else { return }
-//        let uVar = uniformVariables[uIndex]
-//        let lastValues = lastValues ?? uVar.values
-//        self.undoManager.registerUndo(withTarget: self, handler: { target in
-//            target.commitUndo(name: name, newValues: lastValues)
-//        })
-//        undoManager.setActionName("Update uniform '\(uVar.name)'")
-//        uniformVariables[uIndex].values = newValues
-//        if let index = self.activeUniforms.firstIndex(where: { $0.name == name }) {
-//            DispatchQueue.main.async {
-//                self.activeUniforms[index].values = newValues
-//            }
-//        }
-//    }
-//    
     private func updateUniform( _ name: String, values: [Float], suppressSave:Bool, updateBuffer: Bool ) {
         guard let index = parameterMap[name] else {
-            print("No uniform named: \(name)")
+            print("ERROR: updateUniform - No uniform named: \(name)")
             return
         }
         print("updateUniform: \(name) to \(values)")
@@ -159,7 +108,6 @@ class UniformManager: ObservableObject {
             saveDebouncer.debounce { [weak self] in
                 self?.saveUniformsToFile()
             }
-//            if( debug ) { printUniforms() }
         }
         dirty = true
         if updateBuffer {
@@ -175,7 +123,7 @@ class UniformManager: ObservableObject {
     func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false, isUndo: Bool = false)
     {
         guard let index = parameterMap[name] else {
-            print("No uniform named: \(name)")
+            print("ERROR: setUniformTuple - No uniform named: \(name)")
             return
         }
         let values = truncateValues(index: index, values: values)
@@ -204,7 +152,7 @@ class UniformManager: ObservableObject {
 
     private func registerUndo(_ name: String) {
         guard let index = parameterMap[name] else {
-            print("No uniform named: \(name)")
+            print("ERROR: registerUndo - No uniform named: \(name)")
             return
         }
         let currentValues = uniformVariables[index].values
@@ -245,6 +193,7 @@ class UniformManager: ObservableObject {
     private func resetMapping() {
         parameterMap.removeAll()
         uniformVariables.removeAll()
+        undoRecords.removeAll()
         dirty = true
     }
 
@@ -274,17 +223,17 @@ class UniformManager: ObservableObject {
         return index
     }
 
-    // parses the shader file to look for a struct tagged
-    // with @uniform, which will define which uniforms
-    // are managed by the application and sent to the fragment
-    // shader in a buffer.  Example struct in fragment.metal:
-    //
-    //    struct MyShaderData { // @uniform
-    //        float2 o_long;
-    //        float4 o_pan;
-    //        float o_col1r;
-    //    }
-    //
+    /// parses the shader file to look for a struct tagged
+    /// with @uniform, which will define which uniforms
+    /// are managed by the application and sent to the fragment
+    /// shader in a buffer.  Example struct in fragment.metal:
+    ///
+    ///    struct MyShaderData { // @uniform
+    ///        float2 o_long;
+    ///        float4 o_pan;
+    ///        float o_col1r;
+    ///    }
+    ///
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
     @MainActor
     func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {

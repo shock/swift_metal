@@ -23,25 +23,21 @@ struct MetalGeminiApp: App {
 
 // Separate AppDelegate class
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
-    var windowController: CustomWindowController! // Store window controller reference
-    var uniformWindowController: UniformWindowController?
+    private var windowController: CustomWindowController! // Store window controller reference
+    private var uniformWindowController: UniformWindowController?
     // List to hold multiple uniform window controllers
-    var uniformWindowControllers: [UniformWindowController] = []
-    var mainMenu: NSMenu! // Store the main menu
-    var renderMgr = RenderManager() // Create the ViewModel instance here
-    var globalKeyboardEventHandler: GlobalKeyboardEventHandler
-    var resizeWindow: ((CGFloat, CGFloat) -> Void)?
+    private var uniformWindowControllers: [UniformWindowController] = []
+    private(set) var mainMenu: NSMenu! // Store the main menu
+    private var undoManager = UndoManager()
+    private(set) var renderMgr: RenderManager
+    private var globalKeyboardEventHandler: GlobalKeyboardEventHandler
+    private var resizeWindow: ((CGFloat, CGFloat) -> Void)?
     private var oscServer: OSCServerManager!
     let MENU_UNDO=1101
     let MENU_REDO=1102
 
-    var undoManager: UndoManager {
-        get {
-            renderMgr.undoManager
-        }
-    }
-
     override init() {
+        self.renderMgr = RenderManager(undoManager: undoManager)
         self.globalKeyboardEventHandler = GlobalKeyboardEventHandler(keyboardDelegate: renderMgr)
         super.init()
     }

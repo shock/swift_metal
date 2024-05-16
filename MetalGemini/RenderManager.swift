@@ -25,7 +25,8 @@ class RenderManager: ObservableObject {
         }
     }
 
-    var undoManager = UndoManager()
+    private var lastMousePosition = CGPoint()
+    private var undoManager: UndoManager
     public private(set) var size: CGSize = CGSize(width:0,height:0)
     var mtkVC: MetalView.Coordinator?
     public private(set) var startDate = Date()
@@ -37,7 +38,8 @@ class RenderManager: ObservableObject {
     public private(set) var renderSync = SerialRunner()
     private(set) var resourceMgr: MetalResourceManager!
 
-    init() {
+    init(undoManager: UndoManager) {
+        self.undoManager = undoManager
         self.shaderManager = ShaderManager()
         self.uniformManager = UniformManager(projectDirDelegate: shaderManager, undoManager: undoManager)
         self.textureManager = TextureManager()
@@ -228,10 +230,15 @@ class RenderManager: ObservableObject {
         startDate -= 1
     }
 
-    var lastMousePosition = CGPoint()
+    func shutDown() {
+        renderingPaused = true
+        mtkVC?.stopRendering()
+    }
+
 }
 
 extension RenderManager: KeyboardEventsDelegate {
+
     func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
 
     func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
@@ -262,10 +269,6 @@ extension RenderManager: KeyboardEventsDelegate {
         return nil
     }
 
-    func shutDown() {
-        renderingPaused = true
-        mtkVC?.stopRendering()
-    }
 }
 
 extension RenderManager: MouseEventsDelegate {
