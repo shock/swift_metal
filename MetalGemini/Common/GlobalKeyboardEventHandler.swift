@@ -9,10 +9,19 @@ import Foundation
 import AppKit
 
 class GlobalKeyboardEventHandler: ObservableObject, Observable {
+
+    protocol KeyboardEventsDelegate: AnyObject {
+        /// return the `event` to propogate event handling.  return `nil` to consume the event and stop propogation
+        func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
+        /// return the `event` to propogate event handling.  return `nil` to consume the event and stop propogation
+        func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
+        /// return the `event` to propogate event handling.  return `nil` to consume the event and stop propogation
+        func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
+    }
+
     private var eventMonitors: [Any?] = []
-    var flags = NSEvent.ModifierFlags()
+    private var flags = NSEvent.ModifierFlags()
     private var handleEvents = true
-    weak var mouseDelegate: MouseEventsDelegate?
     weak var keyboardDelegate: KeyboardEventsDelegate?
     let debug = false
 

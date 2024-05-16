@@ -237,7 +237,7 @@ class RenderManager: ObservableObject {
 
 }
 
-extension RenderManager: KeyboardEventsDelegate {
+extension RenderManager: GlobalKeyboardEventHandler.KeyboardEventsDelegate {
 
     func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
 
@@ -271,7 +271,7 @@ extension RenderManager: KeyboardEventsDelegate {
 
 }
 
-extension RenderManager: MouseEventsDelegate {
+extension RenderManager: KeyboardMouseView.MouseEventsDelegate {
 
     func getMouseDelta( event: NSEvent ) -> NSPoint {
         let x = event.locationInWindow.x - lastMousePosition.x

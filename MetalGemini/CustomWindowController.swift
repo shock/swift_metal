@@ -32,15 +32,15 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         setupWindowProperties()
     }
 
-    private func setupKeyboardView() {
-        keyboardMouseView = KeyboardMouseView()
-        if let contentViewBounds = window?.contentView?.bounds {
-            keyboardMouseView.frame = contentViewBounds
-        }
-        keyboardMouseView.keyboardDelegate = renderMgr!
-        window?.contentView?.addSubview(keyboardMouseView)
-        window?.makeFirstResponder(keyboardMouseView)
-    }
+//    private func setupKeyboardView() {
+//        keyboardMouseView = KeyboardMouseView()
+//        if let contentViewBounds = window?.contentView?.bounds {
+//            keyboardMouseView.frame = contentViewBounds
+//        }
+//        keyboardMouseView.keyboardDelegate = renderMgr!
+//        window?.contentView?.addSubview(keyboardMouseView)
+//        window?.makeFirstResponder(keyboardMouseView)
+//    }
 
     private func setupObservers() {
 

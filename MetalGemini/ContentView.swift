@@ -49,11 +49,6 @@ struct ContentView: View {
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
                         .zIndex(0)
                   
-//                    KeyboardMouseViewRepresentable( keyboardDelegate: renderMgr, mouseDelegate: renderMgr )
-//                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-//                        .allowsHitTesting(false)  // Allows events to pass through
-//                        .zIndex(1)
-
                     UniformOverlayUI(viewModel: renderMgr.uniformManager)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .frame(height: 300) // Configurable

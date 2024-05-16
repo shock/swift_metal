@@ -9,27 +9,27 @@ import Foundation
 import Cocoa
 import SwiftUI
 
-protocol KeyboardEventsDelegate: AnyObject {
-    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
-    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
-    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent?
-}
-
-protocol MouseEventsDelegate: AnyObject {
-    func mouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func mouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func mouseMovedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func mouseScrolledEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func rightMouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func rightMouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func mouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func rightMouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func pinchGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func rotateGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
-    func swipeGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
-}
-
 class KeyboardMouseView: NSView {
+
+    protocol KeyboardEventsDelegate: AnyObject {
+        func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+    }
+
+    protocol MouseEventsDelegate: AnyObject {
+        func mouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func mouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func mouseMovedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func mouseScrolledEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func rightMouseDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func rightMouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func mouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func rightMouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func pinchGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func rotateGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
+        func swipeGesture(event: NSEvent, flags: NSEvent.ModifierFlags)
+    }
 
     var flags = NSEvent.ModifierFlags()
     weak var keyboardDelegate: KeyboardEventsDelegate?
@@ -163,8 +163,8 @@ class KeyboardMouseView: NSView {
 }
 
 struct KeyboardMouseViewRepresentable: NSViewRepresentable {
-    weak var keyboardDelegate: KeyboardEventsDelegate?
-    weak var mouseDelegate: MouseEventsDelegate?
+    weak var keyboardDelegate: KeyboardMouseView.KeyboardEventsDelegate?
+    weak var mouseDelegate: KeyboardMouseView.MouseEventsDelegate?
 
     func makeNSView(context: Context) -> KeyboardMouseView {
         let view = KeyboardMouseView()
