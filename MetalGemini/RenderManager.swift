@@ -18,21 +18,30 @@ class RenderManager: ObservableObject {
     @Published var title: String? = nil
     @Published private(set) var shaderError: String? = nil
     @Published var doOneFrame = false
+    @Published var uniformOverlayVisible: Bool = false {
+        didSet {
+            print("RenderManager: uniformOverlayVisible: didSet( \(self.uniformOverlayVisible) )")
+            NotificationCenter.default.post(name: .menuStateDidChange, object: nil, userInfo: [:])
+        }
+    }
 
-    public private(set) var size: CGSize = CGSize(width:0,height:0)
-    private var mtkVC: MetalView.Coordinator?
-    public private(set) var startDate = Date()
-    private var uniformManager: UniformManager!
+    private(set) var size: CGSize = CGSize(width:0,height:0)
+    private(set) var startDate = Date()
+    private(set) var mtkVC: MetalView.Coordinator?
+    private(set) var uniformManager: UniformManager!
+    private(set) var renderSync = SerialRunner()
+    private(set) var resourceMgr: MetalResourceManager!
+    private var lastMousePosition = CGPoint()
+    private var undoManager: UndoManager
     private var textureManager: TextureManager!
     private var shaderManager: ShaderManager!
     private var pauseTime = Date()
     private var fileMonitor = FileMonitor()
-    public private(set) var renderSync = SerialRunner()
-    private(set) var resourceMgr: MetalResourceManager!
 
-    init() {
+    init(undoManager: UndoManager) {
+        self.undoManager = undoManager
         self.shaderManager = ShaderManager()
-        self.uniformManager = UniformManager(projectDirDelegate: shaderManager)
+        self.uniformManager = UniformManager(projectDirDelegate: shaderManager, undoManager: undoManager)
         self.textureManager = TextureManager()
         self.resourceMgr = MetalResourceManager(projectDirDelegate: shaderManager)
     }
@@ -40,7 +49,6 @@ class RenderManager: ObservableObject {
     func setViewSize(_ size: CGSize) {
         self.size.width = size.width
         self.size.height = size.height
-        uniformManager.setUniformTuple("u_resolution", values: [Float(size.width), Float(size.height)], suppressSave: true)
     }
 
     func setViewCoordinator(_ mtkVC: MetalView.Coordinator ) {
@@ -51,7 +59,7 @@ class RenderManager: ObservableObject {
         didSet {
             print("RenderManager: vsyncOn: didSet( \(self.vsyncOn) )")
             self.mtkVC?.updateVSyncState(self.vsyncOn)
-            NotificationCenter.default.post(name: .vsyncStatusDidChange, object: nil, userInfo: ["enabled": vsyncOn])
+            NotificationCenter.default.post(name: .menuStateDidChange, object: nil, userInfo: ["enabled": vsyncOn])
         }
     }
 
@@ -78,7 +86,7 @@ class RenderManager: ObservableObject {
     }
 
     func updateFrame() {
-        doOneFrame = true
+        if renderingPaused { doOneFrame = true }
     }
 
     func updateTitle() {
@@ -190,6 +198,7 @@ class RenderManager: ObservableObject {
                     resourceMgr.setUniformBuffer(uniformManager.getBuffer())
                     resourceMgr.createBuffers(numBuffers: MAX_RENDER_BUFFERS, size: self.size)
                     resourceMgr.swapCurrentResources()
+                    self.undoManager.removeAllActions()
                 } catch {
                     shaderError = error.localizedDescription
                 }
@@ -221,44 +230,48 @@ class RenderManager: ObservableObject {
         startDate -= 1
     }
 
-    var lastMousePosition = CGPoint()
-}
-
-extension RenderManager: KeyboardEventsDelegate {
-    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) { }
-
-    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) { }
-
-    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
-        //        if event.isARepeat { return }
-
-        let keyCode = event.keyCode
-        switch keyCode {
-        case 49:  // Space bar
-            break
-        case 125: // Down arrow
-            resetFrame()
-            if renderingPaused { updateFrame() }
-        case 126: // Up arrow
-            renderingPaused.toggle()
-        case 123: // Left arrow
-            rewind()
-            if renderingPaused { updateFrame() }
-        case 124: // Right arrow
-            fforward()
-            if renderingPaused { updateFrame() }
-        default:
-            break // Do nothing for other key codes
-        }
-    }
-
     func shutDown() {
         renderingPaused = true
         mtkVC?.stopRendering()
     }
+
 }
 
-extension RenderManager: MouseEventsDelegate {
+extension RenderManager: GlobalKeyboardEventHandler.KeyboardEventsDelegate {
+
+    func keyUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
+
+    func flagsChangedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? { return event }
+
+    func keyDownEvent(event: NSEvent, flags: NSEvent.ModifierFlags) -> NSEvent? {
+        //        if event.isARepeat { return }
+
+        let keyCode = event.keyCode
+        switch keyCode {
+        case 53:  // Esc key
+            self.uniformOverlayVisible = false
+        case 49:  // Space bar
+            self.uniformOverlayVisible.toggle()
+        case 125: // Down arrow
+            resetFrame()
+            updateFrame()
+        case 126: // Up arrow
+            renderingPaused.toggle()
+        case 123: // Left arrow
+            rewind()
+            updateFrame()
+        case 124: // Right arrow
+            fforward()
+            updateFrame()
+        default:
+            return event
+        }
+        return nil
+    }
+
+}
+
+extension RenderManager: KeyboardMouseView.MouseEventsDelegate {
 
     func getMouseDelta( event: NSEvent ) -> NSPoint {
         let x = event.locationInWindow.x - lastMousePosition.x
@@ -281,10 +294,10 @@ extension RenderManager: MouseEventsDelegate {
     func rightMouseUpEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
 
     func mouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {
-        let deltaP = getMouseDelta(event: event)
-        let delta = deltaP.y/300
-        uniformManager.incrementFloatUniform("o_distance", increment: Float(delta), min: -1, max: 1)
-        if renderingPaused { updateFrame() }
+//        let deltaP = getMouseDelta(event: event)
+//        let delta = deltaP.y/300
+//        uniformManager.incrementFloatUniform("o_distance", increment: Float(delta), min: -1, max: 1)
+        updateFrame()
     }
 
     func rightMouseDraggedEvent(event: NSEvent, flags: NSEvent.ModifierFlags) {}
@@ -300,6 +313,6 @@ extension RenderManager: MouseEventsDelegate {
 extension RenderManager: OSCMessageDelegate {
     func handleOSCMessage(message: OSCMessage) {
         self.uniformManager.handleOSCMessage(message: message)
-        if renderingPaused { updateFrame() }
+//        updateFrame()
     }
 }

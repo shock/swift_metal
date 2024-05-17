@@ -13,33 +13,19 @@ import Combine
 class CustomWindowController: NSWindowController, NSWindowDelegate  {
     private var renderMgr: RenderManager?
     private var cancellables: Set<AnyCancellable> = []
-    private var keyboardMouseView: KeyboardMouseView!
 
-    convenience init(rootView: ContentView) {
+    convenience init<Content: View>(rootView: Content) {
         let hostingController = NSHostingController(rootView: rootView)
         hostingController.view.frame = NSRect(origin: .zero, size: NSSize(width: 600, height: 450)) // Set the frame size
-        let window = NSWindow(contentViewController: hostingController)
+        let window = ClickThroughWindow(contentViewController: hostingController)
         window.setContentSize(NSSize(width: 600, height: 450)) // Set initial size
         self.init(window: window)
         window.title = "Metal Shader: <default>"  // Set the default title
 
         renderMgr = (NSApp.delegate as? AppDelegate)?.renderMgr
 
-        // Call the setup method immediately after initialization
-
-        setupKeyboardView()
         setupObservers()
         setupWindowProperties()
-    }
-
-    private func setupKeyboardView() {
-        keyboardMouseView = KeyboardMouseView()
-        if let contentViewBounds = window?.contentView?.bounds {
-            keyboardMouseView.frame = contentViewBounds
-        }
-        keyboardMouseView.keyboardDelegate = renderMgr!
-        window?.contentView?.addSubview(keyboardMouseView)
-        window?.makeFirstResponder(keyboardMouseView)
     }
 
     private func setupObservers() {
@@ -61,6 +47,7 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
 
     override func windowDidLoad() {
         super.windowDidLoad()
+        self.window?.delegate = self  // Ensure this controller is the delegate
     }
 
     private func setupWindowProperties() {
@@ -86,6 +73,14 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
         }
     }
 
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // Prevent the main window from closing with CMD-W
+        if sender == self.window {
+            return false
+        }
+        return true
+    }
+
     func windowWillClose(_ notification: Notification) {
         if let window = window {
             let frameString = NSStringFromRect(window.frame)
@@ -98,6 +93,34 @@ class CustomWindowController: NSWindowController, NSWindowDelegate  {
                 UserDefaults.standard.set(path, forKey: "LastFileOpened")
             }
         }
+        NSApplication.shared.terminate(self)
+    }
+
+    func windowWillEnterFullScreen(_ notification: Notification) {
+        print("Window will enter full-screen mode.")
+        // Perform any necessary configurations before the window enters full-screen
+    }
+
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        print("Window has entered full-screen mode.")
+        if let window = window {
+            let size = window.frame.size
+            if let renderMgr = renderMgr {
+                renderMgr.mtkVC?.updateViewportSize(size)
+
+            }
+        }
+        // Adjust any settings or perform actions after the window is in full-screen
+    }
+
+    func windowWillExitFullScreen(_ notification: Notification) {
+        print("Window will exit full-screen mode.")
+        // Prepare your application for the window exiting full-screen
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        print("Window has exited full-screen mode.")
+        // Restore any settings or clean up after exiting full-screen
     }
 
 }

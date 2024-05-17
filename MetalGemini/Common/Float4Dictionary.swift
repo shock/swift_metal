@@ -18,6 +18,12 @@ extension Array where Element == Float
     }
 }
 
+extension SIMD4<Float> {
+    func toArray() -> [Float] {
+        return [self.x, self.y, self.z, self.w]
+    }
+}
+
 // A thread-safe dictionary to manage SIMD4<Float> values with string keys
 class Float4Dictionary
 {

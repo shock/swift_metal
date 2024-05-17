@@ -20,28 +20,41 @@ extension EnvironmentValues {
     }
 }
 
+private struct UndoManagerKey: EnvironmentKey {
+    static let defaultValue: UndoManager? = nil
+}
+
+extension EnvironmentValues {
+    var undoManager: UndoManager? {
+        get { self[UndoManagerKey.self] }
+        set { self[UndoManagerKey.self] = newValue }
+    }
+}
+
 struct ContentView: View {
     @State private var selectedURL: URL? = nil
-    @Environment(\.appMenu) var appMenu // Property for holding menu reference
+    @Environment(\.appMenu) private var appMenu // Property for holding menu reference
+    @Environment(\.undoManager) private var undoManager
+    @EnvironmentObject var keyboardHandler: GlobalKeyboardEventHandler
     @ObservedObject var renderMgr: RenderManager
     @State private var metalView: MetalView?
 
     var body: some View {
-        VStack{
+        VStack {
             if renderMgr.shaderError == nil {
 
-                VStack{
+                ZStack {
                     metalView?
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .environment(\.appMenu, appDelegate.mainMenu) // Add menu to the environment
-                        .overlay(
-                            KeyboardMouseViewRepresentable(
-                                keyboardDelegate: renderMgr,
-                                mouseDelegate: renderMgr
-                            )
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .allowsHitTesting(true)  // Allows events to pass through
-                        )
+                        .zIndex(0)
+                  
+                    UniformOverlayUI(viewModel: renderMgr.uniformManager)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(height: 300) // Configurable
+                        .offset(x: 0, y: renderMgr.uniformOverlayVisible ? 0 : 20000)  // Moves the view offscreen to keep its scroll position
+                        .opacity(0.8)
+                        .zIndex(2)
                 }
             } else {
                 ScrollView {
@@ -83,8 +96,4 @@ struct ContentView: View {
         }
      }
 
-}
-
-#Preview {
-    ContentView(renderMgr: RenderManager())
 }
