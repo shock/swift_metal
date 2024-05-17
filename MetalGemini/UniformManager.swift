@@ -10,10 +10,12 @@ import MetalKit
 import AppKit
 import SwiftOSC
 
+/// Enum representing the style of a uniform variable.
 enum UniformStyle {
     case vSlider, toggle
 }
 
+/// Struct representing a uniform variable.
 struct UniformVariable {
     let name: String
     let type: String
@@ -23,9 +25,10 @@ struct UniformVariable {
     let range: (min: Float, max: Float)
 }
 
-// Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed
+/// Manages uniforms for Metal applications, ensuring they are thread-safe and properly managed.
 class UniformManager: ObservableObject {
     
+    /// Struct representing undo data for a uniform variable.
     struct UndoData {
         var oldValues: [Float]
         var timer: Timer?
@@ -37,7 +40,7 @@ class UniformManager: ObservableObject {
     private var parameterMap: [String: Int] = [:] // Map from uniform names to their indices
     private var uniformVariables: [UniformVariable] = []
     private var dirty = true // Flag to indicate if the buffer needs updating
-    private var debug = true // Debug flag to enable logging
+    private var debug = false // Debug flag to enable logging
     private var uniformsTxtURL: URL? // URL for the uniforms file
     private var buffer: MTLBuffer? // Metal buffer for storing uniform data
     private var semaphore = DispatchSemaphore(value: 1) // Ensures thread-safe access to the dirty flag
@@ -47,9 +50,15 @@ class UniformManager: ObservableObject {
     private var undoRecords: [String:UndoData] = [:]
     let UndoCommitDelay = 0.25 // seconds before committing undo
 
-    init(projectDirDelegate: ShaderProjectDirAccess, undoManager: UndoManager) {
+    /// Initializes a new UniformManager.
+    /// - Parameters:
+    ///   - projectDirDelegate: Delegate for accessing the project directory.
+    ///   - undoManager: Instance of UndoManager for managing undo operations.
+    ///   - debug: Boolean flag to enable debugging.
+    init(projectDirDelegate: ShaderProjectDirAccess, undoManager: UndoManager, debug: Bool = false) {
         self.projectDirDelegate = projectDirDelegate
         self.undoManager = undoManager
+        self.debug = debug
         if let metalDevice = MTLCreateSystemDefaultDevice() {
             self.metalDevice = metalDevice
         } else {
@@ -57,6 +66,9 @@ class UniformManager: ObservableObject {
         }
     }
 
+    /// Retrieves undo data for a uniform.
+    /// - Parameter name: Name of the uniform.
+    /// - Returns: UndoData for the uniform.
     private func getUndoData(_ name: String ) -> UndoData {
         if let undoData = undoRecords[name] {
             return undoData
@@ -68,10 +80,19 @@ class UniformManager: ObservableObject {
         }
     }
     
+    /// Sets undo data for a uniform.
+    /// - Parameters:
+    ///   - name: Name of the uniform.
+    ///   - data: UndoData to set.
     func setUndoData(_ name: String, data: UndoData) {
         undoRecords[name] = data
     }
 
+    /// Truncates values to fit the uniform type.
+    /// - Parameters:
+    ///   - index: Index of the uniform variable.
+    ///   - values: Values to truncate.
+    /// - Returns: Truncated values.
     private func truncateValues( index: Int, values: [Float] ) -> [Float] {
         let uVar = uniformVariables[index]
         let type = uVar.type
@@ -91,6 +112,12 @@ class UniformManager: ObservableObject {
         }
     }
 
+    /// Updates a uniform value.
+    /// - Parameters:
+    ///   - name: Name of the uniform.
+    ///   - values: New values for the uniform.
+    ///   - suppressSave: Whether to suppress saving the changes to file.
+    ///   - updateBuffer: Whether to update the Metal buffer.
     private func updateUniform( _ name: String, values: [Float], suppressSave:Bool, updateBuffer: Bool ) {
         guard let index = parameterMap[name] else {
             print("ERROR: updateUniform - No uniform named: \(name)")
@@ -119,10 +146,13 @@ class UniformManager: ObservableObject {
         if !suppressSave { semaphore.signal() }
     }
 
-    // MARK: setUniformTuple
-    // Set a uniform value from an array of floats, optionally suppressing the file save operation
-    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false, isUndo: Bool = false)
-    {
+    /// Sets a uniform value from an array of floats, optionally suppressing the file save operation.
+    /// - Parameters:
+    ///   - name: Name of the uniform.
+    ///   - values: New values for the uniform.
+    ///   - suppressSave: Whether to suppress saving the changes to file.
+    ///   - updateBuffer: Whether to update the Metal buffer.
+    func setUniformTuple( _ name: String, values: [Float], suppressSave:Bool = false, updateBuffer:Bool = false) {
         guard let index = parameterMap[name] else {
             print("ERROR: setUniformTuple - No uniform named: \(name)")
             return
@@ -151,9 +181,10 @@ class UniformManager: ObservableObject {
             setUndoData(name, data: undoData)
         }
         updateUniform(name, values: values, suppressSave: suppressSave, updateBuffer: updateBuffer)
-
     }
 
+    /// Registers an undo operation for a uniform.
+    /// - Parameter name: Name of the uniform.
     private func registerUndo(_ name: String) {
         guard let index = parameterMap[name] else {
             print("ERROR: registerUndo - No uniform named: \(name)")
@@ -179,6 +210,10 @@ class UniformManager: ObservableObject {
         setUndoData(name, data: undoData)
     }
 
+    /// Registers a redo operation for a uniform.
+    /// - Parameters:
+    ///   - name: Name of the uniform.
+    ///   - previousValues: Previous values to redo.
     private func registerRedo(name: String, previousValues: [Float]) {
         if debug { print("UniformManager::registerRedo \(name), previousValues: \(previousValues)") }
         undoManager.registerUndo(withTarget: self) { target in
@@ -189,7 +224,8 @@ class UniformManager: ObservableObject {
         undoManager.setActionName("Change '\(name)'")
     }
 
-    // Update the uniforms buffer if necessary and return it
+    /// Returns the updated uniforms buffer if necessary.
+    /// - Returns: Metal buffer containing uniform data.
     func getBuffer() -> MTLBuffer? {
         semaphore.wait()
         defer { semaphore.signal() }
@@ -197,7 +233,7 @@ class UniformManager: ObservableObject {
         return buffer
     }
 
-    // Reset mapping of uniform names to buffer indices and types, marking the system as needing an update
+    /// Resets the mapping of uniform names to buffer indices and types, marking the system as needing an update.
     private func resetMapping() {
         parameterMap.removeAll()
         uniformVariables.removeAll()
@@ -205,9 +241,15 @@ class UniformManager: ObservableObject {
         dirty = true
     }
 
-    // Add a new uniform with the given name and type, returning its new index
-    private func setIndex(name: String, type: String, style: UniformStyle, min: Float, max: Float ) -> Int
-    {
+    /// Adds a new uniform with the given name and type, returning its new index.
+    /// - Parameters:
+    ///   - name: Name of the uniform.
+    ///   - type: Type of the uniform.
+    ///   - style: Style of the uniform.
+    ///   - min: Minimum range value.
+    ///   - max: Maximum range value.
+    /// - Returns: Index of the new uniform.
+    private func setIndex(name: String, type: String, style: UniformStyle, min: Float, max: Float ) -> Int {
         if debug { print("UniformManager: setIndex(\(name), \(type))") }
         dirty = true
         var values: [Float] = []
@@ -231,10 +273,9 @@ class UniformManager: ObservableObject {
         return index
     }
 
-    /// parses the shader file to look for a struct tagged
-    /// with @uniform, which will define which uniforms
-    /// are managed by the application and sent to the fragment
-    /// shader in a buffer.  Example struct in fragment.metal:
+    /// Parses the shader file to look for a struct tagged with @uniform, which will define 
+    /// which uniforms are managed by the application and sent to the fragment shader
+    /// in a buffer.  Example struct in fragment.metal:
     ///
     ///    struct MyShaderData { // @uniform
     ///        float2 o_long;
@@ -242,6 +283,10 @@ class UniformManager: ObservableObject {
     ///        float o_col1r;
     ///    }
     ///
+    /// - Parameters:
+    ///   - srcURL: URL of the shader source file.
+    ///   - shaderSource: Shader source code as a string.
+    /// - Throws: Error if unable to create the Metal buffer.
     // TODO: improve documentation.  Add unit tests.  Add type checking (vectors only)
     @MainActor
     func setupUniformsFromShader(srcURL: URL, shaderSource: String) async throws {
@@ -293,7 +338,6 @@ class UniformManager: ObservableObject {
                     insideStruct = false
                 }
             } else {
-
                 for i in uniformVariables.indices {
                     do {
                         let uv = uniformVariables[i]
@@ -332,11 +376,12 @@ class UniformManager: ObservableObject {
         }
     }
 
+    /// Triggers a render refresh notification.
     func triggerRenderRefresh() {
         NotificationCenter.default.post(name: .updateRenderFrame, object: nil, userInfo: [:])
     }
 
-    // Update the uniforms buffer if necessary, handling data alignment and copying
+    /// Updates the uniforms buffer if necessary, handling data alignment and copying.
     private func mapUniformsToBuffer() {
         if !dirty { return }
         dirty = false
@@ -378,20 +423,13 @@ class UniformManager: ObservableObject {
         }
     }
 
-    // Print current uniforms values
+    /// Prints current uniforms values.
     func printUniforms() {
         print(uniformsToString())
     }
 
-    func getUniformFloat4( _ name: String ) -> SIMD4<Float>? {
-        guard let index = parameterMap[name] else {
-            return nil
-        }
-        let data = uniformVariables[index].values.toSIMD4()
-        return data
-    }
-
-    // Convert uniforms to a string representation for debugging
+    /// Converts uniforms to a string representation for debugging.
+    /// - Returns: String representation of uniforms.
     func uniformsToString() -> String {
         let uniforms = uniformVariables.map { uVar in
             let values = uVar.values
@@ -403,7 +441,7 @@ class UniformManager: ObservableObject {
         return uniforms
     }
 
-    // Save uniforms to a file, checking if there's a need to prompt for a directory
+    /// Saves uniforms to a file, checking if there's a need to prompt for a directory.
     func saveUniformsToFile() {
         if( uniformVariables.count == 0 ) { return }
 
@@ -414,7 +452,7 @@ class UniformManager: ObservableObject {
         projectDirDelegate.accessDirectory() { dirUrl in
             do {
                 try uniforms.write(to: fileUrl, atomically: true, encoding: .utf8)
-                print("Data written successfully to \(fileUrl.path)")
+                if debug { print("Data written successfully to \(fileUrl.path)") }
             } catch {
                 print("Failed to save uniforms: \(error)")
             }
@@ -422,7 +460,7 @@ class UniformManager: ObservableObject {
 
     }
 
-    // Load uniforms from a file
+    /// Loads uniforms from a file.
     private func loadUniformsFromFile() {
         let path = uniformsTxtURL
         guard let filePath = path else { return }
@@ -467,7 +505,10 @@ class UniformManager: ObservableObject {
 
 }
 
+/// Extension to handle OSC messages.
 extension UniformManager: OSCMessageDelegate {
+    /// Handles OSC messages to update uniforms.
+    /// - Parameter message: OSCMessage containing the update information.
     func handleOSCMessage(message: OSCMessage) {
         let oscRegex = /[\/\d]*?(\w+).*/
         if let firstMatch = message.address.string.firstMatch(of: oscRegex) {
