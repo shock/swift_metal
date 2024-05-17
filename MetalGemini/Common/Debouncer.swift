@@ -12,7 +12,7 @@ class DebouncerType<Value: Equatable> {
     private var workItem: DispatchWorkItem?
     private let delay: TimeInterval
     private var debug = false
-    var store: Value?
+    var store: Value? /// optional attribute to store a variable associated with the debouncer instance
 
     /// Initializes a debouncer with a specified delay and an optional custom dispatch queue label.
     /// - Parameters:
