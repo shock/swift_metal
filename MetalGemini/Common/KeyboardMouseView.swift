@@ -162,7 +162,7 @@ class KeyboardMouseView: NSView {
 
 }
 
-struct KeyboardMouseViewRepresentable: NSViewRepresentable {
+struct KeyboardMouseCapture: NSViewRepresentable {
     weak var keyboardDelegate: KeyboardMouseView.KeyboardEventsDelegate?
     weak var mouseDelegate: KeyboardMouseView.MouseEventsDelegate?
 
@@ -170,7 +170,6 @@ struct KeyboardMouseViewRepresentable: NSViewRepresentable {
         let view = KeyboardMouseView()
         view.keyboardDelegate = keyboardDelegate
         view.mouseDelegate = mouseDelegate
-//        view.becomeFirstResponder()  // Attempt to make the view the first responder
         return view
     }
 
