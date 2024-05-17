@@ -215,7 +215,7 @@ class RenderManager: ObservableObject {
 
             if shaderError != nil { return }
 
-            if !self.uniformOverlayVisible {
+            if !self.vsyncOn {
                 mtkVC.startRendering() // renable offline rendering if vsync is false
             }
 
