@@ -1,1 +1,9 @@
-**/UserInterfaceState.xcuserstate
+# **/UserInterfaceState.xcuserstate
+**/.DS_Store
+**/*.air
+**/*.metallib
+**/*.metallibsym
+**/xcuserdata/
+*.code-workspace
+shaders/
+Pods/

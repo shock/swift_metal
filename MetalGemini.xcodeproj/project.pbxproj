@@ -7,15 +7,72 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B5461CF42BD1D52400F085FD /* KeyboardMouseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5461CF32BD1D52400F085FD /* KeyboardMouseView.swift */; };
+		B5495DFC2BDEF2320036A337 /* Float4Dictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */; };
+		B5495DFE2BE052990036A337 /* SerialRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5495DFD2BE052990036A337 /* SerialRunner.swift */; };
+		B54AAF522BEACF2B00586048 /* UniformWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54AAF512BEACF2B00586048 /* UniformWindowController.swift */; };
+		B54AAF542BEAD3D800586048 /* UniformsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54AAF532BEAD3D800586048 /* UniformsView.swift */; };
+		B54AAF562BEF42BA00586048 /* ClickThroughWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54AAF552BEF42BA00586048 /* ClickThroughWindow.swift */; };
+		B54AAF5A2BF19E3D00586048 /* GlobalKeyboardEventHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54AAF592BF19E3D00586048 /* GlobalKeyboardEventHandler.swift */; };
+		B54CEB592BDC453200077D15 /* ShaderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB582BDC453200077D15 /* ShaderManager.swift */; };
+		B54CEB5B2BDD59BF00077D15 /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */; };
+		B55A3AD42BE51450009A2C9A /* Debouncer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55A3AD32BE51450009A2C9A /* Debouncer.swift */; };
+		B57F5CD32BDFD33300326A51 /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57F5CD22BDFD33300326A51 /* TaskManager.swift */; };
+		B57F5CD82BE0F86900326A51 /* MetalResourceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */; };
+		B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0462BD08B7E00CBCA26 /* OSCManager.swift */; };
+		B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B597D0482BD0948900CBCA26 /* UniformManager.swift */; };
+		B59DC1432BF4FDA300BCCEB8 /* ValueUndoWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B59DC1422BF4FDA300BCCEB8 /* ValueUndoWrapper.swift */; };
+		B5B287002BE9798300FECB38 /* UniformControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B286FF2BE9798300FECB38 /* UniformControlView.swift */; };
+		B5B287022BE979A900FECB38 /* UniformOverlayUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */; };
+		B5B287042BE9861000FECB38 /* VerticalSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B287032BE9861000FECB38 /* VerticalSlider.swift */; };
+		B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE422BB6102F002F55B3 /* RenderManager.swift */; };
+		B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE472BB718EC002F55B3 /* ShellExec.swift */; };
+		B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B3CE4B2BB72502002F55B3 /* Extensions.swift */; };
+		B5C6BFBF2BE19D630016C9F2 /* TextureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */; };
+		B5CC5E502BEBEA90004C918C /* ToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CC5E4F2BEBEA90004C918C /* ToggleButton.swift */; };
+		B5CC5E522BEC16F4004C918C /* ScrollableArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CC5E512BEC16F4004C918C /* ScrollableArea.swift */; };
 		B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */; };
 		B5E711AE2BB462F80092172A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711AD2BB462F80092172A /* ContentView.swift */; };
 		B5E711B02BB462FA0092172A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E711AF2BB462FA0092172A /* Assets.xcassets */; };
 		B5E711B32BB462FA0092172A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B5E711B22BB462FA0092172A /* Preview Assets.xcassets */; };
 		B5E711BB2BB463510092172A /* MetalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711BA2BB463510092172A /* MetalView.swift */; };
 		B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = B5E711BC2BB463B20092172A /* PixelShaders.metal */; };
+		B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711F82BB4ED500092172A /* CustomWindowController.swift */; };
+		B5E711FB2BB4F3BB0092172A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FA2BB4F3BB0092172A /* main.swift */; };
+		B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E711FC2BB5A8F70092172A /* FileDialog.swift */; };
+		B5ED373C2BDA0F2A00A04963 /* Notification.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5ED373B2BDA0F2A00A04963 /* Notification.swift */; };
+		B5ED373E2BDD283700A04963 /* ThreadSafeFlag.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */; };
+		F38C44B34255F25673DD50B7 /* Pods_MetalGemini.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetalGemini.release.xcconfig"; path = "Target Support Files/Pods-MetalGemini/Pods-MetalGemini.release.xcconfig"; sourceTree = "<group>"; };
+		0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MetalGemini.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5461CF32BD1D52400F085FD /* KeyboardMouseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardMouseView.swift; sourceTree = "<group>"; };
+		B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Float4Dictionary.swift; sourceTree = "<group>"; };
+		B5495DFD2BE052990036A337 /* SerialRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialRunner.swift; sourceTree = "<group>"; };
+		B54AAF512BEACF2B00586048 /* UniformWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformWindowController.swift; sourceTree = "<group>"; };
+		B54AAF532BEAD3D800586048 /* UniformsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformsView.swift; sourceTree = "<group>"; };
+		B54AAF552BEF42BA00586048 /* ClickThroughWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickThroughWindow.swift; sourceTree = "<group>"; };
+		B54AAF592BF19E3D00586048 /* GlobalKeyboardEventHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalKeyboardEventHandler.swift; sourceTree = "<group>"; };
+		B54CEB582BDC453200077D15 /* ShaderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderManager.swift; sourceTree = "<group>"; };
+		B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
+		B55A3AD32BE51450009A2C9A /* Debouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debouncer.swift; sourceTree = "<group>"; };
+		B57F5CD22BDFD33300326A51 /* TaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskManager.swift; sourceTree = "<group>"; };
+		B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalResourceManager.swift; sourceTree = "<group>"; };
+		B597D0462BD08B7E00CBCA26 /* OSCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSCManager.swift; sourceTree = "<group>"; };
+		B597D0482BD0948900CBCA26 /* UniformManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformManager.swift; sourceTree = "<group>"; };
+		B59DC1422BF4FDA300BCCEB8 /* ValueUndoWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValueUndoWrapper.swift; sourceTree = "<group>"; };
+		B5B286FF2BE9798300FECB38 /* UniformControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformControlView.swift; sourceTree = "<group>"; };
+		B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniformOverlayUI.swift; sourceTree = "<group>"; };
+		B5B287032BE9861000FECB38 /* VerticalSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerticalSlider.swift; sourceTree = "<group>"; };
+		B5B3CE422BB6102F002F55B3 /* RenderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderManager.swift; sourceTree = "<group>"; };
+		B5B3CE472BB718EC002F55B3 /* ShellExec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellExec.swift; sourceTree = "<group>"; };
+		B5B3CE4B2BB72502002F55B3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		B5B3CE4E2BB85EB9002F55B3 /* TestShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = TestShaders.metal; sourceTree = "<group>"; };
+		B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureManager.swift; sourceTree = "<group>"; };
+		B5CC5E4F2BEBEA90004C918C /* ToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleButton.swift; sourceTree = "<group>"; };
+		B5CC5E512BEC16F4004C918C /* ScrollableArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollableArea.swift; sourceTree = "<group>"; };
 		B5E711A82BB462F80092172A /* MetalGemini.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetalGemini.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalGeminiApp.swift; sourceTree = "<group>"; };
 		B5E711AD2BB462F80092172A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -24,6 +81,13 @@
 		B5E711B42BB462FA0092172A /* MetalGemini.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MetalGemini.entitlements; sourceTree = "<group>"; };
 		B5E711BA2BB463510092172A /* MetalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalView.swift; sourceTree = "<group>"; };
 		B5E711BC2BB463B20092172A /* PixelShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = PixelShaders.metal; sourceTree = "<group>"; };
+		B5E711F82BB4ED500092172A /* CustomWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWindowController.swift; sourceTree = "<group>"; };
+		B5E711FA2BB4F3BB0092172A /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		B5E711FC2BB5A8F70092172A /* FileDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDialog.swift; sourceTree = "<group>"; };
+		B5E711FE2BB5B4E50092172A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B5ED373B2BDA0F2A00A04963 /* Notification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notification.swift; sourceTree = "<group>"; };
+		B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadSafeFlag.swift; sourceTree = "<group>"; };
+		E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetalGemini.debug.xcconfig"; path = "Target Support Files/Pods-MetalGemini/Pods-MetalGemini.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,18 +95,79 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F38C44B34255F25673DD50B7 /* Pods_MetalGemini.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6DC832680E2FFC633D55F242 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0C6104917B32069A963A9DFB /* Pods_MetalGemini.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7951CD2BA597900F42AD297F /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */,
+				04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		B57F5CD62BE0F7E500326A51 /* Actors */ = {
+			isa = PBXGroup;
+			children = (
+				B5495DFD2BE052990036A337 /* SerialRunner.swift */,
+			);
+			path = Actors;
+			sourceTree = "<group>";
+		};
+		B57F5CD92BE0F90800326A51 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				B5B3CE4B2BB72502002F55B3 /* Extensions.swift */,
+				B5E711FC2BB5A8F70092172A /* FileDialog.swift */,
+				B54CEB5A2BDD59BF00077D15 /* FileMonitor.swift */,
+				B5495DFB2BDEF2320036A337 /* Float4Dictionary.swift */,
+				B5461CF32BD1D52400F085FD /* KeyboardMouseView.swift */,
+				B597D0462BD08B7E00CBCA26 /* OSCManager.swift */,
+				B5B3CE472BB718EC002F55B3 /* ShellExec.swift */,
+				B57F5CD22BDFD33300326A51 /* TaskManager.swift */,
+				B5ED373D2BDD283700A04963 /* ThreadSafeFlag.swift */,
+				B55A3AD32BE51450009A2C9A /* Debouncer.swift */,
+				B54AAF552BEF42BA00586048 /* ClickThroughWindow.swift */,
+				B54AAF592BF19E3D00586048 /* GlobalKeyboardEventHandler.swift */,
+				B59DC1422BF4FDA300BCCEB8 /* ValueUndoWrapper.swift */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
+		B5B286FA2BE9790400FECB38 /* UniformUI */ = {
+			isa = PBXGroup;
+			children = (
+				B5B286FF2BE9798300FECB38 /* UniformControlView.swift */,
+				B5B287012BE979A900FECB38 /* UniformOverlayUI.swift */,
+				B5B287032BE9861000FECB38 /* VerticalSlider.swift */,
+				B5CC5E4F2BEBEA90004C918C /* ToggleButton.swift */,
+				B5CC5E512BEC16F4004C918C /* ScrollableArea.swift */,
+			);
+			path = UniformUI;
+			sourceTree = "<group>";
+		};
 		B5E7119F2BB462F80092172A = {
 			isa = PBXGroup;
 			children = (
+				B5B3CE4E2BB85EB9002F55B3 /* TestShaders.metal */,
 				B5E711BC2BB463B20092172A /* PixelShaders.metal */,
 				B5E711AA2BB462F80092172A /* MetalGemini */,
 				B5E711A92BB462F80092172A /* Products */,
+				7951CD2BA597900F42AD297F /* Pods */,
+				6DC832680E2FFC633D55F242 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -57,12 +182,26 @@
 		B5E711AA2BB462F80092172A /* MetalGemini */ = {
 			isa = PBXGroup;
 			children = (
-				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
-				B5E711AD2BB462F80092172A /* ContentView.swift */,
-				B5E711BA2BB463510092172A /* MetalView.swift */,
 				B5E711AF2BB462FA0092172A /* Assets.xcassets */,
+				B57F5CD62BE0F7E500326A51 /* Actors */,
+				B57F5CD92BE0F90800326A51 /* Common */,
+				B5E711FE2BB5B4E50092172A /* Info.plist */,
+				B5E711AD2BB462F80092172A /* ContentView.swift */,
+				B5B3CE422BB6102F002F55B3 /* RenderManager.swift */,
+				B5E711BA2BB463510092172A /* MetalView.swift */,
+				B57F5CD72BE0F86900326A51 /* MetalResourceManager.swift */,
+				B54CEB582BDC453200077D15 /* ShaderManager.swift */,
+				B597D0482BD0948900CBCA26 /* UniformManager.swift */,
+				B5C6BFBE2BE19D630016C9F2 /* TextureManager.swift */,
+				B5ED373B2BDA0F2A00A04963 /* Notification.swift */,
 				B5E711B42BB462FA0092172A /* MetalGemini.entitlements */,
+				B5E711FA2BB4F3BB0092172A /* main.swift */,
+				B5E711AB2BB462F80092172A /* MetalGeminiApp.swift */,
+				B5E711F82BB4ED500092172A /* CustomWindowController.swift */,
+				B5B286FA2BE9790400FECB38 /* UniformUI */,
+				B54AAF532BEAD3D800586048 /* UniformsView.swift */,
 				B5E711B12BB462FA0092172A /* Preview Content */,
+				B54AAF512BEACF2B00586048 /* UniformWindowController.swift */,
 			);
 			path = MetalGemini;
 			sourceTree = "<group>";
@@ -82,9 +221,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B5E711B72BB462FA0092172A /* Build configuration list for PBXNativeTarget "MetalGemini" */;
 			buildPhases = (
+				186FD187C9A61DD24DA0A8DD /* [CP] Check Pods Manifest.lock */,
 				B5E711A42BB462F80092172A /* Sources */,
 				B5E711A52BB462F80092172A /* Frameworks */,
 				B5E711A62BB462F80092172A /* Resources */,
+				C7CDA06F6B38100583E9AC0A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -140,14 +281,85 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		186FD187C9A61DD24DA0A8DD /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-MetalGemini-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		C7CDA06F6B38100583E9AC0A /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MetalGemini/Pods-MetalGemini-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MetalGemini/Pods-MetalGemini-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MetalGemini/Pods-MetalGemini-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		B5E711A42BB462F80092172A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				B5E711BB2BB463510092172A /* MetalView.swift in Sources */,
+				B57F5CD32BDFD33300326A51 /* TaskManager.swift in Sources */,
+				B59DC1432BF4FDA300BCCEB8 /* ValueUndoWrapper.swift in Sources */,
+				B5495DFC2BDEF2320036A337 /* Float4Dictionary.swift in Sources */,
+				B5B3CE482BB718EC002F55B3 /* ShellExec.swift in Sources */,
+				B54AAF542BEAD3D800586048 /* UniformsView.swift in Sources */,
+				B57F5CD82BE0F86900326A51 /* MetalResourceManager.swift in Sources */,
+				B54AAF522BEACF2B00586048 /* UniformWindowController.swift in Sources */,
+				B5C6BFBF2BE19D630016C9F2 /* TextureManager.swift in Sources */,
 				B5E711AE2BB462F80092172A /* ContentView.swift in Sources */,
+				B5B287042BE9861000FECB38 /* VerticalSlider.swift in Sources */,
+				B5CC5E502BEBEA90004C918C /* ToggleButton.swift in Sources */,
+				B5E711FB2BB4F3BB0092172A /* main.swift in Sources */,
+				B597D0492BD0948900CBCA26 /* UniformManager.swift in Sources */,
+				B5CC5E522BEC16F4004C918C /* ScrollableArea.swift in Sources */,
+				B54AAF562BEF42BA00586048 /* ClickThroughWindow.swift in Sources */,
+				B5B287022BE979A900FECB38 /* UniformOverlayUI.swift in Sources */,
+				B5B3CE432BB6102F002F55B3 /* RenderManager.swift in Sources */,
+				B5ED373E2BDD283700A04963 /* ThreadSafeFlag.swift in Sources */,
+				B5E711F92BB4ED500092172A /* CustomWindowController.swift in Sources */,
+				B5E711FD2BB5A8F80092172A /* FileDialog.swift in Sources */,
+				B597D0472BD08B7E00CBCA26 /* OSCManager.swift in Sources */,
+				B55A3AD42BE51450009A2C9A /* Debouncer.swift in Sources */,
+				B5461CF42BD1D52400F085FD /* KeyboardMouseView.swift in Sources */,
+				B5495DFE2BE052990036A337 /* SerialRunner.swift in Sources */,
 				B5E711AC2BB462F80092172A /* MetalGeminiApp.swift in Sources */,
+				B54CEB592BDC453200077D15 /* ShaderManager.swift in Sources */,
+				B54AAF5A2BF19E3D00586048 /* GlobalKeyboardEventHandler.swift in Sources */,
+				B5B287002BE9798300FECB38 /* UniformControlView.swift in Sources */,
+				B54CEB5B2BDD59BF00077D15 /* FileMonitor.swift in Sources */,
+				B5ED373C2BDA0F2A00A04963 /* Notification.swift in Sources */,
+				B5B3CE4C2BB72502002F55B3 /* Extensions.swift in Sources */,
 				B5E711BD2BB463B20092172A /* PixelShaders.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -192,7 +404,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -255,7 +467,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -275,9 +487,11 @@
 		};
 		B5E711B82BB462FA0092172A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E84A1554A65794DB71367AB3 /* Pods-MetalGemini.debug.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = NewIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = MetalGemini/MetalGemini.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -287,6 +501,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MetalGemini/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -302,9 +517,11 @@
 		};
 		B5E711B92BB462FA0092172A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 04AE51043A9DBBD8BF909E43 /* Pods-MetalGemini.release.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = NewIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = MetalGemini/MetalGemini.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -314,6 +531,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MetalGemini/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
