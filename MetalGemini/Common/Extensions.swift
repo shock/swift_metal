@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Extension to allow throwing String as an Error
 extension String: LocalizedError {
     public var errorDescription: String? { return self }
 }
